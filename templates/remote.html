@@ -14,6 +14,7 @@ a{color:var(--amber-l);text-decoration:none}
 .card{background:linear-gradient(180deg,#0C2A21,#081813);border:1px solid var(--line);border-radius:16px;padding:16px;margin:14px}
 .k{font-size:12px;letter-spacing:.12em;color:var(--muted);margin-bottom:10px}
 .muted{color:var(--muted)} .small{font-size:12px}
+@media(min-width:700px){body{max-width:560px;margin:0 auto;padding:16px}}
 input,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px;font-size:15px;font-family:inherit;margin-bottom:8px}
 </style><link rel="stylesheet" href="/ui.css" />
 </head><body>
@@ -90,6 +91,7 @@ function loadPresets(){
     var sel=document.getElementById('presetSel'); var list=(d&&d.list)||[];
     sel.innerHTML='<option value="">（选择预置题目）</option>'+list.map(function(v){return '<option value="'+v.id+'">'+v.question+'</option>'}).join('');
     window.__presets=list;
+    var pb=document.getElementById('presetStart'); if(pb){ if(!list.length){pb.disabled=true;pb.textContent='先在课堂后台添加预置题目'}else{pb.disabled=false;pb.textContent='用预置题目发起'} }
   }).catch(function(){});
 }
 document.getElementById('presetStart').onclick=function(){

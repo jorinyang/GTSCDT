@@ -16,12 +16,12 @@ a{color:var(--amber-l);text-decoration:none}
 .screen{padding:22px;display:grid;grid-template-columns:1.15fr .85fr;gap:16px;height:calc(100vh - 62px)}
 .card{background:linear-gradient(180deg,#0C2A21,#081813);border:1px solid var(--line);border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;min-height:0}
 .k{font-size:12px;letter-spacing:.12em;color:var(--muted);margin-bottom:10px}
-.big{font-size:56px;font-weight:800;color:#F6E4C6;line-height:1.1}
+.big{font-size:56px;font-weight:800;color:var(--lime);line-height:1.1}
 .sub{font-size:15px;color:var(--muted);margin-top:6px}
 .bar{height:18px;border-radius:9px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:8px}
 .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--jade),var(--jade-l));width:0;transition:width .4s}
 .opt{display:flex;justify-content:space-between;font-size:15px;margin-top:14px}
-.list{overflow:auto;flex:1}
+.list{overflow:auto;flex:1;padding-bottom:150px}
 .row{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 0;font-size:15px}
 .win{font-size:64px;font-weight:800;color:var(--amber-l);text-align:center;margin-top:26px}
 #viewFrame{position:fixed;inset:0;width:100%;height:100%;border:0;background:#081813;z-index:5;display:none}
@@ -48,7 +48,7 @@ var q=new URLSearchParams(location.search), room=(q.get('room')||'').toUpperCase
 document.getElementById('room').textContent=room||'ROOM0';
 var _jr=room||'ROOM0';
 document.getElementById('qrroom').textContent=_jr;
-new QRCode(document.getElementById('qr'),{text:location.origin+'/join?room='+_jr,width:132,height:132,colorDark:'#0A1F1A',colorLight:'#F4EFE2'});
+new QRCode(document.getElementById('qr'),{text:location.origin+'/join?room='+_jr,width:104,height:104,colorDark:'#0E0E10',colorLight:'#CBF74E'});
 document.getElementById('fs').onclick=function(){document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen()};
 function esc(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
 var _end=0;
