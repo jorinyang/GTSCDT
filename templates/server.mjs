@@ -62,17 +62,19 @@ function listRooms(){
   const one=function(code){
     let meta={}; try{ meta=JSON.parse(fs.readFileSync(roomMetaFile(code),'utf8')); }catch(e){}
     const st=loadRoom(code);
-    out.push({code,title:meta.title||('课堂 '+code),createdAt:meta.createdAt||'',students:Object.keys(st.students||{}).length,active:!!(st.poll&&st.poll.active)||!!(st.quiz&&st.quiz.paper&&st.quiz.paper.active)});
+    out.push({code,title:meta.title||('课堂 '+code),city:meta.city||'',date:meta.date||'',createdAt:meta.createdAt||'',students:Object.keys(st.students||{}).length,active:!!(st.poll&&st.poll.active)||!!(st.quiz&&st.quiz.paper&&st.quiz.paper.active)});
   };
   one(DEFAULT_ROOM);
   if(fs.existsSync(ROOMS_DIR)) fs.readdirSync(ROOMS_DIR).forEach(function(d){ if(validRoom(d)&&d!==DEFAULT_ROOM) one(d); });
   return out;
 }
-function createRoom(title){
+function createRoom(title, city, date){
   let code='';
   for(let i=0;i<50;i++){ code=Array.from({length:4},()=>ROOM_ALPHABET[Math.floor(Math.random()*ROOM_ALPHABET.length)]).join(''); if(!fs.existsSync(roomStateFile(code))) break; }
+  const d=String(date||new Date().toISOString().slice(0,10)); const c=String(city||'').trim();
+  const t=String(title||'').trim()||(d+' '+(c||'未设城市'));
   fs.mkdirSync(path.join(ROOMS_DIR,code),{recursive:true});
-  fs.writeFileSync(roomMetaFile(code), JSON.stringify({title:title||('课堂 '+code),createdAt:new Date().toISOString()},null,1));
+  fs.writeFileSync(roomMetaFile(code), JSON.stringify({title:t,city:c,date:d,createdAt:new Date().toISOString()},null,1));
   saveRoom(code, blank());
   return code;
 }
@@ -429,8 +431,8 @@ function readRaw(req, limit){
 function readBody(req){ return new Promise((resolve,reject)=>{ let d=''; req.on('data',c=>{d+=c; if(d.length>2e6){reject(new Error('too large'));req.destroy()}}); req.on('end',()=>{ try{resolve(d?JSON.parse(d):{})}catch(e){resolve({})} }); req.on('error',reject); }); }
 const MIME={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.json':'application/json; charset=utf-8','.csv':'text/csv; charset=utf-8'};
 const MAP=_IS_KIT
-  ? {'/':'promo.html','/promo':'promo.html','/live':'live.html','/live.html':'live.html','/course':'course/course.html','/course.html':'course/course.html','/grader':'course/grader.html','/grader.html':'course/grader.html','/admin':'course/admin.html','/admin.html':'course/admin.html','/ops':'course/admin.html','/join':'live.html','/screen':'screen.html','/remote':'remote.html','/login':'login.html','/shell':'course-shell.html','/rooms':'rooms.html','/teachers':'teachers.html','/packages':'packages.html','/report':'report.html','/package-edit':'package-edit.html','/room':'room.html'}
-  : {'/':'宣传页/课程大纲-宣传版.html','/promo':'宣传页/课程大纲-宣传版.html','/live':'宣传页/live.html','/live.html':'宣传页/live.html','/course':'课件/course.html','/course.html':'课件/course.html','/grader':'课件/grader.html','/grader.html':'课件/grader.html','/admin':'课件/admin.html','/admin.html':'课件/admin.html','/ops':'课件/admin.html','/join':'宣传页/live.html','/screen':'screen.html','/remote':'remote.html','/login':'login.html','/shell':'course-shell.html','/rooms':'rooms.html','/teachers':'teachers.html','/packages':'packages.html','/report':'report.html','/package-edit':'package-edit.html','/room':'room.html'};
+  ? {'/':'promo.html','/promo':'promo.html','/live':'live.html','/live.html':'live.html','/course':'course/course.html','/course.html':'course/course.html','/grader':'course/grader.html','/grader.html':'course/grader.html','/admin':'course/admin.html','/admin.html':'course/admin.html','/ops':'course/admin.html','/join':'live.html','/screen':'screen.html','/remote':'remote.html','/login':'login.html','/shell':'course-shell.html','/rooms':'rooms.html','/teachers':'teachers.html','/packages':'packages.html','/report':'report.html','/package-edit':'package-edit.html','/room':'room.html','/home':'home.html','/room-setup':'room-setup.html'}
+  : {'/':'宣传页/课程大纲-宣传版.html','/promo':'宣传页/课程大纲-宣传版.html','/live':'宣传页/live.html','/live.html':'宣传页/live.html','/course':'课件/course.html','/course.html':'课件/course.html','/grader':'课件/grader.html','/grader.html':'课件/grader.html','/admin':'课件/admin.html','/admin.html':'课件/admin.html','/ops':'课件/admin.html','/join':'宣传页/live.html','/screen':'screen.html','/remote':'remote.html','/login':'login.html','/shell':'course-shell.html','/rooms':'rooms.html','/teachers':'teachers.html','/packages':'packages.html','/report':'report.html','/package-edit':'package-edit.html','/room':'room.html','/home':'home.html','/room-setup':'room-setup.html'};
 function serveStatic(res,pathname){
   let rel=MAP[pathname] || decodeURIComponent(pathname).replace(/^\/+/,'');
   const abs=path.resolve(ROOT,rel);
@@ -495,11 +497,15 @@ const server=http.createServer(async (req,res)=>{
         teachers.push(t); saveTeachers(teachers);
       }
       if(t&&!t.dept){ const dept=(corpInfo&&corpInfo.dept)||await dingDept(me.unionId); if(dept){ t.dept=dept; saveTeachers(teachers); } }
-      if(!t) return send(res,403,'该钉钉账号未加入讲师名单，请联系管理员','text/html; charset=utf-8');
+      if(!t){
+        t={id:'t-'+Date.now().toString(36),name:me.nick||'钉钉讲师',role:'teacher',dept:(corpInfo&&corpInfo.dept)||'',dingUnionId:me.unionId||'',dingOpenId:me.openId||'',createdAt:new Date().toISOString()};
+        teachers.push(t); saveTeachers(teachers);
+      }
       setTeacherCookie(res,t);
-      res.writeHead(302,{Location:'/ops'}); return res.end();
+      res.writeHead(302,{Location:'/home'}); return res.end();
     }catch(e){ return send(res,500,'钉钉登录失败：'+String(e.message||e),'text/html; charset=utf-8'); }
   }
+  if(p==='/auth/logout'){ res.setHeader('Set-Cookie','gtsc_teacher=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax'); res.writeHead(302,{Location:'/'}); return res.end(); }
   if(p==='/api/me') return send(res,200,{ok:true,teacher:getTeacher(req)});
   if(p==='/api/teachers' && req.method==='GET') return send(res,200,{ok:true,teachers:loadTeachers()});
   if(p==='/api/teachers' && req.method==='POST'){
@@ -508,6 +514,12 @@ const server=http.createServer(async (req,res)=>{
     const list=loadTeachers();
     const t={id:'t-'+Date.now().toString(36),name,role:['admin','teacher','assistant','viewer'].indexOf(b.role)>=0?b.role:'teacher',dept:String(b.dept||''),dingUnionId:String(b.dingUnionId||''),dingOpenId:String(b.dingOpenId||''),createdAt:new Date().toISOString()};
     list.push(t); saveTeachers(list); return send(res,200,{ok:true,teacher:t});
+  }
+  if(p==='/api/teachers/update' && req.method==='POST'){
+    const b=await readBody(req); const list=loadTeachers(); const t=list.filter(function(x){return x.id===b.id})[0];
+    if(!t) return send(res,404,{ok:false,error:'not found'});
+    ['name','role','dept','dingUnionId','dingOpenId'].forEach(function(k){ if(b[k]!==undefined) t[k]=String(b[k]||''); });
+    saveTeachers(list); return send(res,200,{ok:true,teacher:t});
   }
   if(p==='/api/teachers/delete' && req.method==='POST'){
     const b=await readBody(req); const list=loadTeachers().filter(x=>x.id!==b.id); saveTeachers(list);
@@ -676,7 +688,7 @@ const server=http.createServer(async (req,res)=>{
   }
   if(AUTH_REQUIRED){
     const teacher=getTeacher(req);
-    const htmlGuarded=(p==='/ops'||p==='/admin'||p==='/grader'||p==='/shell'||p==='/rooms'||p==='/teachers'||p==='/packages'||p==='/report'||p==='/remote'||p==='/package-edit'||p==='/room');
+    const htmlGuarded=(p==='/ops'||p==='/admin'||p==='/grader'||p==='/shell'||p==='/rooms'||p==='/teachers'||p==='/packages'||p==='/report'||p==='/remote'||p==='/package-edit'||p==='/room'||p==='/home'||p==='/room-setup');
     const apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p.indexOf('/api/rooms')===0)||(p==='/api/report')||(p==='/api/report.csv')||(p.indexOf('/api/packages')===0)||(p.indexOf('/api/generate')===0)||(p.indexOf('/api/package')===0)||(p==='/api/extract');
     if(htmlGuarded&&!teacher){ res.writeHead(302,{Location:'/login'}); return res.end(); }
     if(apiGuarded&&!teacher) return send(res,401,{ok:false,error:'login required'});
@@ -684,8 +696,19 @@ const server=http.createServer(async (req,res)=>{
   if(p==='/api/rooms' && req.method==='GET') return send(res,200,{ok:true,rooms:listRooms(),current:currentRoom});
   if(p==='/api/rooms/create' && req.method==='POST'){
     const b=await readBody(req);
-    const code=createRoom(b.title);
+    const code=createRoom(b.title,b.city,b.date);
     return send(res,200,{ok:true,code,urls:{room:'/room?code='+code,ops:'/ops?room='+code,join:'/join?room='+code,screen:'/screen?room='+code,remote:'/remote?room='+code}});
+  }
+  if(p==='/api/rooms/update' && req.method==='POST'){
+    const b=await readBody(req); const code=String(b.code||'').toUpperCase();
+    if(code===DEFAULT_ROOM) return send(res,400,{ok:false,error:'默认房间不可修改'});
+    if(!validRoom(code)) return send(res,400,{ok:false,error:'房间码不对'});
+    let meta={}; try{ meta=JSON.parse(fs.readFileSync(roomMetaFile(code),'utf8')); }catch(e){ return send(res,404,{ok:false,error:'房间不存在'}); }
+    if(b.title!==undefined) meta.title=String(b.title||'').trim()||meta.title;
+    if(b.city!==undefined) meta.city=String(b.city||'').trim();
+    if(b.date!==undefined) meta.date=String(b.date||'').trim();
+    fs.writeFileSync(roomMetaFile(code), JSON.stringify(meta,null,1));
+    return send(res,200,{ok:true,meta});
   }
   if(p==='/api/rooms/delete' && req.method==='POST'){
     const b=await readBody(req); const code=String(b.code||'').toUpperCase();
@@ -964,6 +987,11 @@ const server=http.createServer(async (req,res)=>{
       }
       return send(res,404,{ok:false,error:'no api'});
     }catch(e){ return send(res,500,{ok:false,error:String(e.message||e)}); }
+  }
+  if(p==='/'){
+    const t=getTeacher(req);
+    if(t){ res.writeHead(302,{Location:'/home'}); return res.end(); }
+    return send(res,200,fs.readFileSync(path.join(ROOT,'login.html')),'text/html; charset=utf-8');
   }
   serveStatic(res,p);
 });

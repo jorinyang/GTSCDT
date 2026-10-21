@@ -1,0 +1,105 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>课程生成 · GTSCDT</title>
+<style>
+:root{--bg:#081813;--line:rgba(244,239,226,.13);--text:#F4EFE2;--muted:#9DB3A6;--amber:#D98A2B;--amber-l:#E9B45C}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;padding:22px}
+a{color:var(--amber-l);text-decoration:none}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap}
+.brand{font-size:12px;letter-spacing:.12em;color:#7E978A}
+h1{font-size:22px} .muted{color:var(--muted)} .small{font-size:12px}
+.card{background:linear-gradient(180deg,#0C2A21,#081813);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px}
+.k{font-size:12px;letter-spacing:.12em;color:var(--muted);margin-bottom:10px}
+textarea{width:100%;min-height:150px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;color:#E9E4D6;padding:12px;font-size:13px;font-family:inherit;line-height:1.7}
+input{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:9px;color:var(--text);padding:8px 10px}
+.btn{border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);border-radius:9px;padding:8px 14px;font-size:13px;cursor:pointer}
+.btn.primary{background:rgba(217,138,43,.18);border-color:rgba(233,180,92,.55);color:#F6E4C6}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.bar{height:12px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:12px}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#2F8F73,#63B79A);transition:width .4s}
+.hidden{display:none!important}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:900px){.two{grid-template-columns:1fr}}
+a.lnk{display:inline-block;margin:6px 12px 0 0}
+</style></head><body>
+<div class="top"><div class="brand">GTSCDT · 课程生成</div><div><a href="/home">← 工作台</a> · <a id="roomLink" href="#">课程房间</a></div></div>
+<h1 id="title">课程生成</h1>
+<p class="muted small" id="sub">上传课程大纲与课件，系统将生成课程页/宣传页/题库/素材/作业题。</p>
+
+<div class="card"><div class="k">房间信息</div>
+  <div class="row"><input id="rt" style="width:280px" placeholder="房间名称" /><input id="rc" style="width:120px" placeholder="城市" /><input id="rd" type="date" style="width:160px" /><button class="btn" id="rsave">保存</button><span class="small muted" id="rmsg"></span></div>
+</div>
+
+<div class="two">
+  <div class="card"><div class="k">课程大纲</div>
+    <textarea id="outline" placeholder="粘贴课程大纲：模块、时间、目标、案例"></textarea>
+    <div class="row"><input id="outlineFile" type="file" accept=".docx,.pptx,.pdf,.md,.txt,.html,.htm" /><span class="small muted" id="outlineMsg"></span></div>
+  </div>
+  <div class="card"><div class="k">课件 / 素材</div>
+    <textarea id="courseware" placeholder="粘贴课件内容或要点"></textarea>
+    <div class="row"><input id="coursewareFile" type="file" accept=".docx,.pptx,.pdf,.md,.txt,.html,.htm" /><span class="small muted" id="coursewareMsg"></span></div>
+  </div>
+</div>
+
+<div class="card"><div class="k">生成</div>
+  <button class="btn primary" id="gen">开始生成（约 60–90 秒）</button>
+  <span class="small muted" id="gmsg"></span>
+  <div class="bar"><i id="bar"></i></div>
+  <div id="result" class="hidden" style="margin-top:12px"></div>
+</div>
+<script>
+var q=new URLSearchParams(location.search), CODE=(q.get('code')||q.get('room')||'ROOM0').toUpperCase();
+var ROOM=null,PKG=null;
+document.getElementById('roomLink').href='/room?code='+CODE;
+fetch('/api/rooms').then(function(r){return r.json()}).then(function(d){
+  ROOM=(d.rooms||[]).filter(function(x){return x.code===CODE})[0]||{};
+  document.getElementById('title').textContent='课程生成 · '+CODE;
+  document.getElementById('sub').textContent=ROOM.title||'';
+  document.getElementById('rt').value=ROOM.title||''; document.getElementById('rc').value=ROOM.city||''; document.getElementById('rd').value=ROOM.date||'';
+});
+document.getElementById('rsave').onclick=function(){
+  fetch('/api/rooms/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:CODE,title:document.getElementById('rt').value,city:document.getElementById('rc').value,date:document.getElementById('rd').value})})
+   .then(function(r){return r.json()}).then(function(d){document.getElementById('rmsg').textContent=d.ok?'已保存':(d.error||'失败')});
+};
+function bindFile(inputId, taId, msgId){
+  document.getElementById(inputId).onchange=function(){
+    var f=this.files&&this.files[0]; if(!f)return;
+    var msg=document.getElementById(msgId); msg.textContent='解析中…';
+    var fr=new FileReader();
+    fr.onload=function(){ var b64=String(fr.result).split(',')[1]||'';
+      fetch('/api/extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:f.name,data:b64})}).then(function(r){return r.json()}).then(function(d){
+        if(!d.ok){msg.textContent='解析失败：'+(d.error||'');return}
+        var ta=document.getElementById(taId); ta.value=(ta.value?ta.value+'\n\n':'')+d.text;
+        msg.textContent='已解析 '+f.name+'（'+d.chars+' 字）';
+      }).catch(function(e){msg.textContent='解析失败：'+e.message});
+    };
+    fr.readAsDataURL(f);
+  };
+}
+bindFile('outlineFile','outline','outlineMsg');
+bindFile('coursewareFile','courseware','coursewareMsg');
+var timer=null;
+document.getElementById('gen').onclick=function(){
+  var outline=document.getElementById('outline').value.trim();
+  var courseware=document.getElementById('courseware').value.trim();
+  if(!outline&&!courseware){document.getElementById('gmsg').textContent='先上传或粘贴大纲/课件';return}
+  document.getElementById('gen').disabled=true; document.getElementById('gmsg').textContent='生成中…';
+  var p=0,bar=document.getElementById('bar'); bar.style.width='0%';
+  timer=setInterval(function(){p=Math.min(90,p+3+Math.random()*4);bar.style.width=p+'%'},1200);
+  fetch('/api/generate/course',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:(ROOM&&ROOM.title)||CODE,outline:outline,courseware:courseware})})
+   .then(function(r){return r.json()}).then(function(d){
+    clearInterval(timer); bar.style.width='100%';
+    if(!d.ok){document.getElementById('gmsg').textContent='失败：'+(d.error||'');document.getElementById('gen').disabled=false;return}
+    PKG=d.id;
+    document.getElementById('gmsg').textContent='生成完成（'+d.model+'）';
+    return Promise.all([
+      fetch('/api/generate/apply-quiz?room='+CODE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pkg:PKG})}).then(function(r){return r.json()}).catch(function(){}),
+      fetch('/api/generate/apply-homework?room='+CODE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pkg:PKG})}).then(function(r){return r.json()}).catch(function(){})
+    ]).then(function(){
+      var c=d.counts||{},qz=c.quiz||{};
+      var h='<div>题库：选择 '+(qz.choice||0)+' / 判断 '+(qz.judge||0)+' / 填空 '+(qz.blank||0)+' / 简答 '+(qz.short||0)+' · 素材 '+(c.materials||0)+' · 作业 '+(c.homework||0)+'</div>'
+        +'<div style="margin-top:8px"><a class="lnk" href="/room?code='+CODE+'">进入课程房间</a><a class="lnk" href="/pkg/'+PKG+'/index.html" target="_blank">课程页</a><a class="lnk" href="/pkg/'+PKG+'/promo.html" target="_blank">宣传页</a><a class="lnk" href="/package-edit?pkg='+PKG+'">编辑内容</a><a class="lnk" href="/screen?room='+CODE+'" target="_blank">大屏</a><a class="lnk" href="/join?room='+CODE+'" target="_blank">学员端</a></div>';
+      var el=document.getElementById('result'); el.innerHTML=h; el.classList.remove('hidden');
+    });
+  }).catch(function(e){clearInterval(timer);document.getElementById('gmsg').textContent='失败：'+e.message;document.getElementById('gen').disabled=false});
+};
+</script></body></html>

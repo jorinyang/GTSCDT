@@ -32,7 +32,7 @@ input,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(
 fetch('/api/auth/config').then(function(r){return r.json()}).then(function(d){ if(!d.dingtalk){document.getElementById('ding').style.display='none'} if(!d.local){document.getElementById('local').disabled=true;document.getElementById('pwd').disabled=true} }).catch(function(){});
 document.getElementById('local').onclick=function(){
   fetch('/auth/local',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:document.getElementById('pwd').value})}).then(function(r){return r.json()}).then(function(d){
-    if(d.ok){location.href='/ops'}else{document.getElementById('msg').textContent=d.error||'登录失败'}
+    if(d.ok){location.href='/home'}else{document.getElementById('msg').textContent=d.error||'登录失败'}
   }).catch(function(){document.getElementById('msg').textContent='服务未响应'});
 };
 </script></body></html>

@@ -41,7 +41,7 @@ function load(){
 }
 document.getElementById('create').onclick=function(){
   fetch('/api/rooms/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:document.getElementById('title').value})}).then(function(r){return r.json()}).then(function(d){
-    if(d.ok){location.href='/room?code='+d.code}else{document.getElementById('msg').textContent=d.error||'创建失败'}
+    if(d.ok){location.href='/room-setup?code='+d.code}else{document.getElementById('msg').textContent=d.error||'创建失败'}
   });
 };
 load();
