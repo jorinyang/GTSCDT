@@ -170,7 +170,7 @@ function adminView(){
   if(state.poll.options&&state.poll.options.length){ state.poll.options.forEach((o,i)=>{results[i]=0}); Object.values(state.poll.votes||{}).forEach(v=>{ if(results[v]!==undefined) results[v]++ }); }
   const subs=Object.keys(state.submissions).map(k=>{ const p=k.split('||'); const st=state.students[p[0]]||{}; const sub=state.submissions[k]; return {key:k,studentKey:p[0],name:st.name||p[0],tail:st.tail||'',task:p[1],text:sub.text||'',fileName:sub.fileName||'',q1:sub.q1||'',q2:sub.q2||'',q3:sub.q3||'',files:sub.files||[],at:sub.at,manual:sub.manual||[],score:sub.score||null}; });
   const _mc=modelCfg();
-  return {ok:true,timer:state.timer||null,workshopOpen:!!(state.config&&state.config.workshopOpen),quiz:quizInfo,model:{baseUrl:_mc.base,model:_mc.model,hasKey:!!_mc.key},config:state.config||{},buzz:state.buzz||{enabled:false,running:false,winner:''},students:Object.keys(state.students).map(k=>Object.assign({key:k},state.students[k])),groups:Object.keys(state.groups).map(g=>({id:g,name:state.groups[g].name,perf:state.groups[g].perf||0,count:counts[g]})),counts,poll:{active:state.poll.active,question:state.poll.question,options:state.poll.options,votes:state.poll.votes,results,startedAt:state.poll.startedAt},submissions:subs,updatedAt:state.updatedAt};
+  return {ok:true,timer:state.timer||null,workshopOpen:!!(state.config&&state.config.workshopOpen),quiz:quizInfo,model:{baseUrl:_mc.base,model:_mc.model,hasKey:!!_mc.key},config:state.config||{},votePresets:state.votePresets||[],buzz:state.buzz||{enabled:false,running:false,winner:''},students:Object.keys(state.students).map(k=>Object.assign({key:k},state.students[k])),groups:Object.keys(state.groups).map(g=>({id:g,name:state.groups[g].name,perf:state.groups[g].perf||0,count:counts[g]})),counts,poll:{active:state.poll.active,question:state.poll.question,options:state.poll.options,votes:state.poll.votes,results,startedAt:state.poll.startedAt},submissions:subs,updatedAt:state.updatedAt};
 }
 function mcpToolDefs(){
   return [
@@ -1034,6 +1034,7 @@ const server=http.createServer(async (req,res)=>{
           state.votePresets=state.votePresets||[];
           if(b.action==='delete'){ state.votePresets=state.votePresets.filter(function(x){return x.id!==b.id}); save(); return send(res,200,{ok:true,list:state.votePresets}); }
           if(b.action==='add'){ const q=String(b.question||'').trim(); const opts=(b.options||[]).map(String).filter(Boolean); if(!q||opts.length<2) return send(res,400,{ok:false,error:'问题+至少两个选项'}); state.votePresets.push({id:'v-'+Date.now().toString(36),question:q,options:opts}); save(); return send(res,200,{ok:true,list:state.votePresets}); }
+          if(b.action==='update'){ const v=state.votePresets.filter(function(x){return x.id===b.id})[0]; if(!v) return send(res,404,{ok:false,error:'题目不存在'}); if(b.question!==undefined){ const q=String(b.question||'').trim(); if(q)v.question=q; } if(Array.isArray(b.options)){ const opts=b.options.map(String).filter(Boolean); if(opts.length>=2)v.options=opts; } save(); return send(res,200,{ok:true,list:state.votePresets}); }
           return send(res,200,{ok:true,list:state.votePresets});
         }
         if(p==='/api/admin/material'){ state.config=state.config||{}; state.config.materialOpen=!!b.open; save(); return send(res,200,{ok:true,materialOpen:state.config.materialOpen}); }

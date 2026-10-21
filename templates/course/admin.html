@@ -59,21 +59,12 @@ body{animation:pageIn .32s ease both}
   </div>
   <div id="pane-class"><div class="grid2">
     <div class="card">
-      <div class="k">投票</div>
-      <div id="pollForm">
-        <label class="small muted">问题</label>
-        <input id="qText" placeholder="例如：你觉得自己现在在哪一层？" />
-        <label class="small muted" style="display:block;margin-top:8px">选项（每行一个）</label>
-        <textarea id="qOpts" placeholder="几乎没用过&#10;用过聊天助手&#10;每天在用&#10;会搭流程&#10;会做东西"></textarea>
-        <div class="rowflex" style="margin-top:10px">
-          <button class="btn" id="startPoll">发起投票</button>
-          <button class="btn ghost" id="stopPoll">结束投票</button>
-          <span class="muted small" id="pollStat"></span>
-        </div>
-      </div>
-      <div id="pollResults" style="margin-top:14px"></div>
+      <div class="k">投票题库（遥控器从这里选）</div>
+      <div id="vpList" class="small"></div>
+      <div class="rowflex" style="margin-top:10px"><input id="vpQ" placeholder="问题，例如：你从什么时候开始接触 AI？" style="width:100%" /></div>
+      <textarea id="vpOpts" rows="4" placeholder="选项，每行一个" style="margin-top:6px;width:100%"></textarea>
+      <div class="rowflex" style="margin-top:8px"><button class="btn sm" id="vpAdd">添加题目</button><span class="muted small" id="vpMsg"></span></div>
     </div>
-
     <div>
       <div class="card">
         <div class="k">抽签与分组</div>
@@ -114,13 +105,7 @@ body{animation:pageIn .32s ease both}
     </div>
   </div>
 
-  <div class="card" style="margin-top:14px">
-    <div class="k">投票题库（遥控器从这里选）</div>
-    <div id="vpList" class="small"></div>
-    <div class="rowflex" style="margin-top:8px"><input id="vpQ" placeholder="问题" style="width:260px" /></div>
-    <textarea id="vpOpts" rows="2" placeholder="选项，每行一个" style="margin-top:6px;width:100%"></textarea>
-    <div class="rowflex" style="margin-top:6px"><button class="btn sm" id="vpAdd">添加题目</button><span class="muted small" id="vpMsg"></span></div>
-  </div>
+
 
   <div class="card" style="margin-top:14px">
     <div class="k">课程素材（发放后学员端可见）</div>
@@ -451,10 +436,24 @@ refresh();setInterval(refresh,2500);
   function post(p,b){return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json()})}
   function load(){
     fetch('/api/admin/state?room='+ROOM,{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
-      var vp=d.votePresets||[];
+      var vp=d.votePresets||[]; window.__vps=vp;
       var el=document.getElementById('vpList');
-      if(el)el.innerHTML=vp.length?vp.map(function(v){return '<div style="padding:4px 0">'+v.question+' <button class="btn sm danger" data-vdel="'+v.id+'" style="padding:1px 6px;font-size:11px">删</button></div>'}).join(''):'<span class="muted">还没有预置题目</span>';
-      document.querySelectorAll('[data-vdel]').forEach(function(b){b.onclick=function(){post('/api/admin/votepreset',{action:'delete',id:b.getAttribute('data-vdel')}).then(load)}});
+      function esc(x){return String(x==null?'':x).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
+      if(el)el.innerHTML=vp.length?vp.map(function(v){
+        return '<div class="vpit" style="border:1px solid #2A2A32;border-radius:10px;padding:8px 10px;margin-bottom:8px">'
+          +'<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><b style="font-size:13px">'+esc(v.question)+'</b>'
+          +'<span style="white-space:nowrap"><button class="btn sm" onclick="editVp(\''+v.id+'\')" style="padding:1px 7px;font-size:11px">编辑</button> '
+          +'<button class="btn sm danger" onclick="delVp(\''+v.id+'\')" style="padding:1px 7px;font-size:11px">删除</button></span></div>'
+          +'<div class="muted small" style="margin-top:4px">'+v.options.map(esc).join(' / ')+'</div></div>';
+      }).join(''):'<span class="muted small">还没有预置题目，先在下面添加</span>';
+      window.editVp=function(id){
+        var v=(window.__vps||[]).filter(function(x){return x.id===id})[0]; if(!v)return;
+        var q=prompt('问题',v.question); if(q===null)return;
+        var op=prompt('选项，每行一个',v.options.join('\n')); if(op===null)return;
+        var opts=op.split('\n').map(function(x){return x.trim()}).filter(Boolean);
+        post('/api/admin/votepreset',{action:'update',id:id,question:q,options:opts}).then(function(d){ if(d.ok)load(); else alert(d.error||'保存失败'); });
+      };
+      window.delVp=function(id){ if(!confirm('删除这道投票题？'))return; post('/api/admin/votepreset',{action:'delete',id:id}).then(function(){load()}); };
       var mt=document.getElementById('matToggle');
       if(mt){mt.textContent='素材发放：'+(d.config&&d.config.materialOpen?'已开启':'已关闭');}
     }).catch(function(){});
@@ -466,7 +465,7 @@ refresh();setInterval(refresh,2500);
   }
   document.getElementById('vpAdd').onclick=function(){
     var opts=document.getElementById('vpOpts').value.split('\n').map(function(x){return x.trim()}).filter(Boolean);
-    post('/api/admin/votepreset',{action:'add',question:document.getElementById('vpQ').value,options:opts}).then(function(d){document.getElementById('vpMsg').textContent=d.ok?'已添加':(d.error||'失败');load()});
+    post('/api/admin/votepreset',{action:'add',question:document.getElementById('vpQ').value,options:opts}).then(function(d){document.getElementById('vpMsg').textContent=d.ok?'已添加':(d.error||'失败'); if(d.ok){document.getElementById('vpQ').value='';document.getElementById('vpOpts').value='';} load()});
   };
   document.getElementById('matToggle').onclick=function(){
     fetch('/api/admin/state?room='+ROOM).then(function(r){return r.json()}).then(function(d){return post('/api/admin/material',{open:!(d.config&&d.config.materialOpen)})}).then(load);
