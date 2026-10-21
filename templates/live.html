@@ -133,7 +133,8 @@ body{animation:pageIn .32s ease both}
 
     <div class="card" id="hwCard" style="display:none">
       <div class="hw-head"><b id="hwTitle">作业提交</b><span class="small" id="hwGroup"></span></div>
-      <div id="hwList"></div>
+      <div id="questsAsset" style="margin-bottom:10px"></div>
+  <div id="hwList"></div>
       <p class="small" style="margin-top:6px">每类一份；可重复选择覆盖，点「确认提交」后正式上传。单文件 ≤25MB。</p>
       <button class="btn" id="hwConfirm" style="margin-top:10px">确认提交（<span id="hwPendingN">0</span>）</button>
     </div>
@@ -184,6 +185,15 @@ function submittedTasks(){
   return m;
 }
 function renderHw(){
+  var qa=document.getElementById('questsAsset');
+  if(qa){
+    if(stateData&&stateData.tasksCount){
+      var key='quests_'+(stateData.room||'')+'_'+(stateData.tasksVersion||0); var cached=null;
+      try{cached=localStorage.getItem(key)}catch(e){}
+      if(cached){qa.innerHTML=cached;}
+      else{fetch('/api/room/asset?name=quests').then(function(r){return r.ok?r.text():''}).then(function(html){ if(html&&qa){try{localStorage.setItem(key,html)}catch(e){} qa.innerHTML=html; } });}
+    } else { qa.innerHTML=''; }
+  }
   if(stateData&&stateData.tasks&&stateData.tasks.length){
     HWS=stateData.tasks.map(function(t,i){return {id:t.id,no:i+1,title:(i+1)+' 号作业：'+t.title,hint:t.deliverable||'按题目要求提交',accept:'.md,.txt,.docx,.pdf,.pptx,.xlsx,.zip,.png,.jpg,.jpeg'}});
   }

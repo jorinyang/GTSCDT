@@ -139,6 +139,7 @@ function studentView(k){
   }
   return {
     ok:true,
+    room: currentRoom,
     me: s?{name:s.name,tail:s.tail,group:s.group,score:groupScore,groupPerf:groupPerf,groupScore:groupScore}:null,
     poll: poll.active?{active:true,question:poll.question,options:poll.options,voted,myVote:voted?poll.votes[k]:null,startedAt:poll.startedAt}:{active:false},
     hwOpen: !!(state.config&&state.config.hwOpen),
