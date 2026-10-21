@@ -36,3 +36,5 @@ table tr:hover td{background:rgba(255,255,255,.02)!important}
 ::-webkit-scrollbar{width:9px;height:9px}
 ::-webkit-scrollbar-thumb{background:#2e2e37;border-radius:9px}
 ::-webkit-scrollbar-track{background:transparent}
+
+.btn:disabled,.big-btn:disabled,button:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.4)}
