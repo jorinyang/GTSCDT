@@ -25,7 +25,7 @@ a{color:var(--amber-l);text-decoration:none}
 .row{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 0;font-size:15px}
 .win{font-size:64px;font-weight:800;color:var(--amber-l);text-align:center;margin-top:26px}
 #viewFrame{position:fixed;inset:0;width:100%;height:100%;border:0;background:#081813;z-index:5;display:none}
-.qrbox{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:10px;text-align:center}
+.qrmini{position:absolute;right:14px;bottom:14px;display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(14,14,16,.7);border:1px solid var(--line);border-radius:14px;padding:6px 8px;text-align:center}
 #qr{background:#F4EFE2;padding:8px;border-radius:10px;display:inline-block}
 </style><link rel="stylesheet" href="/ui.css" />
 </head><body>
@@ -36,10 +36,10 @@ a{color:var(--amber-l);text-decoration:none}
     <div class="card"><div class="k">投票</div><div id="poll"></div></div>
     <div class="card"><div class="k">答题进度</div><div id="quiz"></div></div>
   </div>
-  <div style="display:grid;grid-template-rows:minmax(0,1fr) minmax(0,1.2fr) 168px;gap:16px">
-    <div class="card"><div class="k">抢答</div><div id="buzz"></div></div>
+  <div style="display:grid;grid-template-rows:minmax(0,1fr) minmax(0,1.2fr);gap:16px">
+    <div class="card" style="position:relative"><div class="k">抢答</div><div id="buzz"></div><div class="qrmini"><div id="qr"></div><div class="small muted">扫码加入</div></div></div>
     <div class="card"><div class="k">小组积分</div><div class="list" id="groups"></div></div>
-    <div class="qrbox"><div id="qr"></div><div class="small muted">扫码加入 · <span id="qrroom"></span></div></div>
+    
   </div>
 </div>
 <script src="/qrcode.min.js"></script>
@@ -48,7 +48,7 @@ var q=new URLSearchParams(location.search), room=(q.get('room')||'').toUpperCase
 document.getElementById('room').textContent=room||'ROOM0';
 var _jr=room||'ROOM0';
 document.getElementById('qrroom').textContent=_jr;
-new QRCode(document.getElementById('qr'),{text:location.origin+'/join?room='+_jr,width:104,height:104,colorDark:'#0E0E10',colorLight:'#CBF74E'});
+new QRCode(document.getElementById('qr'),{text:location.origin+'/join?room='+_jr,width:88,height:88,colorDark:'#0E0E10',colorLight:'#CBF74E'});
 document.getElementById('fs').onclick=function(){document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen()};
 function esc(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
 var _end=0;
