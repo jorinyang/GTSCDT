@@ -102,11 +102,13 @@ function modelCfg(){
   const c=(state.config&&state.config.model)||{};
   return {base:(c.baseUrl||process.env.DEEPSEEK_BASE||'https://api.deepseek.com').replace(/\/$/,''),model:c.model||process.env.DEEPSEEK_MODEL||'deepseek-flash',key:c.apiKey||process.env.DEEPSEEK_API_KEY||''};
 }
-async function modelChat(messages,maxTokens){
+async function modelChat(messages,maxTokens,json){
   const cfg=modelCfg(); if(!cfg.key) return {ok:false,error:'未配置 API Key'};
   const t0=Date.now();
   try{
-    const r=await fetch(cfg.base+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key},body:JSON.stringify({model:cfg.model,messages:messages,temperature:0,max_tokens:maxTokens||600})});
+    const payload={model:cfg.model,messages:messages,temperature:0,max_tokens:maxTokens||600};
+    if(json) payload.response_format={type:'json_object'};
+    const r=await fetch(cfg.base+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key},body:JSON.stringify(payload)});
     const txt=await r.text();
     if(!r.ok) return {ok:false,error:'HTTP '+r.status+' '+txt.slice(0,160)};
     const j=JSON.parse(txt);
@@ -221,7 +223,7 @@ async function dingCorpUser(unionId){
   }catch(e){ return {ok:false,reason:String(e.message||e)}; }
 }
 async function genJSON(prompt,maxTokens){
-  const r=await modelChat([{role:'user',content:prompt}],maxTokens||2600);
+  const r=await modelChat([{role:'user',content:prompt}],maxTokens||2600,true);
   if(!r.ok) return {err:r.error};
   let s=String(r.content||'').replace(/^[\s\S]*?\{/,'{').replace(/\}[\s\S]*$/,'}');
   try{ return {data:JSON.parse(s)}; }catch(e){ return {err:'模型返回无法解析'}; }
