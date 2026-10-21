@@ -39,7 +39,7 @@ textarea{width:100%}
 <script>
 function load(){fetch('/api/packages').then(function(r){return r.json()}).then(function(d){
   var rows=(d.packages||[]).map(function(p){
-    return '<tr><td><b>'+p.title+'</b></td><td class="small muted">'+p.id+'</td><td><a href="/pkg/'+p.id+'/index.html" target="_blank">预览</a> · <a href="/shell?pkg='+p.id+'" target="_blank">框架打开</a></td><td><button class="btn sm danger" data-del="'+p.id+'">删除</button></td></tr>';
+    return '<tr><td><b>'+p.title+'</b></td><td class="small muted">'+p.id+'</td><td><a href="/pkg/'+p.id+'/index.html" target="_blank">预览</a> · <a href="/shell?pkg='+p.id+'" target="_blank">框架打开</a> · <a href="/package-edit?pkg='+p.id+'">编辑</a></td><td><button class="btn sm danger" data-del="'+p.id+'">删除</button></td></tr>';
   }).join('');
   document.getElementById('tbl').innerHTML='<tr><th>课程名</th><th>ID</th><th>打开</th><th></th></tr>'+rows;
   document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){ if(!confirm('删除该课程包？'))return; fetch('/api/packages/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:b.getAttribute('data-del')})}).then(load) }});

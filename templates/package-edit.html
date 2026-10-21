@@ -1,0 +1,87 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>课程包编辑 · GTSCDT</title>
+<style>
+:root{--bg:#081813;--line:rgba(244,239,226,.13);--text:#F4EFE2;--muted:#9DB3A6;--amber:#D98A2B;--amber-l:#E9B45C}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;padding:20px}
+a{color:var(--amber-l);text-decoration:none}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap}
+.brand{font-size:12px;letter-spacing:.12em;color:#7E978A}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.tab{padding:8px 16px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03);cursor:pointer;font-size:13.5px;color:#CFDCD2}
+.tab.on{background:rgba(217,138,43,.16);border-color:rgba(233,180,92,.55);color:#F6E4C6}
+.card{background:linear-gradient(180deg,#0C2A21,#081813);border:1px solid var(--line);border-radius:14px;padding:16px}
+.k{font-size:12px;letter-spacing:.12em;color:var(--muted);margin-bottom:8px}
+textarea{width:100%;min-height:52vh;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;color:#E9E4D6;padding:12px;font:13px/1.6 ui-monospace,Consolas,monospace;resize:vertical}
+input{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:9px;color:var(--text);padding:8px 10px}
+.btn{border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);border-radius:9px;padding:8px 14px;font-size:13px;cursor:pointer}
+.btn.primary{background:rgba(217,138,43,.18);border-color:rgba(233,180,92,.55);color:#F6E4C6}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.muted{color:var(--muted)} .small{font-size:12px}
+</style></head><body>
+<div class="top"><div class="brand">GTSCDT · 课程包编辑</div><div><a href="/packages">← 课程包</a> · <a id="preview" href="#" target="_blank">预览</a> · <a href="/ops">课堂后台</a></div></div>
+<h1 id="title" style="font-size:20px;margin-bottom:4px">课程包</h1>
+<p class="muted small" id="sub">加载中…</p>
+<div class="tabs">
+  <button class="tab on" data-type="course">课程页</button>
+  <button class="tab" data-type="promo">宣传页</button>
+  <button class="tab" data-type="quiz">题库</button>
+  <button class="tab" data-type="materials">过程素材</button>
+  <button class="tab" data-type="homework">作业题</button>
+</div>
+<div class="card">
+  <div class="k" id="hint">编辑结构化数据后保存，页面会立即重新生成。</div>
+  <textarea id="editor" spellcheck="false"></textarea>
+  <div class="row">
+    <button class="btn primary" id="save">保存并重新生成</button>
+    <button class="btn" id="reload">重新加载</button>
+    <input id="room" placeholder="房间码（应用题库用）" style="width:150px" />
+    <button class="btn" id="applyQuiz">把题库应用到房间</button>
+    <span class="small" id="msg"></span>
+  </div>
+  <p class="muted small" id="schema" style="margin-top:8px"></p>
+</div>
+<script>
+var q=new URLSearchParams(location.search), PKG=q.get('pkg')||'';
+var DATA=null, TYPE='course';
+var SCHEMA={
+ course:'结构：{"title":"课程名","subtitle":"","sections":[{"type":"cover|bullets|timeline|quote|image","title":"页标题","text":"","items":["要点"]}]}',
+ promo:'结构：{"headline":"主标题","subline":"副标题","intro":"介绍","modules":[{"title":"模块","points":["要点"]}],"outcomes":["收益"],"schedule":[{"time":"09:00","text":"安排"}],"cta":"行动"}',
+ quiz:'结构：{"choice":[{"q":"题目","options":["A","B","C","D"],"answer":"A"}],"judge":[{"q":"题目","answer":"对"}],"blank":[{"q":"题目","answer":"答案"}],"short":[{"q":"题目","ref":"参考答案"}]}',
+ materials:'结构：[{"title":"素材名","content":"正文"}]',
+ homework:'结构：[{"title":"作业名","scenario":"场景","requirements":["要求"],"deliverable":"交付物","acceptance":"验收标准"}]'
+};
+function btn(t){return document.querySelector('.tab[data-type="'+t+'"]')}
+function show(t){
+  TYPE=t; document.querySelectorAll('.tab').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-type')===t)});
+  document.getElementById('hint').textContent={course:'课程页：分页内容',promo:'宣传页：文案与模块',quiz:'题库：选择/判断/填空/简答',materials:'过程素材：标题 + 正文',homework:'作业场景题'}[t];
+  document.getElementById('schema').textContent=SCHEMA[t];
+  var v=DATA?DATA[t]:null;
+  document.getElementById('editor').value=v?JSON.stringify(v,null,2):'';
+  document.getElementById('preview').href=DATA?DATA.urls.course:'#';
+}
+function load(){
+  fetch('/api/package?pkg='+encodeURIComponent(PKG)).then(function(r){return r.json()}).then(function(d){
+    if(!d.ok){document.getElementById('sub').textContent='加载失败：'+(d.error||'');return}
+    DATA=d; document.getElementById('title').textContent=d.meta.title||PKG; document.getElementById('sub').textContent='包 ID：'+d.id+' · 修改后立即生效';
+    document.getElementById('preview').href=d.urls.course; show(TYPE);
+  });
+}
+document.querySelectorAll('.tab').forEach(function(b){b.onclick=function(){show(b.getAttribute('data-type'))}});
+document.getElementById('save').onclick=function(){
+  var txt=document.getElementById('editor').value;
+  var data; try{ data=JSON.parse(txt); }catch(e){ document.getElementById('msg').textContent='JSON 格式不对：'+e.message; return; }
+  document.getElementById('msg').textContent='保存中…';
+  fetch('/api/package/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pkg:PKG,type:TYPE,data:data})}).then(function(r){return r.json()}).then(function(d){
+    document.getElementById('msg').textContent=d.ok?('已保存并重新生成'):('失败：'+(d.error||''));
+    if(d.ok)load();
+  }).catch(function(e){document.getElementById('msg').textContent='失败：'+e.message});
+};
+document.getElementById('reload').onclick=load;
+document.getElementById('applyQuiz').onclick=function(){
+  var room=document.getElementById('room').value.trim().toUpperCase();
+  fetch('/api/generate/apply-quiz'+(room?('?room='+room):''),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pkg:PKG})}).then(function(r){return r.json()}).then(function(d){
+    document.getElementById('msg').textContent=d.ok?('题库已应用：选 '+d.counts.choice+' / 判 '+d.counts.judge+' / 填 '+d.counts.blank+' / 简 '+d.counts.short):('失败：'+(d.error||''));
+  });
+};
+load();
+</script></body></html>

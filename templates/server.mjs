@@ -374,8 +374,8 @@ function readRaw(req, limit){
 function readBody(req){ return new Promise((resolve,reject)=>{ let d=''; req.on('data',c=>{d+=c; if(d.length>2e6){reject(new Error('too large'));req.destroy()}}); req.on('end',()=>{ try{resolve(d?JSON.parse(d):{})}catch(e){resolve({})} }); req.on('error',reject); }); }
 const MIME={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.json':'application/json; charset=utf-8','.csv':'text/csv; charset=utf-8'};
 const MAP=_IS_KIT
-  ? {'/':'promo.html','/promo':'promo.html','/live':'live.html','/live.html':'live.html','/course':'course/course.html','/course.html':'course/course.html','/grader':'course/grader.html','/grader.html':'course/grader.html','/admin':'course/admin.html','/admin.html':'course/admin.html','/ops':'course/admin.html','/join':'live.html','/screen':'screen.html','/remote':'remote.html','/login':'login.html','/shell':'course-shell.html','/rooms':'rooms.html','/teachers':'teachers.html','/packages':'packages.html','/report':'report.html'}
-  : {'/':'宣传页/课程大纲-宣传版.html','/promo':'宣传页/课程大纲-宣传版.html','/live':'宣传页/live.html','/live.html':'宣传页/live.html','/course':'课件/course.html','/course.html':'课件/course.html','/grader':'课件/grader.html','/grader.html':'课件/grader.html','/admin':'课件/admin.html','/admin.html':'课件/admin.html','/ops':'课件/admin.html','/join':'宣传页/live.html','/screen':'screen.html','/remote':'remote.html','/login':'login.html','/shell':'course-shell.html','/rooms':'rooms.html','/teachers':'teachers.html','/packages':'packages.html','/report':'report.html'};
+  ? {'/':'promo.html','/promo':'promo.html','/live':'live.html','/live.html':'live.html','/course':'course/course.html','/course.html':'course/course.html','/grader':'course/grader.html','/grader.html':'course/grader.html','/admin':'course/admin.html','/admin.html':'course/admin.html','/ops':'course/admin.html','/join':'live.html','/screen':'screen.html','/remote':'remote.html','/login':'login.html','/shell':'course-shell.html','/rooms':'rooms.html','/teachers':'teachers.html','/packages':'packages.html','/report':'report.html','/package-edit':'package-edit.html'}
+  : {'/':'宣传页/课程大纲-宣传版.html','/promo':'宣传页/课程大纲-宣传版.html','/live':'宣传页/live.html','/live.html':'宣传页/live.html','/course':'课件/course.html','/course.html':'课件/course.html','/grader':'课件/grader.html','/grader.html':'课件/grader.html','/admin':'课件/admin.html','/admin.html':'课件/admin.html','/ops':'课件/admin.html','/join':'宣传页/live.html','/screen':'screen.html','/remote':'remote.html','/login':'login.html','/shell':'course-shell.html','/rooms':'rooms.html','/teachers':'teachers.html','/packages':'packages.html','/report':'report.html','/package-edit':'package-edit.html'};
 function serveStatic(res,pathname){
   let rel=MAP[pathname] || decodeURIComponent(pathname).replace(/^\/+/,'');
   const abs=path.resolve(ROOT,rel);
@@ -487,6 +487,9 @@ const server=http.createServer(async (req,res)=>{
     if(!course.sections||!course.sections.length) course.sections=[{type:'cover',title:title,text:outline.slice(0,120)}];
     fs.writeFileSync(path.join(dir,'index.html'), renderCoursePackage({title:course.title||title,subtitle:promo.subline||'',date:''}, course));
     fs.writeFileSync(path.join(dir,'promo.html'), renderPromo({title:title}, promo));
+    fs.writeFileSync(path.join(dir,'course.json'), JSON.stringify(course,null,2));
+    fs.writeFileSync(path.join(dir,'promo.json'), JSON.stringify(promo,null,2));
+    fs.writeFileSync(path.join(dir,'materials.json'), JSON.stringify(misc.materials||[],null,2));
     fs.writeFileSync(path.join(dir,'quiz.json'), JSON.stringify(quiz,null,2));
     fs.writeFileSync(path.join(dir,'homework.json'), JSON.stringify(hw.length?hw:misc.homework,null,2));
     misc.materials.forEach(function(m,i){ const name=String(i+1).padStart(2,'0')+'-'+String(m.title||'素材').replace(/[\\/:*?"<>|]/g,'_')+'.md'; fs.writeFileSync(path.join(dir,'materials',name), '# '+(m.title||'素材')+'\n\n'+(m.content||'')); });
@@ -502,6 +505,43 @@ const server=http.createServer(async (req,res)=>{
     state.quiz.config={mode:'random',counts:{choice:5,judge:3,blank:2,short:1},scores:{choice:2,judge:2,blank:3,short:10}};
     save();
     return send(res,200,{ok:true,counts:{choice:state.quiz.bank.choice.length,judge:state.quiz.bank.judge.length,blank:state.quiz.bank.blank.length,short:state.quiz.bank.short.length}});
+  }
+  if(p==='/api/package' && req.method==='GET'){
+    const id=String(u.searchParams.get('pkg')||'');
+    if(!/^pkg-[a-z0-9]+$/.test(id)) return send(res,400,{ok:false,error:'bad package'});
+    const dir=path.join(PACKAGES_DIR,id);
+    if(!fs.existsSync(dir)) return send(res,404,{ok:false,error:'not found'});
+    const read=function(f,d){ try{ return JSON.parse(fs.readFileSync(path.join(dir,f),'utf8')); }catch(e){ return d; } };
+    return send(res,200,{ok:true,id,meta:read('meta.json',{}),course:read('course.json',null),promo:read('promo.json',null),quiz:read('quiz.json',{choice:[],judge:[],blank:[],short:[]}),homework:read('homework.json',[]),materials:read('materials.json',[]),urls:{course:'/pkg/'+id+'/index.html',promo:'/pkg/'+id+'/promo.html'}});
+  }
+  if(p==='/api/package/save' && req.method==='POST'){
+    const b=await readBody(req); const id=String(b.pkg||''); const type=String(b.type||'');
+    if(!/^pkg-[a-z0-9]+$/.test(id)) return send(res,400,{ok:false,error:'bad package'});
+    const dir=path.join(PACKAGES_DIR,id); if(!fs.existsSync(dir)) return send(res,404,{ok:false,error:'not found'});
+    let meta={}; try{ meta=JSON.parse(fs.readFileSync(path.join(dir,'meta.json'),'utf8')); }catch(e){}
+    try{
+      if(type==='course'){
+        const d=b.data||{}; if(!Array.isArray(d.sections)) return send(res,400,{ok:false,error:'课程页需要 sections 数组'});
+        fs.writeFileSync(path.join(dir,'course.json'), JSON.stringify(d,null,2));
+        fs.writeFileSync(path.join(dir,'index.html'), renderCoursePackage({title:d.title||meta.title||'课程',subtitle:d.subtitle||'',date:d.date||''}, d));
+      }else if(type==='promo'){
+        const d=b.data||{}; fs.writeFileSync(path.join(dir,'promo.json'), JSON.stringify(d,null,2));
+        fs.writeFileSync(path.join(dir,'promo.html'), renderPromo({title:meta.title||d.headline||'课程'}, d));
+      }else if(type==='quiz'){
+        const q=normalizeQuiz(b.data||{}); fs.writeFileSync(path.join(dir,'quiz.json'), JSON.stringify(q,null,2));
+      }else if(type==='homework'){
+        if(!Array.isArray(b.data)) return send(res,400,{ok:false,error:'作业需要数组'});
+        fs.writeFileSync(path.join(dir,'homework.json'), JSON.stringify(b.data,null,2));
+      }else if(type==='materials'){
+        const arr=Array.isArray(b.data)?b.data:[];
+        fs.writeFileSync(path.join(dir,'materials.json'), JSON.stringify(arr,null,2));
+        const mdir=path.join(dir,'materials'); if(fs.existsSync(mdir)) fs.rmSync(mdir,{recursive:true,force:true});
+        fs.mkdirSync(mdir,{recursive:true});
+        arr.forEach(function(m,i){ const name=String(i+1).padStart(2,'0')+'-'+String(m.title||'素材').replace(/[\\/:*?"<>|]/g,'_')+'.md'; fs.writeFileSync(path.join(mdir,name), '# '+(m.title||'素材')+'\n\n'+(m.content||'')); });
+      }else return send(res,400,{ok:false,error:'bad type'});
+      meta.updatedAt=new Date().toISOString(); fs.writeFileSync(path.join(dir,'meta.json'), JSON.stringify(meta,null,1));
+      return send(res,200,{ok:true,urls:{course:'/pkg/'+id+'/index.html',promo:'/pkg/'+id+'/promo.html'}});
+    }catch(e){ return send(res,500,{ok:false,error:String(e.message||e)}); }
   }
   if(p==='/api/packages' && req.method==='GET') return send(res,200,{ok:true,packages:listPackages()});
   if(p==='/api/packages' && req.method==='POST'){
@@ -553,8 +593,8 @@ const server=http.createServer(async (req,res)=>{
   }
   if(AUTH_REQUIRED){
     const teacher=getTeacher(req);
-    const htmlGuarded=(p==='/ops'||p==='/admin'||p==='/grader'||p==='/shell'||p==='/rooms'||p==='/teachers'||p==='/packages'||p==='/report'||p==='/remote');
-    const apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p.indexOf('/api/rooms')===0)||(p==='/api/report')||(p==='/api/report.csv')||(p.indexOf('/api/packages')===0)||(p.indexOf('/api/generate')===0);
+    const htmlGuarded=(p==='/ops'||p==='/admin'||p==='/grader'||p==='/shell'||p==='/rooms'||p==='/teachers'||p==='/packages'||p==='/report'||p==='/remote'||p==='/package-edit');
+    const apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p.indexOf('/api/rooms')===0)||(p==='/api/report')||(p==='/api/report.csv')||(p.indexOf('/api/packages')===0)||(p.indexOf('/api/generate')===0)||(p.indexOf('/api/package')===0);
     if(htmlGuarded&&!teacher){ res.writeHead(302,{Location:'/login'}); return res.end(); }
     if(apiGuarded&&!teacher) return send(res,401,{ok:false,error:'login required'});
   }
