@@ -282,6 +282,15 @@ function parseQuizText(t){
   });
   return out;
 }
+function parseHomeworkText(t){
+  const out=[];
+  cleanText(t).split(/\r?\n/).forEach(function(l){
+    const s=l.trim(); if(!s)return;
+    const a=s.split('|').map(function(x){return x.trim()});
+    if(a[0]==='作业'&&a.length>=4&&a[1]) out.push({title:a[1],scenario:a[2]||'',requirements:(a[3]||'').split(/[;；]/).filter(Boolean),deliverable:a[4]||'',acceptance:a[5]||''});
+  });
+  return out;
+}
 function parseMiscText(t){
   const materials=[], homework=[];
   String(t||'').split(/\r?\n/).forEach(function(l){
@@ -469,6 +478,8 @@ const server=http.createServer(async (req,res)=>{
     const promo=parsePromoText(cleanText(r2.text));
     const quiz=normalizeQuiz(parseQuizText(cleanText(r3.text)));
     const misc=parseMiscText(cleanText(r4.text));
+    const r5=await genText('根据素材生成 6 道作业场景题，每行一条，用竖线分隔，不要解释。格式：作业|标题|场景描述|要求1;要求2|交付物|验收标准\n'+base,4000);
+    const hw=parseHomeworkText(r5.text);
     fs.mkdirSync(path.join(dir,'raw'),{recursive:true});
     fs.writeFileSync(path.join(dir,'raw','course.txt'),String(r1.text||''));
     fs.writeFileSync(path.join(dir,'raw','promo.txt'),String(r2.text||''));
@@ -478,10 +489,10 @@ const server=http.createServer(async (req,res)=>{
     fs.writeFileSync(path.join(dir,'index.html'), renderCoursePackage({title:course.title||title,subtitle:promo.subline||'',date:''}, course));
     fs.writeFileSync(path.join(dir,'promo.html'), renderPromo({title:title}, promo));
     fs.writeFileSync(path.join(dir,'quiz.json'), JSON.stringify(quiz,null,2));
-    fs.writeFileSync(path.join(dir,'homework.json'), JSON.stringify(misc.homework,null,2));
+    fs.writeFileSync(path.join(dir,'homework.json'), JSON.stringify(hw.length?hw:misc.homework,null,2));
     misc.materials.forEach(function(m,i){ const name=String(i+1).padStart(2,'0')+'-'+String(m.title||'素材').replace(/[\\/:*?"<>|]/g,'_')+'.md'; fs.writeFileSync(path.join(dir,'materials',name), '# '+(m.title||'素材')+'\n\n'+(m.content||'')); });
-    fs.writeFileSync(path.join(dir,'meta.json'), JSON.stringify({id,title,createdAt:new Date().toISOString(),model:mc.model,quiz:{choice:quiz.choice.length,judge:quiz.judge.length,blank:quiz.blank.length,short:quiz.short.length},homework:misc.homework.length,materials:misc.materials.length},null,1));
-    return send(res,200,{ok:true,id,title,model:mc.model,urls:{course:'/pkg/'+id+'/index.html',promo:'/pkg/'+id+'/promo.html',quiz:'/pkg/'+id+'/quiz.json',homework:'/pkg/'+id+'/homework.json'},counts:{quiz:{choice:quiz.choice.length,judge:quiz.judge.length,blank:quiz.blank.length,short:quiz.short.length},homework:misc.homework.length,materials:misc.materials.length},errors:[r1.err,r2.err,r3.err,r4.err].filter(Boolean)});
+    fs.writeFileSync(path.join(dir,'meta.json'), JSON.stringify({id,title,createdAt:new Date().toISOString(),model:mc.model,quiz:{choice:quiz.choice.length,judge:quiz.judge.length,blank:quiz.blank.length,short:quiz.short.length},homework:(hw.length?hw.length:misc.homework.length),materials:misc.materials.length},null,1));
+    return send(res,200,{ok:true,id,title,model:mc.model,urls:{course:'/pkg/'+id+'/index.html',promo:'/pkg/'+id+'/promo.html',quiz:'/pkg/'+id+'/quiz.json',homework:'/pkg/'+id+'/homework.json'},counts:{quiz:{choice:quiz.choice.length,judge:quiz.judge.length,blank:quiz.blank.length,short:quiz.short.length},homework:(hw.length?hw.length:misc.homework.length),materials:misc.materials.length},errors:[r1.err,r2.err,r3.err,r4.err,r5.err].filter(Boolean)});
   }
   if(p==='/api/generate/apply-quiz' && req.method==='POST'){
     const b=await readBody(req); const id=String(b.pkg||'');
