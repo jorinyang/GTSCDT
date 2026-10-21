@@ -228,6 +228,66 @@ async function genJSON(prompt,maxTokens){
   let s=String(r.content||'').replace(/^[\s\S]*?\{/,'{').replace(/\}[\s\S]*$/,'}');
   try{ return {data:JSON.parse(s)}; }catch(e){ return {err:'模型返回无法解析'}; }
 }
+
+async function genText(prompt,maxTokens){
+  const r=await modelChat([{role:'user',content:prompt}],maxTokens||1800);
+  if(!r.ok) return {err:r.error};
+  return {text:String(r.content||'')};
+}
+function parseCourseText(t){
+  const lines=String(t||'').split(/\r?\n/); let title=''; const secs=[]; let cur=null;
+  lines.forEach(function(l){ const s=l.trim(); if(!s)return;
+    if(/^#\s+/.test(s)&&!/^##\s+/.test(s)){ title=s.replace(/^#\s+/,''); return; }
+    if(/^##\s+/.test(s)){ if(cur)secs.push(cur); cur={type:'bullets',title:s.replace(/^##\s+/,''),items:[]}; return; }
+    if(/^[-*]\s+/.test(s)){ if(!cur)cur={type:'bullets',title:'要点',items:[]}; cur.items.push(s.replace(/^[-*]\s+/,'')); return; }
+  });
+  if(cur)secs.push(cur);
+  if(!secs.length) secs.push({type:'bullets',title:'要点',items:lines.filter(Boolean).slice(0,8)});
+  return {title:title||'',sections:[{type:'cover',title:title||'课程',text:''}].concat(secs)};
+}
+function parsePromoText(t){
+  const o={headline:'',subline:'',intro:'',modules:[],outcomes:[],schedule:[],cta:''};
+  String(t||'').split(/\r?\n/).forEach(function(l){
+    let s=l.trim(); if(!s)return;
+    let m=s.match(/^(标题|副标题|介绍|模块|收益|安排|行动)[:：]\s*(.+)$/);
+    if(m){
+      const k=m[1], v=m[2];
+      if(k==='标题')o.headline=v;
+      else if(k==='副标题')o.subline=v;
+      else if(k==='介绍')o.intro=v;
+      else if(k==='模块')o.modules.push({title:v,points:[]});
+      else if(k==='收益')o.outcomes.push(v);
+      else if(k==='安排'){const a=v.split('|');o.schedule.push({time:a[0]||'',text:a[1]||a[0]||''});}
+      else if(k==='行动')o.cta=v;
+      return;
+    }
+    if(/^[-*]\s+/.test(s)&&o.modules.length){ o.modules[o.modules.length-1].points.push(s.replace(/^[-*]\s+/,'')); }
+  });
+  if(!o.headline)o.headline='课程';
+  return o;
+}
+function parseQuizText(t){
+  const out={choice:[],judge:[],blank:[],short:[]};
+  String(t||'').split(/\r?\n/).forEach(function(l){
+    const s=l.trim(); if(!s)return;
+    const a=s.split('|').map(function(x){return x.trim()});
+    if(a[0]==='选择'&&a.length>=7&&a[1]) out.choice.push({q:a[1],options:[a[2],a[3],a[4],a[5]].filter(Boolean),answer:(a[6]||'A').toUpperCase().replace(/[^A-D]/g,'')||'A'});
+    else if(a[0]==='判断'&&a.length>=3&&a[1]) out.judge.push({q:a[1],answer:(a[2].indexOf('错')>=0?'错':'对')});
+    else if(a[0]==='填空'&&a.length>=3&&a[1]) out.blank.push({q:a[1],answer:a[2]});
+    else if(a[0]==='简答'&&a.length>=3&&a[1]) out.short.push({q:a[1],ref:a[2]});
+  });
+  return out;
+}
+function parseMiscText(t){
+  const materials=[], homework=[];
+  String(t||'').split(/\r?\n/).forEach(function(l){
+    const s=l.trim(); if(!s)return;
+    const a=s.split('|').map(function(x){return x.trim()});
+    if(a[0]==='素材'&&a.length>=3&&a[1]) materials.push({title:a[1],content:a.slice(2).join('\n')});
+    else if(a[0]==='作业'&&a.length>=4&&a[1]) homework.push({title:a[1],scenario:a[2]||'',requirements:(a[3]||'').split(/[;；]/).filter(Boolean),deliverable:a[4]||'',acceptance:a[5]||''});
+  });
+  return {materials:materials,homework:homework};
+}
 function normalizeQuiz(q){
   const out={choice:[],judge:[],blank:[],short:[]};
   (q.choice||[]).forEach(function(x,i){ const o=(x.options||[]).map(String).filter(Boolean).slice(0,4); if(o.length>=2&&x.q) out.choice.push({id:'choice-gen-'+i,type:'choice',q:String(x.q),options:o,answer:String(x.answer||'A').toUpperCase().replace(/[^A-D]/g,'')||'A'}); });
@@ -396,21 +456,23 @@ const server=http.createServer(async (req,res)=>{
     if(!outline.trim()&&!courseware.trim()) return send(res,400,{ok:false,error:'请提供课程大纲或课件内容'});
     const mc=modelCfg(); if(!mc.key) return send(res,400,{ok:false,error:'请先在「模型管理」里配置模型与 API Key'});
     const base='课程名称：'+title+'\n大纲：\n'+outline+'\n课件/素材：\n'+courseware+'\n';
-    const r1=await genJSON('你是企业 AI 培训课程设计助手。根据素材生成课程页的分页内容，只输出 JSON。格式：{"title":"","subtitle":"","sections":[{"type":"cover","title":"","text":"","meta":""},{"type":"bullets","title":"","items":[""]},{"type":"timeline","title":"","items":[{"time":"","text":""}]},{"type":"quote","title":"","text":""}]}\n'+base,3000);
-    const r2=await genJSON('生成课程宣传页文案，只输出 JSON：{"headline":"","subline":"","intro":"","modules":[{"title":"","points":[""]}],"outcomes":[""],"schedule":[{"time":"","text":""}],"cta":""}\n'+base,2200);
-    const r3=await genJSON('生成随堂题库，只输出 JSON：{"choice":[{"q":"","options":["","","",""],"answer":"A"}],"judge":[{"q":"","answer":"对"}],"blank":[{"q":"","answer":""}],"short":[{"q":"","ref":""}]}。选择题 6 道、判断 4 道、填空 4 道、简答 2 道。\n'+base,2600);
-    const r4=await genJSON('生成课程过程素材与作业场景题。只输出 JSON：{"materials":[{"title":"","content":""}],"homework":[{"title":"","scenario":"","requirements":[""],"deliverable":"","acceptance":""}]}。素材至少 4 份（任务卡/案例/检查表），作业 6 道。\n'+base,3000);
+    const r1=await genText('你是企业 AI 培训课程设计助手。根据素材输出讲课大纲，只输出大纲本身，不要解释。格式：第一行“# 课程标题”，每个页用“## 页标题”，页下要点用“- ”开头。\n'+base,2000);
+    const r2=await genText('根据素材输出宣传页文案，逐行输出，不要解释。格式：\n标题：一句话主标题\n副标题：一句话副标题\n介绍：80 字以内介绍\n模块：模块名\n- 该模块要点\n收益：一条学员收益（可多行）\n安排：09:00|开场与分组\n行动：报名或咨询\n'+base,1400);
+    const r3=await genText('根据素材生成随堂题库，每行一条，用竖线分隔，不要解释。格式：\n选择|题目|选项A|选项B|选项C|选项D|正确答案字母\n判断|题目|对或错\n填空|题目|答案\n简答|题目|参考答案\n要求：选择 6 道、判断 4 道、填空 4 道、简答 2 道。\n'+base,2000);
+    const r4=await genText('根据素材生成课程过程素材与作业场景题，每行一条，用竖线分隔，不要解释。格式：\n素材|标题|正文（可含要点，用；分隔）\n作业|标题|场景描述|要求1;要求2|交付物|验收标准\n要求：素材至少 4 条，作业 6 条。\n'+base,2000);
+    const course=parseCourseText(r1.text||'');
+    const promo=parsePromoText(r2.text||'');
+    const quiz=normalizeQuiz(parseQuizText(r3.text||''));
+    const misc=parseMiscText(r4.text||'');
     const pk=newPackageDir(title); const id=pk.id, dir=pk.dir;
-    const course=(r1.data&&r1.data.sections)?r1.data:{title:title,subtitle:'',sections:[{type:'cover',title:title,text:outline.slice(0,120)}].concat(String(outline).split(/\n{2,}/).slice(0,8).map(function(x,i){return {type:'bullets',title:'要点 '+(i+1),items:[x.slice(0,80)]}}))};
-    fs.writeFileSync(path.join(dir,'index.html'), renderCoursePackage({title:course.title||title,subtitle:course.subtitle||'',date:''}, course));
-    fs.writeFileSync(path.join(dir,'promo.html'), renderPromo({title:title}, r2.data||{}));
-    const quiz=normalizeQuiz(r3.data||{});
+    if(!course.sections||!course.sections.length) course.sections=[{type:'cover',title:title,text:outline.slice(0,120)}];
+    fs.writeFileSync(path.join(dir,'index.html'), renderCoursePackage({title:course.title||title,subtitle:promo.subline||'',date:''}, course));
+    fs.writeFileSync(path.join(dir,'promo.html'), renderPromo({title:title}, promo));
     fs.writeFileSync(path.join(dir,'quiz.json'), JSON.stringify(quiz,null,2));
-    const hw=(r4.data&&r4.data.homework)||[]; const mats=(r4.data&&r4.data.materials)||[];
-    fs.writeFileSync(path.join(dir,'homework.json'), JSON.stringify(hw,null,2));
-    mats.forEach(function(m,i){ const name=String(i+1).padStart(2,'0')+'-'+String(m.title||'素材').replace(/[\\/:*?"<>|]/g,'_')+'.md'; fs.writeFileSync(path.join(dir,'materials',name), '# '+(m.title||'素材')+'\n\n'+(m.content||'')); });
-    fs.writeFileSync(path.join(dir,'meta.json'), JSON.stringify({id,title,createdAt:new Date().toISOString(),model:mc.model,quiz:{choice:quiz.choice.length,judge:quiz.judge.length,blank:quiz.blank.length,short:quiz.short.length},homework:hw.length,materials:mats.length},null,1));
-    return send(res,200,{ok:true,id,title,model:mc.model,urls:{course:'/pkg/'+id+'/index.html',promo:'/pkg/'+id+'/promo.html',quiz:'/pkg/'+id+'/quiz.json',homework:'/pkg/'+id+'/homework.json'},counts:{quiz:{choice:quiz.choice.length,judge:quiz.judge.length,blank:quiz.blank.length,short:quiz.short.length},homework:hw.length,materials:mats.length},errors:[r1.err,r2.err,r3.err,r4.err].filter(Boolean)});
+    fs.writeFileSync(path.join(dir,'homework.json'), JSON.stringify(misc.homework,null,2));
+    misc.materials.forEach(function(m,i){ const name=String(i+1).padStart(2,'0')+'-'+String(m.title||'素材').replace(/[\\/:*?"<>|]/g,'_')+'.md'; fs.writeFileSync(path.join(dir,'materials',name), '# '+(m.title||'素材')+'\n\n'+(m.content||'')); });
+    fs.writeFileSync(path.join(dir,'meta.json'), JSON.stringify({id,title,createdAt:new Date().toISOString(),model:mc.model,quiz:{choice:quiz.choice.length,judge:quiz.judge.length,blank:quiz.blank.length,short:quiz.short.length},homework:misc.homework.length,materials:misc.materials.length},null,1));
+    return send(res,200,{ok:true,id,title,model:mc.model,urls:{course:'/pkg/'+id+'/index.html',promo:'/pkg/'+id+'/promo.html',quiz:'/pkg/'+id+'/quiz.json',homework:'/pkg/'+id+'/homework.json'},counts:{quiz:{choice:quiz.choice.length,judge:quiz.judge.length,blank:quiz.blank.length,short:quiz.short.length},homework:misc.homework.length,materials:misc.materials.length},errors:[r1.err,r2.err,r3.err,r4.err].filter(Boolean)});
   }
   if(p==='/api/generate/apply-quiz' && req.method==='POST'){
     const b=await readBody(req); const id=String(b.pkg||'');
