@@ -75,6 +75,7 @@ GTSCDT/
 | 评分规则 | `grader.html` 的 `TASKS` 数组 |
 | 题库与出题 | 课堂后台「在线答题」标签（下载模板 → 填 Excel → 导入 → 设置数量/分值 → 发布） |
 | 模型评分 | 课堂后台「模型管理」标签（API Key / Base URL / Model，先测试再保存） |
+| 课程包模板 | templates/course-package-template/（example.json + build.mjs） |
 | 素材下载 | `templates/materials/`（文件名与 `live.html` 的 `files` 对应） |
 | 云函数地址 | 三个页面里的 `FC_API` 常量（`YOUR-FC-DOMAIN`） |
 | 讲师介绍 | 课件「讲师介绍」页 + `assets/teacher-placeholder.svg` |

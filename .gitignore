@@ -9,3 +9,4 @@ __pycache__/
 Thumbs.db
 *.log
 *.tmp
+course-package-template/out.html
