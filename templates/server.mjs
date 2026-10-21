@@ -427,11 +427,9 @@ const server=http.createServer(async (req,res)=>{
       if(!tj.accessToken) return send(res,401,'钉钉授权失败','text/html; charset=utf-8');
       const ur=await fetch('https://api.dingtalk.com/v1.0/contact/users/me',{headers:{'x-acs-dingtalk-access-token':tj.accessToken}});
       const me=await ur.json();
+      if(process.env.DINGTALK_CORP_ID && tj.corpId && tj.corpId!==process.env.DINGTALK_CORP_ID) return send(res,403,'仅限育钉组织成员登录','text/html; charset=utf-8');
       let corpInfo=null;
-      if(process.env.DINGTALK_CORP_ID){
-        corpInfo=await dingCorpUser(me.unionId);
-        if((!corpInfo||!corpInfo.ok) && process.env.ALLOW_NON_ORG!=='1') return send(res,403,'仅限育钉组织成员登录','text/html; charset=utf-8');
-      }
+      if(process.env.DINGTALK_CORP_ID){ corpInfo=await dingCorpUser(me.unionId); if((!corpInfo||!corpInfo.ok) && process.env.STRICT_ORG==='1') return send(res,403,'仅限育钉组织成员登录','text/html; charset=utf-8'); }
       if(corpInfo&&corpInfo.name&&!me.nick) me.nick=corpInfo.name;
       const uid=me.unionId||me.openId||'';
       if(corpInfo&&corpInfo.dept) me._dept=corpInfo.dept;
@@ -479,7 +477,8 @@ const server=http.createServer(async (req,res)=>{
     const quiz=normalizeQuiz(parseQuizText(cleanText(r3.text)));
     const misc=parseMiscText(cleanText(r4.text));
     const r5=await genText('根据素材生成 6 道作业场景题，每行一条，用竖线分隔，不要解释。格式：作业|标题|场景描述|要求1;要求2|交付物|验收标准\n'+base,4000);
-    const hw=parseHomeworkText(r5.text);
+    let hw=parseHomeworkText(r5.text);
+    if(hw.length<6){ const r6=await genText('再补充 '+(6-hw.length)+' 道作业场景题，每行一条，用竖线分隔，不要解释。格式：作业|标题|场景描述|要求1;要求2|交付物|验收标准\n'+base,3000); hw=hw.concat(parseHomeworkText(r6.text)); }
     fs.mkdirSync(path.join(dir,'raw'),{recursive:true});
     fs.writeFileSync(path.join(dir,'raw','course.txt'),String(r1.text||''));
     fs.writeFileSync(path.join(dir,'raw','promo.txt'),String(r2.text||''));
