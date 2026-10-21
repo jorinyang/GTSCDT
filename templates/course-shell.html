@@ -1,0 +1,38 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>课程包 · GTSCDT</title>
+<style>
+:root{--bg:#0A1F1A;--line:rgba(244,239,226,.13);--text:#F4EFE2;--muted:#9DB3A6;--amber:#D98A2B;--amber-l:#E9B45C}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;height:100vh;display:flex;flex-direction:column}
+.top{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;border-bottom:1px solid var(--line);gap:12px;flex-wrap:wrap}
+.brand{font-size:12px;letter-spacing:.12em;color:#7E978A}
+.links{display:flex;gap:12px;font-size:13px;align-items:center;flex-wrap:wrap}
+a{color:var(--amber-l);text-decoration:none}
+.pill{border:1px solid rgba(233,180,92,.35);color:var(--amber-l);border-radius:999px;padding:2px 10px;font-size:12px}
+select,button{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 10px;font-size:13px}
+iframe{flex:1;width:100%;border:0;background:#0A1F1A}
+.empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px}
+</style></head><body>
+<div class="top">
+  <div class="brand">GTSCDT · 课程包框架</div>
+  <div class="links">
+    <span class="pill" id="room">ROOM0</span>
+    <select id="pkgSel"></select>
+    <a href="/ops">课堂后台</a><a href="/screen" target="_blank">大屏</a><a href="/join" target="_blank">学员页</a><a href="/remote" target="_blank">遥控器</a>
+    <button id="fs">全屏</button>
+  </div>
+</div>
+<iframe id="frame" title="课程包"></iframe>
+<div class="empty" id="empty" style="display:none">还没有课程包。到课堂后台或调用 /api/packages 上传一个。</div>
+<script>
+var q=new URLSearchParams(location.search), ROOM=(q.get('room')||'').toUpperCase();
+document.getElementById('room').textContent=ROOM||'ROOM0';
+document.getElementById('fs').onclick=function(){ var f=document.getElementById('frame'); (f.requestFullscreen||f.webkitRequestFullscreen||function(){}) && f.requestFullscreen(); };
+function load(id){ var f=document.getElementById('frame'); f.style.display='block'; document.getElementById('empty').style.display='none'; f.src='/pkg/'+id+'/index.html'; }
+fetch('/api/packages').then(function(r){return r.json()}).then(function(d){
+  var list=d.packages||[]; var sel=document.getElementById('pkgSel');
+  if(!list.length){ document.getElementById('frame').style.display='none'; document.getElementById('empty').style.display='flex'; return; }
+  sel.innerHTML=list.map(function(p){return '<option value="'+p.id+'">'+(p.title||p.id)+'</option>'}).join('');
+  var pick=q.get('pkg')||list[0].id; sel.value=pick; load(pick);
+  sel.onchange=function(){ load(sel.value) };
+}).catch(function(){ document.getElementById('empty').style.display='flex'; });
+</script></body></html>

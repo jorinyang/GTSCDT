@@ -1,0 +1,38 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>讲师登录 · GTSCDT</title><style>
+:root{--bg:#081813;--panel:#0E2A21;--line:rgba(244,239,226,.13);--text:#F4EFE2;--muted:#9DB3A6;--amber:#D98A2B;--amber-l:#E9B45C;--jade:#2F8F73;--jade-l:#63B79A}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh}
+a{color:var(--amber-l);text-decoration:none}
+.top{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);gap:10px;flex-wrap:wrap}
+.brand{font-size:12px;letter-spacing:.12em;color:#7E978A}
+.links{display:flex;gap:12px;font-size:13px;flex-wrap:wrap}
+.pill{border:1px solid rgba(233,180,92,.35);color:var(--amber-l);border-radius:999px;padding:2px 10px;font-size:12px}
+.btn{border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);border-radius:12px;padding:12px 14px;font-size:15px;cursor:pointer}
+.btn.primary{background:rgba(217,138,43,.18);border-color:rgba(233,180,92,.55);color:#F6E4C6}
+.btn.danger{border-color:rgba(200,80,60,.5);color:#F0A08E}
+.btn.wide{width:100%;padding:18px;font-size:18px;margin-bottom:12px}
+.card{background:linear-gradient(180deg,#0C2A21,#081813);border:1px solid var(--line);border-radius:16px;padding:16px;margin:14px}
+.k{font-size:12px;letter-spacing:.12em;color:var(--muted);margin-bottom:10px}
+.muted{color:var(--muted)} .small{font-size:12px}
+input,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px;font-size:15px;font-family:inherit;margin-bottom:8px}
+</style></head><body>
+<div style="max-width:420px;margin:12vh auto;padding:0 20px">
+  <h1 style="font-size:24px;margin-bottom:6px">讲师登录</h1>
+  <p class="muted small" style="margin-bottom:20px">钉钉授权登录；未配置钉钉时可使用本地口令（仅局域网）。</p>
+  <a class="btn primary wide" id="ding" href="/auth/dingtalk" style="display:block;text-align:center">钉钉登录</a>
+  <div class="card" style="margin:0 0 14px">
+    <div class="k">本地口令</div>
+    <input id="pwd" type="password" placeholder="讲师口令" />
+    <button class="btn wide" id="local">进入课堂后台</button>
+    <div class="muted small" id="msg"></div>
+  </div>
+  <p class="small"><a href="/screen">打开大屏</a> · <a href="/join">学员入口</a></p>
+</div>
+<script>
+fetch('/api/auth/config').then(function(r){return r.json()}).then(function(d){ if(!d.dingtalk){document.getElementById('ding').style.display='none'} if(!d.local){document.getElementById('local').disabled=true;document.getElementById('pwd').disabled=true} }).catch(function(){});
+document.getElementById('local').onclick=function(){
+  fetch('/auth/local',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:document.getElementById('pwd').value})}).then(function(r){return r.json()}).then(function(d){
+    if(d.ok){location.href='/ops'}else{document.getElementById('msg').textContent=d.error||'登录失败'}
+  }).catch(function(){document.getElementById('msg').textContent='服务未响应'});
+};
+</script></body></html>

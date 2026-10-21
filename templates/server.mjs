@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
+import crypto from 'node:crypto';
+import { renderCoursePackage } from './course-render.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const _IS_KIT = fs.existsSync(path.join(__dirname,'course','course.html'));
@@ -14,6 +16,52 @@ const DS_KEY = process.env.DEEPSEEK_API_KEY || '';
 const DS_BASE = process.env.DEEPSEEK_BASE || 'https://api.deepseek.com';
 const DS_MODEL = process.env.DEEPSEEK_MODEL || 'deepseek-flash';
 const GROUPS = ['A','B','C','D','E','F','G'];
+const ROOMS_DIR = path.join(DATA_DIR,'rooms');
+const DEFAULT_ROOM = 'ROOM0';
+const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const PACKAGES_DIR = path.join(DATA_DIR,'packages');
+const TEACHERS_FILE = path.join(DATA_DIR,'teachers.json');
+const SESSION_SECRET = process.env.SESSION_SECRET || 'gtscdt-dev-secret';
+const AUTH_REQUIRED = process.env.REQUIRE_AUTH === '1';
+const LOCAL_PASSWORD = process.env.LOCAL_TEACHER_PASSWORD || '';
+const DING_ID = process.env.DINGTALK_CLIENT_ID || '';
+const DING_SECRET = process.env.DINGTALK_CLIENT_SECRET || '';
+function sign(v){ return crypto.createHmac('sha256',SESSION_SECRET).update(v).digest('hex').slice(0,32); }
+function setTeacherCookie(res, teacher){ const v=Buffer.from(JSON.stringify({id:teacher.id,name:teacher.name,role:teacher.role,exp:Date.now()+7*864e5})).toString('base64url'); res.setHeader('Set-Cookie','gtsc_teacher='+v+'.'+sign(v)+'; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800'); }
+function getTeacher(req){ const raw=String(req.headers.cookie||''); const m=raw.match(/(?:^|;\s*)gtsc_teacher=([^;]+)/); if(!m)return null; const [v,sig]=m[1].split('.'); if(!v||!sig||sign(v)!==sig)return null; try{ const t=JSON.parse(Buffer.from(v,'base64url').toString()); if(!t.exp||t.exp<Date.now())return null; return t; }catch(e){ return null; } }
+function loadTeachers(){ try{ return JSON.parse(fs.readFileSync(TEACHERS_FILE,'utf8')); }catch(e){ return []; } }
+function saveTeachers(list){ fs.mkdirSync(path.dirname(TEACHERS_FILE),{recursive:true}); fs.writeFileSync(TEACHERS_FILE, JSON.stringify(list,null,1)); }
+let currentRoom = DEFAULT_ROOM;
+function roomStateFile(code){ return code===DEFAULT_ROOM ? STATE_FILE : path.join(ROOMS_DIR, code, 'state.json'); }
+function roomMetaFile(code){ return code===DEFAULT_ROOM ? path.join(DATA_DIR, 'room.json') : path.join(ROOMS_DIR, code, 'room.json'); }
+function validRoom(c){ return /^[A-Z0-9]{4}$/.test(String(c||'')); }
+function loadRoom(code){
+  const f=roomStateFile(code);
+  if(!fs.existsSync(f)) return blank();
+  try{ return Object.assign(blank(), JSON.parse(fs.readFileSync(f,'utf8'))); }catch(e){ return blank(); }
+}
+function saveRoom(code, st){ const f=roomStateFile(code); fs.mkdirSync(path.dirname(f),{recursive:true}); fs.writeFileSync(f, JSON.stringify(st,null,1)); }
+function listRooms(){
+  const out=[];
+  const one=function(code){
+    let meta={}; try{ meta=JSON.parse(fs.readFileSync(roomMetaFile(code),'utf8')); }catch(e){}
+    const st=loadRoom(code);
+    out.push({code,title:meta.title||('课堂 '+code),createdAt:meta.createdAt||'',students:Object.keys(st.students||{}).length,active:!!(st.poll&&st.poll.active)||!!(st.quiz&&st.quiz.paper&&st.quiz.paper.active)});
+  };
+  one(DEFAULT_ROOM);
+  if(fs.existsSync(ROOMS_DIR)) fs.readdirSync(ROOMS_DIR).forEach(function(d){ if(validRoom(d)&&d!==DEFAULT_ROOM) one(d); });
+  return out;
+}
+function createRoom(title){
+  let code='';
+  for(let i=0;i<50;i++){ code=Array.from({length:4},()=>ROOM_ALPHABET[Math.floor(Math.random()*ROOM_ALPHABET.length)]).join(''); if(!fs.existsSync(roomStateFile(code))) break; }
+  fs.mkdirSync(path.join(ROOMS_DIR,code),{recursive:true});
+  fs.writeFileSync(roomMetaFile(code), JSON.stringify({title:title||('课堂 '+code),createdAt:new Date().toISOString()},null,1));
+  saveRoom(code, blank());
+  return code;
+}
+function setRoom(code){ currentRoom = validRoom(code) ? code : DEFAULT_ROOM; state = loadRoom(currentRoom); }
+function cookieRoom(req){ const m=String(req.headers.cookie||'').match(/(?:^|;\s*)gtsc_room=([A-Z0-9]{4})/); return m?m[1]:''; }
 
 function ensureDir(){ if(!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR,{recursive:true}); }
 function blank(){
@@ -22,14 +70,14 @@ function blank(){
 }
 function load(){ ensureDir(); if(!fs.existsSync(STATE_FILE)) return blank();
   try{ const s=JSON.parse(fs.readFileSync(STATE_FILE,'utf8')); return Object.assign(blank(),s); }catch(e){ return blank(); } }
-let state = load();
+let state = loadRoom(DEFAULT_ROOM);
 try{
   state.config=state.config||{};
   if(!state.config.model) state.config.model={baseUrl:'https://api.deepseek.com',model:'deepseek-flash',apiKey:''};
   if(!state.config.model.apiKey && process.env.DEEPSEEK_API_KEY){ state.config.model.baseUrl=process.env.DEEPSEEK_BASE||'https://api.deepseek.com'; state.config.model.model=process.env.DEEPSEEK_MODEL||'deepseek-flash'; state.config.model.apiKey=process.env.DEEPSEEK_API_KEY; }
 }catch(e){}
 let saveTimer=null;
-function save(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>{ try{ fs.writeFileSync(STATE_FILE, JSON.stringify(state,null,1)); }catch(e){ console.error('save fail',e.message); } },50); }
+function save(){ clearTimeout(saveTimer); const room=currentRoom; try{ saveRoom(room, state); }catch(e){ console.error('save fail',e.message); } }
 function keyOf(name,tail){ return String(name||'').trim()+'|'+String(tail||'').trim(); }
 function groupCounts(){ const c={}; Object.keys(state.groups).forEach(g=>c[g]=0); Object.values(state.students).forEach(s=>{ if(s.group&&c[s.group]!==undefined) c[s.group]++ }); return c; }
 function ensureStudent(name,tail){ const k=keyOf(name,tail); if(!state.students[k]){ state.students[k]={name:String(name).trim(),tail:String(tail).trim(),group:'',score:0,votes:0,buzzes:0,joinedAt:new Date().toISOString()}; save(); } return state.students[k]; }
@@ -95,12 +143,97 @@ function adminView(){
   const _mc=modelCfg();
   return {ok:true,quiz:quizInfo,model:{baseUrl:_mc.base,model:_mc.model,hasKey:!!_mc.key},config:state.config||{},buzz:state.buzz||{enabled:false,running:false,winner:''},students:Object.keys(state.students).map(k=>Object.assign({key:k},state.students[k])),groups:Object.keys(state.groups).map(g=>({id:g,name:state.groups[g].name,perf:state.groups[g].perf||0,count:counts[g]})),counts,poll:{active:state.poll.active,question:state.poll.question,options:state.poll.options,votes:state.poll.votes,results,startedAt:state.poll.startedAt},submissions:subs,updatedAt:state.updatedAt};
 }
+function mcpToolDefs(){
+  return [
+    {name:'room.create',description:'创建课堂房间',inputSchema:{type:'object',properties:{title:{type:'string'}}}},
+    {name:'room.list',description:'列出房间',inputSchema:{type:'object',properties:{}}},
+    {name:'room.state',description:'读取房间状态',inputSchema:{type:'object',properties:{room:{type:'string'}},required:['room']}},
+    {name:'poll.start',description:'发起投票',inputSchema:{type:'object',properties:{room:{type:'string'},question:{type:'string'},options:{type:'array',items:{type:'string'}}},required:['room','question','options']}},
+    {name:'poll.stop',description:'结束投票',inputSchema:{type:'object',properties:{room:{type:'string'}},required:['room']}},
+    {name:'buzz.start',description:'开始一轮抢答',inputSchema:{type:'object',properties:{room:{type:'string'}},required:['room']}},
+    {name:'quiz.publish',description:'按题库发布答题',inputSchema:{type:'object',properties:{room:{type:'string'},counts:{type:'object'},scores:{type:'object'}}}},
+    {name:'score.adjust',description:'调整小组表现分',inputSchema:{type:'object',properties:{room:{type:'string'},group:{type:'string'},delta:{type:'number'}},required:['room','group','delta']}},
+    {name:'report.export',description:'导出课堂报告',inputSchema:{type:'object',properties:{room:{type:'string'}},required:['room']}},
+    {name:'screen.url',description:'取大屏地址',inputSchema:{type:'object',properties:{room:{type:'string'}},required:['room']}}
+  ];
+}
+async function mcpHandle(msg){
+  const id=(msg&&msg.id!==undefined)?msg.id:null;
+  const method=msg&&msg.method;
+  const reply=function(result){ return {jsonrpc:'2.0',id,result}; };
+  if(method==='initialize') return reply({protocolVersion:'2025-06-18',capabilities:{tools:{}},serverInfo:{name:'gtscdt',version:'0.3.0'}});
+  if(method==='notifications/initialized') return {jsonrpc:'2.0',id:null,result:{ok:true}};
+  if(method==='tools/list') return reply({tools:mcpToolDefs()});
+  if(method==='tools/call'){
+    const name=msg.params&&msg.params.name; const a=(msg.params&&msg.params.arguments)||{};
+    const room=validRoom(a.room)?a.room:DEFAULT_ROOM;
+    setRoom(room);
+    try{
+      if(name==='room.create'){ const code=createRoom(a.title); return reply({content:[{type:'text',text:JSON.stringify({code,urls:{ops:'/ops?room='+code,screen:'/screen?room='+code}})}]}); }
+      if(name==='room.list') return reply({content:[{type:'text',text:JSON.stringify(listRooms())}]});
+      if(name==='room.state') return reply({content:[{type:'text',text:JSON.stringify(screenView())}]});
+      if(name==='poll.start'){ state.poll={active:true,question:String(a.question||''),options:(a.options||[]).map(String),votes:{},startedAt:new Date().toLocaleString('zh-CN')}; save(); return reply({content:[{type:'text',text:JSON.stringify({ok:true})}]}); }
+      if(name==='poll.stop'){ state.poll.active=false; save(); return reply({content:[{type:'text',text:JSON.stringify({ok:true})}]}); }
+      if(name==='buzz.start'){ state.buzz.enabled=true; state.buzz.running=true; state.buzz.winner=''; state.buzz.round=(state.buzz.round||0)+1; save(); return reply({content:[{type:'text',text:JSON.stringify({ok:true,round:state.buzz.round})}]}); }
+      if(name==='quiz.publish'){
+        state.quiz=state.quiz||{bank:{choice:[],judge:[],blank:[],short:[]},config:{},answers:{}};
+        const cfg={mode:'random',counts:a.counts||{choice:5,judge:3,blank:2,short:1},scores:a.scores||{choice:2,judge:2,blank:3,short:10}};
+        const pick=function(t,n){ let arr=(state.quiz.bank[t]||[]).slice(); if(!arr.length)return []; return arr.slice(0,Math.max(0,Math.min(Number(n)||0,arr.length))).map(function(q){const c=Object.assign({},q);c.type=t;c.score=Number(cfg.scores[t]||0)||0;return c}); };
+        const qs=[].concat(pick('choice',cfg.counts.choice),pick('judge',cfg.counts.judge),pick('blank',cfg.counts.blank),pick('short',cfg.counts.short));
+        if(!qs.length) return reply({isError:true,content:[{type:'text',text:'题库为空'}]});
+        state.quiz.paper={active:true,at:new Date().toLocaleString('zh-CN'),questions:qs}; state.quiz.answers={}; state.quiz.config=cfg; save();
+        return reply({content:[{type:'text',text:JSON.stringify({ok:true,count:qs.length})}]});
+      }
+      if(name==='score.adjust'){ if(state.groups[a.group]){ state.groups[a.group].perf=(state.groups[a.group].perf||0)+Number(a.delta||0); save(); } return reply({content:[{type:'text',text:JSON.stringify({ok:true,perf:state.groups[a.group]&&state.groups[a.group].perf})}]}); }
+      if(name==='report.export'){ return reply({content:[{type:'text',text:JSON.stringify({room:currentRoom,students:Object.keys(state.students).length,groups:screenView().groups,quiz:screenView().quiz,poll:screenView().poll})}]}); }
+      if(name==='screen.url'){ return reply({content:[{type:'text',text:JSON.stringify({url:'/screen?room='+room})}]}); }
+      return reply({isError:true,content:[{type:'text',text:'unknown tool '+name}]});
+    }catch(e){ return reply({isError:true,content:[{type:'text',text:String(e.message||e)}]}); }
+  }
+  return {jsonrpc:'2.0',id,error:{code:-32601,message:'method not found'}};
+}
+function savePackage(title, html){
+  fs.mkdirSync(PACKAGES_DIR,{recursive:true});
+  const id='pkg-'+Date.now().toString(36);
+  const dir=path.join(PACKAGES_DIR,id);
+  fs.mkdirSync(dir,{recursive:true});
+  fs.writeFileSync(path.join(dir,'index.html'), html, 'utf8');
+  fs.writeFileSync(path.join(dir,'meta.json'), JSON.stringify({id,title,createdAt:new Date().toISOString()},null,1));
+  return id;
+}
+function listPackages(){
+  if(!fs.existsSync(PACKAGES_DIR)) return [];
+  return fs.readdirSync(PACKAGES_DIR).filter(d=>/^pkg-[a-z0-9]+$/.test(d)).map(function(d){
+    let m={}; try{ m=JSON.parse(fs.readFileSync(path.join(PACKAGES_DIR,d,'meta.json'),'utf8')); }catch(e){}
+    return {id:d,title:m.title||d,createdAt:m.createdAt||'',url:'/pkg/'+d+'/index.html'};
+  }).sort(function(a,b){return String(b.createdAt).localeCompare(String(a.createdAt))});
+}
+function screenView(){
+  const poll=state.poll||{};
+  const results={};
+  if(poll.options) poll.options.forEach((o,i)=>{results[i]=0});
+  Object.values(poll.votes||{}).forEach(v=>{ if(results[v]!==undefined) results[v]++ });
+  const quiz=state.quiz||{};
+  const paper=quiz.paper;
+  return {ok:true,room:currentRoom,at:Date.now(),
+    poll:{active:!!poll.active,question:poll.question||'',options:poll.options||[],results,count:Object.keys(poll.votes||{}).length},
+    buzz:{enabled:!!(state.buzz&&state.buzz.enabled),running:!!(state.buzz&&state.buzz.running),winner:(state.buzz&&state.buzz.winner)||'',round:(state.buzz&&state.buzz.round)||0},
+    quiz:paper?{active:!!paper.active,count:paper.questions.length,points:paper.questions.reduce((a,b)=>a+(b.score||0),0),answered:Object.keys(quiz.answers||{}).length,avg:(function(){const v=Object.values(quiz.answers||{});return v.length?Math.round(v.reduce((a,b)=>a+(b.score||0),0)/v.length*10)/10:0})()}:null,
+    groups:Object.keys(state.groups||{}).map(g=>({id:g,name:state.groups[g].name,perf:state.groups[g].perf||0,count:(function(){return Object.values(state.students||{}).filter(s=>s.group===g).length})()})),
+    students:Object.keys(state.students||{}).length
+  };
+}
 function send(res,code,obj,type='application/json; charset=utf-8'){ const body=Buffer.isBuffer(obj)||typeof obj==='string'?obj:JSON.stringify(obj); res.writeHead(code,{'Content-Type':type,'Cache-Control':'no-store','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Content-Type','Access-Control-Allow-Methods':'GET,POST,OPTIONS'}); res.end(body); }
+function readRaw(req, limit){
+  return new Promise((resolve,reject)=>{ const chunks=[]; let n=0; const max=limit||8*1024*1024;
+    req.on('data',c=>{ n+=c.length; if(n>max){ reject(new Error('too large')); req.destroy(); return; } chunks.push(c); });
+    req.on('end',()=>resolve(Buffer.concat(chunks))); req.on('error',reject); });
+}
 function readBody(req){ return new Promise((resolve,reject)=>{ let d=''; req.on('data',c=>{d+=c; if(d.length>2e6){reject(new Error('too large'));req.destroy()}}); req.on('end',()=>{ try{resolve(d?JSON.parse(d):{})}catch(e){resolve({})} }); req.on('error',reject); }); }
 const MIME={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.json':'application/json; charset=utf-8','.csv':'text/csv; charset=utf-8'};
 const MAP=_IS_KIT
-  ? {'/':'promo.html','/promo':'promo.html','/live':'live.html','/live.html':'live.html','/course':'course/course.html','/course.html':'course/course.html','/grader':'course/grader.html','/grader.html':'course/grader.html','/admin':'course/admin.html','/admin.html':'course/admin.html'}
-  : {'/':'宣传页/课程大纲-宣传版.html','/promo':'宣传页/课程大纲-宣传版.html','/live':'宣传页/live.html','/live.html':'宣传页/live.html','/course':'课件/course.html','/course.html':'课件/course.html','/grader':'课件/grader.html','/grader.html':'课件/grader.html','/admin':'课件/admin.html','/admin.html':'课件/admin.html'};
+  ? {'/':'promo.html','/promo':'promo.html','/live':'live.html','/live.html':'live.html','/course':'course/course.html','/course.html':'course/course.html','/grader':'course/grader.html','/grader.html':'course/grader.html','/admin':'course/admin.html','/admin.html':'course/admin.html','/ops':'course/admin.html','/join':'live.html','/screen':'screen.html','/remote':'remote.html','/login':'login.html','/shell':'course-shell.html'}
+  : {'/':'宣传页/课程大纲-宣传版.html','/promo':'宣传页/课程大纲-宣传版.html','/live':'宣传页/live.html','/live.html':'宣传页/live.html','/course':'课件/course.html','/course.html':'课件/course.html','/grader':'课件/grader.html','/grader.html':'课件/grader.html','/admin':'课件/admin.html','/admin.html':'课件/admin.html','/ops':'课件/admin.html','/join':'宣传页/live.html','/screen':'screen.html','/remote':'remote.html','/login':'login.html','/shell':'course-shell.html'};
 function serveStatic(res,pathname){
   let rel=MAP[pathname] || decodeURIComponent(pathname).replace(/^\/+/,'');
   const abs=path.resolve(ROOT,rel);
@@ -111,6 +244,111 @@ const server=http.createServer(async (req,res)=>{
   const u=new URL(req.url,'http://x');
   const p=u.pathname;
   if(req.method==='OPTIONS') return send(res,204,'');
+  const roomQ=u.searchParams.get('room');
+  setRoom(roomQ || cookieRoom(req) || DEFAULT_ROOM);
+  if(roomQ && validRoom(roomQ)) res.setHeader('Set-Cookie','gtsc_room='+roomQ+'; Path=/; SameSite=Lax');
+  if(p==='/embed.js'){
+    const js="(function(){var s=document.currentScript;var room=(s.getAttribute('data-room')||'').toUpperCase();var w=s.getAttribute('data-widget')||'poll';var h=Number(s.getAttribute('data-height')||360);var f=document.createElement('iframe');f.src='/embed?room='+room+'&widget='+w;f.style.cssText='width:100%;height:'+h+'px;border:0;border-radius:12px;background:#081813';s.parentNode.insertBefore(f,s.nextSibling);})();";
+    return send(res,200,js,'text/javascript; charset=utf-8');
+  }
+  if(p==='/embed') return send(res,200,fs.readFileSync(path.join(__dirname,'embed.html')),'text/html; charset=utf-8');
+  if(p==='/mcp'){
+    if(process.env.MCP_TOKEN){
+      const auth=String(req.headers.authorization||'');
+      if(auth!=='Bearer '+process.env.MCP_TOKEN) return send(res,401,{jsonrpc:'2.0',error:{code:-32001,message:'unauthorized'},id:null});
+    }
+    const body=await readBody(req);
+    const reply=await mcpHandle(body);
+    return send(res,200,reply);
+  }
+  if(p==='/api/auth/config') return send(res,200,{ok:true,dingtalk:!!(DING_ID&&DING_SECRET),local:!!LOCAL_PASSWORD,required:AUTH_REQUIRED});
+  if(p==='/auth/local' && req.method==='POST'){
+    const b=await readBody(req);
+    if(!LOCAL_PASSWORD) return send(res,400,{ok:false,error:'未配置本地口令'});
+    if(String(b.password||'')!==LOCAL_PASSWORD) return send(res,401,{ok:false,error:'口令不对'});
+    const t={id:'local',name:'本地讲师',role:'admin'};
+    setTeacherCookie(res,t); return send(res,200,{ok:true,teacher:t});
+  }
+  if(p==='/auth/dingtalk'){
+    if(!(DING_ID&&DING_SECRET)) return send(res,501,{ok:false,error:'未配置钉钉应用'});
+    const origin=(process.env.PUBLIC_URL||u.origin).replace(/\/$/,'');
+    const redirect=origin+'/auth/dingtalk/callback';
+    const target='https://login.dingtalk.com/oauth2/auth?redirect_uri='+encodeURIComponent(redirect)+'&response_type=code&client_id='+encodeURIComponent(DING_ID)+'&scope=openid&state=gtsc';
+    res.writeHead(302,{Location:target}); return;
+  }
+  if(p==='/auth/dingtalk/callback'){
+    if(!(DING_ID&&DING_SECRET)) return send(res,501,{ok:false,error:'未配置钉钉应用'});
+    const code=u.searchParams.get('authCode')||u.searchParams.get('code')||'';
+    try{
+      const tr=await fetch('https://api.dingtalk.com/v1.0/oauth2/userAccessToken',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientId:DING_ID,clientSecret:DING_SECRET,code,grantType:'authorization_code'})});
+      const tj=await tr.json();
+      if(!tj.accessToken) return send(res,401,'钉钉授权失败','text/html; charset=utf-8');
+      const ur=await fetch('https://api.dingtalk.com/v1.0/contact/users/me',{headers:{'x-acs-dingtalk-access-token':tj.accessToken}});
+      const me=await ur.json();
+      const teachers=loadTeachers();
+      const t=teachers.filter(x=>x.dingUnionId===me.unionId||x.dingOpenId===me.openId)[0];
+      if(!t) return send(res,403,'该钉钉账号未加入讲师名单，请联系管理员','text/html; charset=utf-8');
+      setTeacherCookie(res,t);
+      res.writeHead(302,{Location:'/ops'}); return;
+    }catch(e){ return send(res,500,'钉钉登录失败：'+String(e.message||e),'text/html; charset=utf-8'); }
+  }
+  if(p==='/api/me') return send(res,200,{ok:true,teacher:getTeacher(req)});
+  if(p==='/api/packages' && req.method==='GET') return send(res,200,{ok:true,packages:listPackages()});
+  if(p==='/api/packages' && req.method==='POST'){
+    const title=String(u.searchParams.get('title')||'课程包');
+    const buf=await readRaw(req,20*1024*1024);
+    if(!buf.length) return send(res,400,{ok:false,error:'空文件'});
+    const id=savePackage(title, buf.toString('utf8'));
+    return send(res,200,{ok:true,id,url:'/pkg/'+id+'/index.html'});
+  }
+  if(p==='/api/packages/ai' && req.method==='POST'){
+    const b=await readBody(req);
+    const content=String(b.content||'').slice(0,6000);
+    if(!content.trim()) return send(res,400,{ok:false,error:'缺少内容'});
+    const prompt='你是课程设计助手。把下面素材整理成讲课大纲，只输出大纲，不要解释。\n格式：第一行以“# 课程标题”开头；之后每一页以“## 页标题”开头；每页要点用“- ”开头，每行一条。\n素材：\n'+content;
+    const r=await modelChat([{role:'user',content:prompt}],2000);
+    if(!r.ok) return send(res,502,{ok:false,error:r.error});
+    const lines=String(r.content||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    let title='AI 课程包'; const sections=[]; let cur=null;
+    lines.forEach(function(line){
+      if(/^#\s+/.test(line)&&!/^##\s+/.test(line)){ title=line.replace(/^#\s+/,''); return; }
+      if(/^##\s+/.test(line)){ if(cur)sections.push(cur); cur={type:'bullets',title:line.replace(/^##\s+/,''),items:[]}; return; }
+      if(/^[-*]\s+/.test(line)){ (cur||(cur={type:'bullets',title:'要点',items:[]})).items.push(line.replace(/^[-*]\s+/,'')); return; }
+      if(cur) cur.items.push(line);
+    });
+    if(cur) sections.push(cur);
+    if(!sections.length){ const pages=String(content).split(/\n{2,}/).slice(0,12); pages.forEach(function(t,i){ sections.push({type:i===0?'cover':'bullets',title:i===0?'课程提要':('要点 '+(i+1)),text:i===0?t.slice(0,120):'',items:i===0?[]:t.split(/[。；;]/).filter(Boolean).slice(0,6)}) }); }
+    sections.unshift({type:'cover',title:title,text:'',meta:''});
+    const doc={title:title,subtitle:'',date:'',sections:sections};
+    const html=renderCoursePackage({title:title}, doc);
+    const id=savePackage(title, html);
+    return send(res,200,{ok:true,id,url:'/pkg/'+id+'/index.html',title:title});
+  }
+  if(p.startsWith('/pkg/')){
+    const rest=decodeURIComponent(p.slice('/pkg/'.length)).split('/');
+    const id=rest.shift()||''; const rel=rest.join('/')||'index.html';
+    if(!/^pkg-[a-z0-9]+$/.test(id)) return send(res,404,'not found','text/plain');
+    const file=path.resolve(PACKAGES_DIR,id,rel);
+    if(!file.startsWith(path.resolve(PACKAGES_DIR,id))||!fs.existsSync(file)) return send(res,404,'not found','text/plain');
+    const ext=path.extname(file).slice(1).toLowerCase();
+    const ct=ext==='html'?'text/html; charset=utf-8':ext==='css'?'text/css; charset=utf-8':ext==='js'?'text/javascript; charset=utf-8':ext==='svg'?'image/svg+xml':'application/octet-stream';
+    return send(res,200,fs.readFileSync(file),ct);
+  }
+  if(p==='/api/rooms' && req.method==='GET') return send(res,200,{ok:true,rooms:listRooms(),current:currentRoom});
+  if(p==='/api/rooms/create' && req.method==='POST'){
+    const b=await readBody(req);
+    const code=createRoom(b.title);
+    return send(res,200,{ok:true,code,urls:{ops:'/ops?room='+code,join:'/join?room='+code,screen:'/screen?room='+code,remote:'/remote?room='+code}});
+  }
+  if(p==='/api/screen') return send(res,200,screenView());
+  if(p==='/api/stream'){
+    res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache','Connection':'keep-alive','Access-Control-Allow-Origin':'*'});
+    res.write('retry: 3000\n\n');
+    const tick=function(){ try{ res.write('data: '+JSON.stringify(screenView())+'\n\n'); }catch(e){} };
+    tick(); const t=setInterval(tick,2000);
+    req.on('close',function(){ clearInterval(t); try{res.end()}catch(e){} });
+    return;
+  }
   if(p.startsWith('/materials/')){
     const name=decodeURIComponent(p.slice('/materials/'.length));
     const fp=path.join(__dirname,'materials',name);

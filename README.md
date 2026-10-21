@@ -1,6 +1,6 @@
 # Game Theory Strategy Course Development Tools（弈策课程开发工具）
 
-**GTSCDT** · v0.2
+**GTSCDT** · v0.3
 
 > 仓库原名 GTSICCDT，v0.2 起更名为 **GTSCDT**（Game Theory Strategy Course Development Tools）。
 
@@ -21,6 +21,10 @@
 - **学员页**：手机端抽签、投票、抢答、六类作业上传；
 - **作业中心**：按组分关提交、自动评分 + 人工复核、导出成绩；
 - **服务端**：零依赖 Node 局域网服务，或阿里云 FC 云函数（状态存 OSS）。
+- **房间（v0.3）**：一节课一个房间；`/ops` 操作台、`/screen` 大屏、`/remote` 遥控器、`/join` 学员入口互相独立，不依赖课件页；
+- **课程包（v0.3）**：上传 HTML 或由 AI 生成（素材 → 大纲 → 模板渲染），通过 `/shell?pkg=` 框架嵌入播放；
+- **讲师登录（v0.3）**：钉钉 OAuth2 扫码（配置应用后）或本地口令；
+- **嵌入与 MCP（v0.3）**：`/embed.js` 小组件与 `/mcp` JSON-RPC（10 个工具），可被 PPT 网页、门户或 AI 助手调用。
 
 ## 快速开始（本地）
 
@@ -28,12 +32,18 @@
 cd templates
 node server.mjs
 # 浏览器打开：
+# 课堂后台  http://127.0.0.1:8899/ops
+# 大屏      http://127.0.0.1:8899/screen?room=ROOM0
+# 遥控器    http://127.0.0.1:8899/remote?room=ROOM0
+# 学员页    http://127.0.0.1:8899/join?room=ROOM0
+# 课程包    http://127.0.0.1:8899/shell
+# 讲师登录  http://127.0.0.1:8899/login
 # 课件      http://127.0.0.1:8899/course
 # 宣传页    http://127.0.0.1:8899/promo
-# 课堂后台  http://127.0.0.1:8899/admin
-# 作业中心  http://127.0.0.1:8899/grader
-# 学员页    http://127.0.0.1:8899/live
 ```
+
+可选环境变量：
+`DINGTALK_CLIENT_ID / DINGTALK_CLIENT_SECRET`（钉钉登录）、`SESSION_SECRET`、`LOCAL_TEACHER_PASSWORD`（离线兜底）、`MCP_TOKEN`（MCP 鉴权）。
 
 不需要安装任何依赖。数据落在 `templates/data/state.json`（已在 .gitignore 中忽略）。
 
@@ -89,7 +99,8 @@ GTSCDT/
 ## 版本
 
 - **v0.1**：六页面 + 局域网服务 + FC 函数 + 评分/分组/抢答/作业闭环，脱敏模板。
-- **v0.2（当前）**：后台合并为四标签（课堂管理 / 作业评分 / 在线答题 / 模型管理）；在线答题支持 Excel 四表导入、随机或顺序抽题、分类分值、客观题自动判分、主观题模型评分；作业支持 AI 评分；新增模型管理（测试连通性 / 保存）；本地服务与阿里云 FC 同步。
+- **v0.3（当前）**：房间为核心；独立操作台/大屏/遥控器；钉钉讲师登录 + 本地兜底；课程包上传与 AI 生成；嵌入组件与 MCP。
+- **v0.2**：后台合并为四标签（课堂管理 / 作业评分 / 在线答题 / 模型管理）；在线答题支持 Excel 四表导入、随机或顺序抽题、分类分值、客观题自动判分、主观题模型评分；作业支持 AI 评分；新增模型管理（测试连通性 / 保存）；本地服务与阿里云 FC 同步。
 - 下一步（v0.2 计划）：课程配置抽成 JSON、题库与评分规则可视化编辑、多场次历史数据。
 
 ## License

@@ -1,0 +1,55 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>遥控器 · 课堂</title><style>
+:root{--bg:#081813;--panel:#0E2A21;--line:rgba(244,239,226,.13);--text:#F4EFE2;--muted:#9DB3A6;--amber:#D98A2B;--amber-l:#E9B45C;--jade:#2F8F73;--jade-l:#63B79A}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh}
+a{color:var(--amber-l);text-decoration:none}
+.top{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);gap:10px;flex-wrap:wrap}
+.brand{font-size:12px;letter-spacing:.12em;color:#7E978A}
+.links{display:flex;gap:12px;font-size:13px;flex-wrap:wrap}
+.pill{border:1px solid rgba(233,180,92,.35);color:var(--amber-l);border-radius:999px;padding:2px 10px;font-size:12px}
+.btn{border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);border-radius:12px;padding:12px 14px;font-size:15px;cursor:pointer}
+.btn.primary{background:rgba(217,138,43,.18);border-color:rgba(233,180,92,.55);color:#F6E4C6}
+.btn.danger{border-color:rgba(200,80,60,.5);color:#F0A08E}
+.btn.wide{width:100%;padding:18px;font-size:18px;margin-bottom:12px}
+.card{background:linear-gradient(180deg,#0C2A21,#081813);border:1px solid var(--line);border-radius:16px;padding:16px;margin:14px}
+.k{font-size:12px;letter-spacing:.12em;color:var(--muted);margin-bottom:10px}
+.muted{color:var(--muted)} .small{font-size:12px}
+input,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px;font-size:15px;font-family:inherit;margin-bottom:8px}
+</style></head><body>
+<div class="top"><div class="brand">GTSCDT · 遥控器</div><div class="links"><span class="pill" id="room">ROOM</span><a href="/screen" target="_blank">大屏</a><a href="/ops" target="_blank">后台</a></div></div>
+<div class="card"><div class="k">投票</div>
+  <input id="q" placeholder="问题（例：今天讲清楚了吗？）" />
+  <textarea id="opts" rows="3" placeholder="选项，每行一个">清楚
+一般
+没跟上</textarea>
+  <div class="row" style="display:flex;gap:10px"><button class="btn primary wide" id="pollStart">发起投票</button><button class="btn wide" id="pollStop">结束投票</button></div>
+  <div class="muted small" id="pollStat">未进行</div>
+</div>
+<div class="card"><div class="k">抢答</div>
+  <button class="btn wide" id="buzzEnable">开启抢答</button>
+  <button class="btn primary wide" id="buzzStart">开始抢答（下一轮）</button>
+  <button class="btn wide" id="buzzOff">关闭抢答</button>
+  <div class="muted small" id="buzzStat">未开启</div>
+</div>
+<div class="card"><div class="k">答题</div>
+  <button class="btn wide" id="quizClose">结束答题</button>
+  <div class="muted small" id="quizStat">—</div>
+</div>
+<script>
+var q=new URLSearchParams(location.search), ROOM=(q.get('room')||'').toUpperCase();
+document.getElementById('room').textContent=ROOM||'ROOM0';
+function api(p,b){var u=p+(ROOM?((p.indexOf('?')>=0?'&':'?')+'room='+ROOM):'');return fetch(u,b?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}:{cache:'no-store'}).then(function(r){return r.json()})}
+function post(p,b){return api(p,b)}
+function refresh(){api('/api/screen').then(function(d){
+  document.getElementById('pollStat').textContent=d.poll.active?('进行中 · '+d.poll.count+' 票'):'未进行';
+  document.getElementById('buzzStat').textContent='第 '+(d.buzz.round||0)+' 轮 · '+(d.buzz.winner?('已抢到：'+d.buzz.winner):(d.buzz.running?'抢答中':(d.buzz.enabled?'已开启':'未开启')));
+  document.getElementById('quizStat').textContent=d.quiz?('进行中 · '+d.quiz.answered+' 人已答'):'未发布';
+}).catch(function(){})}
+document.getElementById('pollStart').onclick=function(){var opts=document.getElementById('opts').value.split('\n').map(function(x){return x.trim()}).filter(Boolean);if(opts.length<2){alert('至少两个选项');return}post('/api/admin/poll',{action:'start',question:document.getElementById('q').value||'现场投票',options:opts}).then(refresh)};
+document.getElementById('pollStop').onclick=function(){post('/api/admin/poll',{action:'stop'}).then(refresh)};
+document.getElementById('buzzEnable').onclick=function(){post('/api/admin/buzz',{action:'enable'}).then(refresh)};
+document.getElementById('buzzStart').onclick=function(){post('/api/admin/buzz',{action:'start'}).then(refresh)};
+document.getElementById('buzzOff').onclick=function(){post('/api/admin/buzz',{action:'disable'}).then(refresh)};
+document.getElementById('quizClose').onclick=function(){post('/api/admin/quiz',{action:'close'}).then(refresh)};
+refresh();setInterval(refresh,2500);
+</script></body></html>

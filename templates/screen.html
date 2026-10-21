@@ -1,0 +1,59 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>大屏 · 课堂</title><style>
+:root{--bg:#081813;--panel:#0E2A21;--line:rgba(244,239,226,.13);--text:#F4EFE2;--muted:#9DB3A6;--amber:#D98A2B;--amber-l:#E9B45C;--jade:#2F8F73;--jade-l:#63B79A}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh}
+a{color:var(--amber-l);text-decoration:none}
+.top{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid var(--line);gap:12px;flex-wrap:wrap}
+.brand{font-size:12px;letter-spacing:.12em;color:#7E978A}
+.links{display:flex;gap:14px;font-size:13px;align-items:center;flex-wrap:wrap}
+.pill{border:1px solid rgba(233,180,92,.35);color:var(--amber-l);border-radius:999px;padding:2px 10px;font-size:12px}
+.btn{border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);border-radius:10px;padding:9px 16px;font-size:14px;cursor:pointer}
+.btn.primary{background:rgba(217,138,43,.16);border-color:rgba(233,180,92,.55);color:#F6E4C6}
+.btn.wide{width:100%;padding:16px;font-size:17px;margin-bottom:12px}
+.muted{color:var(--muted)} .small{font-size:12px}
+</style>
+<style>
+.screen{padding:22px;display:grid;grid-template-columns:1.15fr .85fr;gap:16px;height:calc(100vh - 62px)}
+.card{background:linear-gradient(180deg,#0C2A21,#081813);border:1px solid var(--line);border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;min-height:0}
+.k{font-size:12px;letter-spacing:.12em;color:var(--muted);margin-bottom:10px}
+.big{font-size:56px;font-weight:800;color:#F6E4C6;line-height:1.1}
+.sub{font-size:15px;color:var(--muted);margin-top:6px}
+.bar{height:18px;border-radius:9px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--jade),var(--jade-l));width:0;transition:width .4s}
+.opt{display:flex;justify-content:space-between;font-size:15px;margin-top:14px}
+.list{overflow:auto;flex:1}
+.row{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 0;font-size:15px}
+.win{font-size:64px;font-weight:800;color:var(--amber-l);text-align:center;margin-top:26px}
+</style></head><body>
+<div class="top"><div class="brand">GTSCDT · 课堂大屏</div><div class="links"><span class="pill" id="room">ROOM</span><a href="/remote" target="_blank">遥控器</a><a href="/ops" target="_blank">后台</a><button class="btn" id="fs">全屏</button></div></div>
+<div class="screen">
+  <div style="display:grid;grid-template-rows:1fr 1fr;gap:16px">
+    <div class="card"><div class="k">投票</div><div id="poll"></div></div>
+    <div class="card"><div class="k">答题进度</div><div id="quiz"></div></div>
+  </div>
+  <div style="display:grid;grid-template-rows:1fr 1.2fr;gap:16px">
+    <div class="card"><div class="k">抢答</div><div id="buzz"></div></div>
+    <div class="card"><div class="k">小组积分</div><div class="list" id="groups"></div></div>
+  </div>
+</div>
+<script>
+var q=new URLSearchParams(location.search), room=(q.get('room')||'').toUpperCase();
+document.getElementById('room').textContent=room||'ROOM0';
+document.getElementById('fs').onclick=function(){document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen()};
+function esc(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
+function render(d){
+  var p=d.poll||{}, r=p.results||{}, total=Math.max(1,Object.values(r).reduce(function(a,b){return a+b},0));
+  var h='<div class="sub">'+(esc(p.question)||'未发起投票')+'</div>';
+  (p.options||[]).forEach(function(o,i){var n=r[i]||0;h+='<div class="opt"><span>'+esc(o)+'</span><span>'+n+' 票 · '+Math.round(n/total*100)+'%</span></div><div class="bar"><i style="width:'+(n/total*100)+'%"></i></div>'});
+  document.getElementById('poll').innerHTML=h;
+  var bz=d.buzz||{}; document.getElementById('buzz').innerHTML='<div class="big">'+(bz.winner?esc(bz.winner):(bz.running?'抢答中…':(bz.enabled?'等待开始':'未开启')))+'</div><div class="sub">第 '+(bz.round||0)+' 轮</div>';
+  var qz=d.quiz; document.getElementById('quiz').innerHTML=qz?('<div class="big">'+(qz.answered||0)+' / '+d.students+'</div><div class="sub">'+qz.count+' 题 · 满分 '+qz.points+' · 均分 '+(qz.avg||0)+'</div>'):'<div class="sub">未发布答题</div>';
+  var gs=(d.groups||[]).slice().sort(function(a,b){return b.perf-a.perf});
+  document.getElementById('groups').innerHTML=gs.map(function(g){return '<div class="row"><span>'+g.id+' · '+esc(g.name)+'</span><b>'+(g.perf||0)+'</b></div>'}).join('')||'<div class="muted">暂无分组</div>';
+}
+var es=null;
+function start(){ try{ es=new EventSource('/api/stream'+(room?('?room='+room):'')); es.onmessage=function(e){try{render(JSON.parse(e.data))}catch(_){}}; }catch(_){}
+  setInterval(function(){ if(!es||es.readyState!==1) fetch('/api/screen'+(room?('?room='+room):'')).then(function(r){return r.json()}).then(render).catch(function(){}); },3000);
+}
+start();
+</script></body></html>
