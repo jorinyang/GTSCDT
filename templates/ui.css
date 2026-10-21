@@ -1,0 +1,38 @@
+/* GTSCDT UI — 参考 wb.gzzhike.cn：近黑底 / 荧光绿 / 大圆角 / Inter */
+:root{
+  --bg:#0E0E10; --bg2:#151518; --card:#1A1A1F; --card2:#202027; --line:#2A2A32;
+  --ink:#F4F4F5; --ink2:#A1A1AA; --ink3:#6B6B76;
+  --lime:#CBF74E; --blue:#3355FF; --orange:#FF7A3D; --green:#4ADE80; --red:#FF5470;
+  --text:#F4F4F5; --muted:#A1A1AA;
+  --amber:#CBF74E; --amber-l:#D9FF6A; --jade:#3355FF; --jade-l:#5C7AFF;
+  --r-app:32px; --r-card:24px; --r-in:16px;
+}
+html,body{background:var(--bg)!important;color:var(--ink)!important}
+body{background-image:none!important;font-family:'Inter','Manrope','PingFang SC','Microsoft YaHei',system-ui,-apple-system,sans-serif!important;letter-spacing:.01em}
+a{color:var(--lime)}
+h1,h2,h3,h4{letter-spacing:-.02em}
+.top{background:rgba(14,14,16,.86)!important;border-bottom:1px solid var(--line)!important;backdrop-filter:blur(12px)}
+.brand{color:var(--ink3)!important}
+.card,.cc,.qcard,.mod,.login-card,.pane,.item{background:var(--card)!important;border:1px solid var(--line)!important;border-radius:var(--r-card)!important;box-shadow:none!important;background-image:none!important}
+.btn{background:var(--card2)!important;border:1px solid var(--line)!important;color:var(--ink)!important;border-radius:12px!important;transition:.2s cubic-bezier(.22,1,.36,1)}
+.btn:hover{border-color:#3A3A44!important;transform:translateY(-1px)}
+.btn.primary{background:var(--lime)!important;color:#0E0E10!important;border-color:var(--lime)!important;font-weight:700}
+.btn.primary:hover{background:#D9FF6A!important}
+.btn.danger{background:transparent!important;border-color:rgba(255,84,112,.5)!important;color:#FF8A9E!important}
+input,select,textarea{background:var(--bg2)!important;border:1px solid var(--line)!important;color:var(--ink)!important;border-radius:12px!important}
+input:focus,select:focus,textarea:focus{border-color:var(--lime)!important;outline:none}
+select{appearance:none;cursor:pointer}
+.tab,.tabbtn,.tabs button{background:var(--card)!important;border:1px solid var(--line)!important;color:var(--ink2)!important;border-radius:12px!important}
+.tab.on,.tabbtn.on,.tabs button.on{background:var(--lime)!important;color:#0E0E10!important;border-color:var(--lime)!important;font-weight:700}
+.pill{background:rgba(203,247,78,.08)!important;border:1px solid rgba(203,247,78,.35)!important;color:var(--lime)!important}
+.avatar{background:rgba(203,247,78,.14)!important;border:1px solid rgba(203,247,78,.4)!important;color:var(--lime)!important}
+table th{color:var(--ink3)!important}
+table tr:hover td{background:rgba(255,255,255,.02)!important}
+.muted{color:var(--ink2)!important}
+.small{color:var(--ink2)}
+.bar{background:rgba(255,255,255,.06)!important}
+.bar i{background:linear-gradient(90deg,#A8D93A,var(--lime))!important}
+.qrbox,.qr{border-color:var(--line)!important}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#2e2e37;border-radius:9px}
+::-webkit-scrollbar-track{background:transparent}
