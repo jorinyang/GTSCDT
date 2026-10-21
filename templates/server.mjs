@@ -613,7 +613,7 @@ const server=http.createServer(async (req,res)=>{
         if(p==='/api/admin/model'){
           const act=b.action||'save';
           if(act==='test'){
-            const cfg={baseUrl:(b.baseUrl||'').trim(),model:(b.model||'').trim(),apiKey:(b.apiKey||'').trim()||(state.config.model&&state.config.model.apiKey)||''};
+            const cfg={baseUrl:(b.baseUrl||'').trim(),model:(b.model||'').trim(),apiKey:(b.apiKey||'').trim()||(state.config.model&&state.config.model.apiKey)||process.env.DEEPSEEK_API_KEY||''};
             if(!cfg.apiKey) return send(res,400,{ok:false,error:'请先填写 API Key'});
             const old=state.config.model; state.config.model=cfg;
             const r=await modelChat([{role:'user',content:'只回复两个字母：OK'}],20);
