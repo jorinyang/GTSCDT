@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0A1F1A" />
+<meta name="format-detection" content="telephone=no" />
+<meta name="description" content="示例文旅集团 × 弈策智询 · AI 超级个体创造营 · 2026-10-23 全天" />
+<title>AI 超级个体创造营 · 示例文旅集团 × 弈策智询</title>
+<style>
+  :root{
+    --ink:#0A1F1A; --ink2:#0F2E24; --paper:#F7F3EA; --paper2:#EFE7D8;
+    --text:#182019; --muted:#5D6A5F; --jade:#2F8F73; --jade-l:#63B79A;
+    --amber:#D98A2B; --amber-l:#E9B45C; --line:rgba(24,32,25,.12);
+    --max:1100px; --r:18px;
+    --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Source Han Sans SC","Noto Sans CJK SC",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+  body{background:var(--paper);color:var(--text);font-family:var(--sans);line-height:1.75;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  ::selection{background:var(--amber-l);color:#2A1B06}
+  a{color:inherit}
+  .wrap{width:min(var(--max),calc(100% - 48px));margin:0 auto}
+  /* 顶部进度 */
+  #bar{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--jade),var(--amber));z-index:60;transition:width .15s linear}
+  /* 导航（桌面） */
+  nav{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:50;display:flex;gap:4px;padding:6px;
+      background:rgba(10,31,26,.62);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+      border:1px solid rgba(255,255,255,.12);border-radius:999px;opacity:0;pointer-events:none;transition:opacity .35s}
+  nav.show{opacity:1;pointer-events:auto}
+  nav a{color:#E9E4D6;text-decoration:none;font-size:12.5px;letter-spacing:.04em;padding:7px 13px;border-radius:999px;white-space:nowrap;opacity:.72;transition:.25s}
+  nav a:hover{opacity:1;background:rgba(255,255,255,.08)}
+  @media(max-width:820px){nav{display:none}}
+  /* HERO */
+  header{position:relative;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;justify-content:center;overflow:hidden;
+         background:radial-gradient(120% 90% at 78% 8%,#14493A 0%,#0C2A21 42%,#081813 100%);color:#F4EFE2}
+  .sky{position:absolute;inset:0;pointer-events:none;
+       background:
+         radial-gradient(60% 45% at 20% 12%,rgba(217,138,43,.22),transparent 62%),
+         radial-gradient(50% 40% at 85% 30%,rgba(99,183,154,.20),transparent 65%)}
+  .mesh{position:absolute;inset:0;pointer-events:none;opacity:.5;
+        background-image:radial-gradient(rgba(244,239,226,.34) 1px,transparent 1px);
+        background-size:26px 26px;
+        mask-image:radial-gradient(70% 60% at 50% 30%,#000 25%,transparent 78%);
+        -webkit-mask-image:radial-gradient(70% 60% at 50% 30%,#000 25%,transparent 78%)}
+  .peaks{position:absolute;left:0;right:0;bottom:-2px;height:56%;pointer-events:none}
+  .peaks svg{width:100%;height:100%;display:block}
+  .hero-inner{position:relative;z-index:3;padding:118px 0 150px}
+  .eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:12.5px;letter-spacing:.14em;
+           color:var(--amber-l);border:1px solid rgba(233,180,92,.32);border-radius:999px;padding:8px 16px;margin-bottom:30px;max-width:100%}
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 4px rgba(217,138,43,.16);flex:0 0 auto}
+  h1{font-size:clamp(38px,7.2vw,86px);line-height:1.06;letter-spacing:-.02em;font-weight:800;max-width:14em}
+  h1 .brand{display:block;font-size:clamp(14px,1.9vw,19px);letter-spacing:.2em;font-weight:600;color:#BFD8C9;margin-bottom:16px}
+  h1 .accent{background:linear-gradient(96deg,#F4EFE2 10%,var(--amber-l) 52%,var(--jade-l) 92%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px;margin:26px 0 16px;font-size:clamp(18px,2.6vw,27px);font-weight:600;color:#F7F1E1}
+  .lead .eq{color:var(--amber-l);font-weight:400;letter-spacing:.1em}
+  .sub{max-width:37em;color:#B9CBBF;font-size:clamp(14px,1.6vw,16.5px)}
+  .chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:32px}
+  .chip{border:1px solid rgba(244,239,226,.16);background:rgba(244,239,226,.05);border-radius:999px;
+        padding:8px 14px;font-size:13px;color:#DCE6DB;white-space:nowrap}
+  .chip b{color:#fff;font-weight:600}
+  .countdown{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 10px;margin-top:40px;font-variant-numeric:tabular-nums;color:#D9E4D8;font-size:13.5px;letter-spacing:.05em}
+  .countdown .num{font-size:clamp(22px,3.2vw,34px);font-weight:800;color:#F4EFE2;letter-spacing:.02em}
+  .countdown .unit{opacity:.7;margin-right:2px}
+  .scrollhint{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);z-index:4;color:#9DB3A6;font-size:12px;letter-spacing:.24em;display:flex;flex-direction:column;align-items:center;gap:8px}
+  .scrollhint i{width:1px;height:34px;background:linear-gradient(#9DB3A6,transparent);display:block;animation:drip 2.4s ease-in-out infinite}
+  @keyframes drip{0%,100%{opacity:.25;transform:scaleY(.6)}50%{opacity:.9;transform:scaleY(1)}}
+  /* 通用 section */
+  section{padding:clamp(64px,8vw,120px) 0;position:relative}
+  .sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:clamp(28px,4vw,52px);flex-wrap:wrap}
+  .sec-no{font-size:12px;letter-spacing:.3em;color:var(--jade);font-weight:700}
+  h2{font-size:clamp(24px,4.2vw,42px);line-height:1.18;letter-spacing:-.015em;font-weight:800}
+  .sec-sub{color:var(--muted);font-size:14px;margin-top:10px;max-width:44em}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+  /* 时间轴 */
+  .half-label{display:flex;align-items:center;gap:12px;margin:24px 0 8px;font-size:12.5px;letter-spacing:.16em;color:var(--jade);font-weight:700;flex-wrap:wrap}
+  .half-label .ln{flex:1;min-width:24px;height:1px;background:var(--line)}
+  .half-label .tag{color:var(--muted);letter-spacing:.06em;font-weight:500;font-size:12px}
+  .tl{display:grid;grid-template-columns:116px 1fr;gap:0}
+  .tl .t{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13.5px;padding:16px 16px 16px 0;border-right:1px solid var(--line);position:relative}
+  .tl .t:before{content:"";position:absolute;right:-4.5px;top:24px;width:8px;height:8px;border-radius:50%;background:var(--paper);border:2px solid var(--jade)}
+  .tl .c{padding:14px 0 14px 24px;min-width:0}
+  .tl .c h3{font-size:16px;font-weight:700;letter-spacing:-.01em;line-height:1.45}
+  .tl .c h3 em{font-style:normal;font-weight:600;color:var(--jade);font-size:12px;margin-left:6px}
+  .tl .c p{font-size:13.5px;color:var(--muted);margin-top:3px}
+  .tl.hl .c{background:linear-gradient(90deg,rgba(217,138,43,.09),transparent 72%);border-radius:0 14px 14px 0}
+  .tl.hl .t:before{background:var(--amber);border-color:var(--amber)}
+  /* 模块卡 */
+  .mods{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .mod{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:26px 24px;min-width:0;
+       transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s,border-color .35s}
+  .mod:hover{transform:translateY(-3px);box-shadow:0 18px 50px -28px rgba(10,31,26,.4);border-color:rgba(47,143,115,.3)}
+  .mod .mn{font-size:11.5px;letter-spacing:.22em;color:var(--amber);font-weight:800}
+  .mod h3{font-size:clamp(18px,2.3vw,22px);margin:8px 0 10px;letter-spacing:-.01em;line-height:1.35}
+  .mod ul{list-style:none;display:grid;gap:6px}
+  .mod li{font-size:13.5px;color:var(--muted);padding-left:15px;position:relative;line-height:1.65}
+  .mod li:before{content:"";position:absolute;left:0;top:.68em;width:5px;height:5px;border-radius:2px;background:var(--jade-l)}
+  .mod.wide{grid-column:1/-1}
+  /* 六个关卡（极简） */
+  .steps-line{font-size:clamp(15px,2vw,18px);color:#3C4A3E;line-height:1.9;max-width:46em}
+  .steps-line b{color:var(--ink)}
+  /* 领奖台 */
+  #award{padding:clamp(52px,6.4vw,84px) 0;background:linear-gradient(180deg,#FBF7EF,var(--paper))}
+  .award-lead{text-align:center;font-size:clamp(15.5px,2.1vw,19px);font-weight:700;color:var(--ink);letter-spacing:.02em;margin-bottom:clamp(24px,3.6vw,36px)}
+  .award-lead em{font-style:normal;color:var(--amber)}
+  .podium{display:flex;align-items:flex-end;justify-content:center;gap:clamp(8px,1.6vw,16px);max-width:600px;margin:0 auto}
+  .podium .p{flex:1 1 0;max-width:170px;text-align:center;min-width:0}
+  .podium .rank{font-size:11.5px;letter-spacing:.14em;color:var(--muted);margin-bottom:6px}
+  .podium .num{font-size:clamp(24px,4.4vw,40px);font-weight:800;color:var(--ink);line-height:1.15;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .podium .num span{font-size:.4em;font-weight:600;color:var(--muted);margin-left:2px}
+  .podium .base{border-radius:12px 12px 0 0;margin-top:10px;position:relative;overflow:hidden}
+  .podium .base:before{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 0,rgba(255,255,255,.4),transparent 62%)}
+  .podium .p1 .base{height:128px;background:linear-gradient(180deg,#E9B45C,#D98A2B)}
+  .podium .p2 .base{height:100px;background:linear-gradient(180deg,#7EC3A9,#2F8F73)}
+  .podium .p3 .base{height:74px;background:linear-gradient(180deg,#CBD8CB,#8FA79A)}
+  .podium .p1 .num,.podium .p1 .rank{color:#B5701B}
+  .podium .p1 .rank{font-weight:800}
+  .award-note{text-align:center;font-size:13px;color:var(--muted);margin:16px auto 0;max-width:36em;line-height:1.9}
+  .award-note b{color:var(--ink);font-weight:700}
+  .award-note .cash{color:#B5701B;font-weight:700}
+  /* 带走 */
+  .gets{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .get{padding:24px 20px;border-radius:var(--r);border:1px solid var(--line);background:linear-gradient(180deg,#fff,#FBF6EC);min-width:0}
+  .get .n{font-size:clamp(26px,3.2vw,36px);font-weight:800;color:rgba(47,143,115,.28);line-height:1;letter-spacing:-.03em}
+  .get h3{font-size:15px;margin:12px 0 6px;line-height:1.45}
+  .get p{font-size:13px;color:var(--muted)}
+  /* 须知 */
+  .prep{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .prep-item{display:flex;gap:14px;padding:22px;border:1px solid var(--line);border-radius:var(--r);background:#fff;min-width:0}
+  .prep-item .idx{font-size:12px;font-weight:800;color:var(--amber);letter-spacing:.14em;padding-top:2px;flex:0 0 auto}
+  .prep-item h3{font-size:15px;margin-bottom:4px;line-height:1.5}
+  .prep-item p{font-size:13px;color:var(--muted)}
+  .fineprint{margin-top:20px;font-size:12.5px;color:var(--muted);border-left:2px solid var(--amber);padding-left:14px;line-height:1.9}
+  /* footer */
+  footer{background:var(--ink);color:#A9BCAE;padding:52px 0 40px;position:relative;overflow:hidden}
+  footer:before{content:"";position:absolute;inset:0;background:radial-gradient(70% 90% at 20% 0,rgba(47,143,115,.22),transparent 62%)}
+  footer .wrap{position:relative;display:flex;flex-wrap:wrap;gap:18px;justify-content:space-between;align-items:flex-end}
+  footer .brand{color:#F4EFE2;font-size:15px;font-weight:700;letter-spacing:.02em;line-height:1.9}
+  footer .brand span{display:block;font-weight:400;font-size:12.5px;color:#8FA79A;letter-spacing:.06em;margin-top:4px}
+  footer .meta{font-size:12px;letter-spacing:.06em;color:#7E978A;line-height:2}
+  /* ===== 动效（依据 wise-motion: fade-rise — 起动 0.15s / 主体 0.6s / 收尾 0.45s、末尾减速；CSS 取 0.7s outCubic 复刻） ===== */
+  header .eyebrow, header h1, header .lead, header .sub, header .chips, header .countdown{
+    opacity:0; transform:translateY(22px); animation:fxRise .7s cubic-bezier(.16,1,.3,1) both;
+  }
+  header .eyebrow{animation-delay:.05s}
+  header h1{animation-delay:.14s}
+  header .lead{animation-delay:.26s}
+  header .sub{animation-delay:.34s}
+  header .chips{animation-delay:.42s}
+  header .countdown{animation-delay:.50s}
+  @keyframes fxRise{ from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:none} }
+  h1 .accent{background-size:220% 100%;background-position:0% 50%;animation:sheen 1.8s ease-out .9s 1 both}
+  @keyframes sheen{from{background-position:0% 50%}to{background-position:100% 50%}}
+  .tl .t:before{transform:scale(.55);transition:transform .5s cubic-bezier(.16,1,.3,1)}
+  .tl.in .t:before{transform:scale(1)}
+  .cnt{font:inherit;color:inherit;font-variant-numeric:tabular-nums}
+  #cd-s{display:inline-block;min-width:2.1ch;text-align:left}
+  #cd-s.tick{animation:secPulse .18s ease-out}
+  @keyframes secPulse{from{opacity:.45;transform:translateY(-1px)}to{opacity:1;transform:none}}
+  /* 打印 */
+  @media print{
+    nav,#bar,.scrollhint,.countdown{display:none!important}
+    header{min-height:auto;padding:0;background:#fff;color:#111}
+    .hero-inner{padding:36px 0}
+    section{padding:22px 0;break-inside:avoid}
+    .reveal{opacity:1!important;transform:none!important}
+    header .eyebrow,header h1,header .lead,header .sub,header .chips,header .countdown{opacity:1!important;transform:none!important;animation:none!important}
+    body{background:#fff}
+    .peaks,.mesh,.sky{display:none}
+    h1 .accent{color:#111;-webkit-text-fill-color:#111}
+    .sub,.chip,.lead,.eyebrow{color:#333;border-color:#ccc}
+    footer{background:#fff;color:#333}
+    footer .brand{color:#111}
+  }
+  /* 响应式 */
+  @media(max-width:980px){
+    .mods,.prep{grid-template-columns:1fr}
+    .gets{grid-template-columns:repeat(2,1fr)}
+  }
+  @media(max-width:620px){
+    .wrap{width:calc(100% - 32px)}
+    .hero-inner{padding:92px 0 120px}
+    .eyebrow{letter-spacing:.1em;font-size:11.5px;padding:7px 12px;margin-bottom:24px}
+    h1 .brand{letter-spacing:.14em;font-size:12.5px}
+    .lead{font-size:17px}
+    .chips{gap:8px;margin-top:26px}
+    .chip{font-size:12px;padding:7px 12px}
+    .countdown{margin-top:32px;font-size:12.5px;gap:4px 8px}
+    .countdown .num{font-size:22px}
+    .tl{grid-template-columns:78px 1fr}
+    .tl .t{font-size:11.5px;padding:14px 10px 14px 0}
+    .tl .c{padding:12px 0 12px 16px}
+    .tl .c h3{font-size:14.5px}
+    .tl .c h3 em{font-size:11px}
+    .tl .c p{font-size:12.5px}
+    .gets,.prep{grid-template-columns:1fr}
+    .sec-head{gap:10px;margin-bottom:24px}
+    .podium{gap:8px}
+    .podium .p1 .base{height:96px}
+    .podium .p2 .base{height:76px}
+    .podium .p3 .base{height:58px}
+    .podium .rank{font-size:11px;letter-spacing:.08em}
+    .podium .num span{font-size:.45em}
+    section{padding:52px 0}
+    footer .meta{text-align:left}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+    .reveal{opacity:1;transform:none}
+    header .eyebrow,header h1,header .lead,header .sub,header .chips,header .countdown{opacity:1!important;transform:none!important;animation:none!important}
+    h1 .accent{animation:none!important;background-position:50% 50%}
+    .tl .t:before{transform:none}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+<div id="bar"></div>
+
+<nav id="nav">
+  <a href="#day">一天怎么过</a>
+  <a href="#mods">五个模块</a>
+  <a href="#tasks">六个关卡</a>
+  <a href="#get">你会带走</a>
+  <a href="#prep">参与须知</a>
+</nav>
+
+<header>
+  <div class="sky"></div>
+  <div class="mesh"></div>
+  <div class="peaks" id="peaks">
+    <svg viewBox="0 0 1440 520" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="p1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1B5142" stop-opacity=".85"/><stop offset="1" stop-color="#0B241C" stop-opacity=".98"/></linearGradient>
+        <linearGradient id="p2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2C6A56" stop-opacity=".55"/><stop offset="1" stop-color="#0A1F1A" stop-opacity=".9"/></linearGradient>
+        <linearGradient id="p3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3E8A6F" stop-opacity=".3"/><stop offset="1" stop-color="#0A1F1A" stop-opacity=".2"/></linearGradient>
+      </defs>
+      <path fill="url(#p3)" d="M0,470 L70,392 C96,360 120,330 148,318 C168,309 186,322 206,300 C232,270 250,212 286,196 C318,182 338,236 366,262 C392,286 410,300 438,330 C458,352 476,392 500,404 C520,414 540,398 566,410 C596,424 610,470 640,470 L0,470 Z"/>
+      <path fill="url(#p1)" d="M0,500 L60,448 C92,420 118,392 150,384 C176,377 196,396 220,372 C252,340 268,272 306,256 C342,241 362,300 392,330 C420,358 442,374 472,398 C496,418 516,448 546,454 C570,459 590,446 616,458 C648,472 664,500 700,500 L0,500 Z"/>
+      <path fill="url(#p2)" d="M520,520 L600,470 C630,448 652,414 686,402 C714,392 736,412 760,394 C792,370 812,318 850,306 C884,295 902,340 930,366 C958,392 982,410 1010,436 C1034,458 1052,486 1080,492 C1104,497 1126,486 1150,496 C1180,508 1194,520 1220,520 L520,520 Z"/>
+      <path fill="url(#p3)" d="M980,520 L1052,480 C1080,462 1100,436 1128,428 C1150,422 1166,436 1186,420 C1214,398 1230,352 1262,344 C1290,337 1306,374 1330,396 C1352,417 1372,432 1396,452 C1414,467 1430,492 1440,500 L1440,520 Z"/>
+    </svg>
+  </div>
+
+  <div class="wrap hero-inner">
+    <div class="eyebrow"><span class="dot"></span>2026.10.23 周五 · 全天 · 示例文旅集团会议室</div>
+    <h1><span class="brand">示例文旅集团 × 弈策智询</span>AI 超级个体<br /><span class="accent">创造营</span></h1>
+    <div class="lead">一个人 <span class="eq">+</span> 一群 AI <span class="eq">=</span> 一支队伍</div>
+    <p class="sub">看懂 AI，理解 AI，学会 AI，应用 AI。<br />让你的经验成为 AI 的榜样，让 AI 的能力变成你的延展。</p>
+    <div class="chips">
+      <div class="chip"><b>09:00–17:40</b> 全天</div>
+      <div class="chip"><b>20 人</b> 小组作战</div>
+      <div class="chip"><b>6 个</b> 真实任务</div>
+      <div class="chip">手机互动</div>
+    </div>
+    <div class="countdown" id="cd">
+      <span>距开营</span>
+      <span class="num" id="cd-d">—</span><span class="unit">天</span>
+      <span class="num" id="cd-h">—</span><span class="unit">时</span>
+      <span class="num" id="cd-m">—</span><span class="unit">分</span>
+      <span class="num" id="cd-s">—</span><span class="unit">秒</span>
+    </div>
+  </div>
+
+  <div class="scrollhint"><span>向下看这一天怎么过</span><i></i></div>
+</header>
+
+<section id="day">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-no">01</span>
+      <div>
+        <h2>一天怎么过</h2>
+        <p class="sec-sub">上午在会议室听、看、问；下午先回工位真刀真枪做六件事，交完再回会议室收尾。讲三成、演三成、练四成。</p>
+      </div>
+    </div>
+
+    <div class="half reveal">
+      <div class="half-label"><span>上午 · 会议室</span><span class="ln"></span><span class="tag">抽签分组 · 手机互动</span></div>
+      <div class="tl reveal"><div class="t">09:00–09:20</div><div class="c"><h3>开场：先分组，再开讲<em>20 分钟</em></h3><p>为什么是这场培训；现场抽签分小组；公布全天计分与奖励规则。</p></div></div>
+      <div class="tl reveal"><div class="t">09:20–10:15</div><div class="c"><h3>模块一 · AI 到底到哪一步了<em>55 分钟</em></h3><p>这三年它变了什么；会聊天、会思考、会干活是三件事；它为什么会胡说；哪些活能交给它。</p></div></div>
+      <div class="tl reveal"><div class="t">10:15–10:25</div><div class="c"><h3>茶歇</h3><p>十分钟，顺便想想自己岗位上最想先交出去的那件事。</p></div></div>
+      <div class="tl reveal"><div class="t">10:25–11:40</div><div class="c"><h3>模块二 · 拆开你每天用的那个 AI，到底有哪些本事<em>75 分钟</em></h3><p>从哪进、用哪个脑子、它记不记得你、它有哪些工具、它能自己动手做什么、怎么连上你的系统。</p></div></div>
+    </div>
+
+    <div class="half reveal">
+      <div class="half-label"><span>下午 · 会议室 → 工位 → 会议室</span><span class="ln"></span><span class="tag">工位实操 → 回场收尾</span></div>
+      <div class="tl reveal"><div class="t">14:30–14:35</div><div class="c"><h3>下午开场<em>5 分钟</em></h3><p>上午要点快答，把脑子从「听懂」切到「上手」。</p></div></div>
+      <div class="tl reveal"><div class="t">14:35–15:25</div><div class="c"><h3>模块三 · 六类活儿，六种干法<em>50 分钟</em></h3><p>先看看自己平时停在哪一档；再看方案、表格、PPT、宣传、协作、对账各自怎么干。</p></div></div>
+      <div class="tl reveal"><div class="t">15:25–15:35</div><div class="c"><h3>茶歇 + 移动作业区 + 发素材<em>10 分钟</em></h3><p>按上午分好的组，各自就位，素材包到手就开工。</p></div></div>
+      <div class="tl hl reveal"><div class="t">15:35–17:05</div><div class="c"><h3>模块四 · 六个任务，真做一遍<em>90 分钟</em></h3><p>每人认领两关、组内并行，全部当场提交、当场出分。</p></div></div>
+      <div class="tl reveal"><div class="t">17:05–17:10</div><div class="c"><h3>提交成果 · 回会议室<em>5 分钟</em></h3><p>各组确认提交，讲师台核对完成度，然后一起回到会议室。</p></div></div>
+      <div class="tl reveal"><div class="t">17:10–17:18</div><div class="c"><h3>公布积分与发奖<em>8 分钟</em></h3><p>看各组全天积分；公布前三名，发奖励；点评共性问题。</p></div></div>
+      <div class="tl hl reveal"><div class="t">17:18–17:38</div><div class="c"><h3>模块五 · 以后的路线：从一个场景走到一条路线<em>20 分钟</em></h3><p>基础应用 → 能力沉淀 → 技能封装 → 连接系统 → 路线分支；五条分支：事务、内容、工具、咨询、技术。</p></div></div>
+      <div class="tl reveal"><div class="t">17:38–17:40</div><div class="c"><h3>结语：一个人的队伍</h3><p>把今天带走的东西，接回下周的工作。</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="award">
+  <div class="wrap">
+    <p class="award-lead reveal">小组积分<em>前三名</em>可获得</p>
+    <div class="podium reveal">
+      <div class="p p2">
+        <div class="rank">第二名</div>
+        <div class="num"><b class="cnt" data-to="300">300</b><span>元</span></div>
+        <div class="base"></div>
+      </div>
+      <div class="p p1">
+        <div class="rank">第一名</div>
+        <div class="num"><b class="cnt" data-to="500">500</b><span>元</span></div>
+        <div class="base"></div>
+      </div>
+      <div class="p p3">
+        <div class="rank">第三名</div>
+        <div class="num"><b class="cnt" data-to="200">200</b><span>元</span></div>
+        <div class="base"></div>
+      </div>
+    </div>
+    <p class="award-note reveal">奖励以<b>等价算力</b>形式发放，<span class="cash">并非现金</span>；名次根据<b>全天课堂表现与作业积分</b>评定。</p>
+  </div>
+</section>
+
+<section id="mods" style="background:linear-gradient(180deg,var(--paper),#FBF7EF)">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-no">02</span>
+      <div>
+        <h2>五个模块</h2>
+        <p class="sec-sub">不讲术语，讲你能用上的。从「它是什么」到「怎么让它替你干活」，再到「以后还能怎么长」。</p>
+      </div>
+    </div>
+
+    <div class="mods">
+      <div class="mod reveal">
+        <div class="mn">模块一</div>
+        <h3>AI 到底到哪一步了</h3>
+        <ul>
+          <li>这三年它是怎么一步步变强的（一条时间线讲明白）</li>
+          <li>会聊天、会思考、会干活，是三件不一样的事</li>
+          <li>它为什么会一本正经地胡说，怎么让它少犯</li>
+          <li>它现在能把活干到多细，哪些事千万别交给它</li>
+          <li>这几年用它的方式，是怎么从「写一句话」变成「派一队人」的</li>
+        </ul>
+      </div>
+      <div class="mod reveal">
+        <div class="mn">模块二</div>
+        <h3>你每天用的那个 AI，有哪些本事</h3>
+        <ul>
+          <li>从哪儿用：手机上的钉钉、飞书、微信，还是电脑客户端</li>
+          <li>用哪个脑子：内置的模型、自带的模型，强弱不一样</li>
+          <li>它记不记得你：记得你是谁、习惯怎样、在做哪个项目</li>
+          <li>它有哪些现成工具：技能、专家、专家团</li>
+          <li>它能自己动手做什么：理文件、开网页查资料、改表格、操作电脑</li>
+          <li>怎么连上你的系统：钉钉表格、飞书文档，直接读直接写</li>
+        </ul>
+      </div>
+      <div class="mod reveal">
+        <div class="mn">模块三</div>
+        <h3>六类活儿，六种干法</h3>
+        <ul>
+          <li>先看看自己平时停在哪一档（很多人只停在「聊过天」）</li>
+          <li>方案、表格、PPT、宣传、协作、对账，各有各的固定套路</li>
+          <li>每次都问四句：给它什么、让它干什么、它交出什么、怎么算合格</li>
+        </ul>
+      </div>
+      <div class="mod reveal">
+        <div class="mn">模块四</div>
+        <h3>六个任务，真做一遍</h3>
+        <ul>
+          <li>早上就抽好签，三人一组</li>
+          <li>下午回工位，用电脑真做</li>
+          <li>交上去就出分，知道差在哪</li>
+        </ul>
+      </div>
+      <div class="mod wide reveal">
+        <div class="mn">模块五</div>
+        <h3>以后你还能做什么</h3>
+        <ul>
+          <li>把重复的活儿做成一个按钮，下次点一下就完事</li>
+          <li>让它直接读公司系统里的数据，不用你来回倒</li>
+          <li>做出真能用的小系统：订座、订房、验票、协作看板</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tasks" style="padding-bottom:clamp(24px,3vw,40px)">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-no">03</span>
+      <div>
+        <h2>六个实战关卡</h2>
+        <p class="sec-sub">方案、表格、推介、视频、协同、对账——当天现场出题、现场做、现场出分。</p>
+      </div>
+    </div>
+    <p class="steps-line reveal">不考试，也不听讲：<b>三个人一组，每人认领两关，组内做完就交</b>。用的都是公司自己的真实场景与材料，交上去马上有分数和改法。</p>
+
+  </div>
+</section>
+
+<section id="get" style="background:linear-gradient(180deg,#FBF7EF,var(--paper))">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-no">04</span>
+      <div>
+        <h2>你会带走什么</h2>
+        <p class="sec-sub">不是笔记，是四样能直接用、也能教给同事的东西。</p>
+      </div>
+    </div>
+    <div class="gets">
+      <div class="get reveal"><div class="n">01</div><h3>一张「它到哪一步了」的图</h3><p>别人再吹，你知道现在能到哪、不能到哪。</p></div>
+      <div class="get reveal"><div class="n">02</div><h3>六类活儿的固定干法</h3><p>附一套可以反复用的说法（提示词），换个场景也能照着做。</p></div>
+      <div class="get reveal"><div class="n">03</div><h3>一份真实的评分</h3><p>自己那两关的得分与改进建议，知道差在哪、下次怎么补。</p></div>
+      <div class="get reveal"><div class="n">04</div><h3>一条回岗后的路线</h3><p>第一周先用哪件事；之后往哪条路线走（事务 / 内容 / 工具 / 咨询 / 技术），心里有数。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="prep">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-no">05</span>
+      <div>
+        <h2>参与须知</h2>
+        <p class="sec-sub">四件小事，提前准备好，当天直接开工。</p>
+      </div>
+    </div>
+    <div class="prep">
+      <div class="prep-item reveal"><span class="idx">01</span><div><h3>到场先抽签分组</h3><p>三个人一组，抽到的字母就是你的组，全天不变。</p></div></div>
+      <div class="prep-item reveal"><span class="idx">02</span><div><h3>手机保持在线</h3><p>开场的分组、课上的投票、成绩查看都在手机上；打开课堂页时填姓名 + 手机号后四位。</p></div></div>
+      <div class="prep-item reveal"><span class="idx">03</span><div><h3>带一件真实工作</h3><p>手头的方案、表格、PPT 或宣传素材都行——用自己的材料练，效果最好。</p></div></div>
+      <div class="prep-item reveal"><span class="idx">04</span><div><h3>账号提前开好</h3><p>workbuddy 账号提前开通，下午回工位直接用。还没开通的，提前联系行政。</p></div></div>
+    </div>
+    <p class="fineprint reveal">课程中的报名表、结算单等练习数据均为模拟生成，不含真实个人信息；具体安排以现场为准。</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="brand">示例文旅集团 × 弈策智询<span>AI 超级个体创造营</span></div>
+    <div class="meta">2026.10.23（周五）09:00–17:40<br />公司会议室 · 全天 · 约 20 人 · 小组作战</div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var bar = document.getElementById('bar');
+  var nav = document.getElementById('nav');
+  function onScroll(){
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    var y = window.scrollY || document.documentElement.scrollTop;
+    bar.style.width = (h > 0 ? Math.min(100, y / h * 100) : 0) + '%';
+    if (y > window.innerHeight * 0.55) { nav.classList.add('show'); } else { nav.classList.remove('show'); }
+    if (!reduce) {
+      var peaks = document.getElementById('peaks');
+      if (peaks && y < window.innerHeight * 1.4) { peaks.style.transform = 'translateY(' + (y * 0.18) + 'px)'; }
+    }
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  var target = new Date('2026-10-23T09:00:00+08:00').getTime();
+  var dd = document.getElementById('cd-d'), hh = document.getElementById('cd-h'),
+      mm = document.getElementById('cd-m'), ss = document.getElementById('cd-s');
+  function pad(n){ return (n < 10 ? '0' : '') + n; }
+  function tick(){
+    var diff = target - Date.now();
+    if (diff <= 0) {
+      var cd = document.getElementById('cd');
+      if (cd) { cd.innerHTML = '<span>创造营已开营 · 好好练</span>'; }
+      clearInterval(timer);
+      return;
+    }
+    if (dd) dd.textContent = Math.floor(diff / 86400000);
+    if (hh) hh.textContent = pad(Math.floor(diff % 86400000 / 3600000));
+    if (mm) mm.textContent = pad(Math.floor(diff % 3600000 / 60000));
+    if (ss) {
+      var sv = pad(Math.floor(diff % 60000 / 1000));
+      if (ss.textContent !== sv) { ss.textContent = sv; ss.classList.remove('tick'); void ss.offsetWidth; ss.classList.add('tick'); }
+    }
+  }
+  var timer = setInterval(tick, 1000);
+  tick();
+
+  var items = [].slice.call(document.querySelectorAll('.reveal'));
+  if ('IntersectionObserver' in window && !reduce) {
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+    items.forEach(function(el, i){ el.style.transitionDelay = (Math.min(i % 4, 3) * 60) + 'ms'; io.observe(el); });
+  } else {
+    items.forEach(function(el){ el.classList.add('in'); });
+  }
+
+  /* 奖励数字滚动（计数上跳，900ms，末尾减速） */
+  var cnts = [].slice.call(document.querySelectorAll('.cnt'));
+  function easeOut(t){ return 1 - Math.pow(1 - t, 3); }
+  function runCnt(el){
+    var to = Number(el.getAttribute('data-to') || 0), t0 = 0, dur = 900, done = false;
+    function finish(){ if (done) return; done = true; el.textContent = to; }
+    el.textContent = '0';
+    function step(ts){
+      if (done) return;
+      if (!t0) t0 = ts;
+      var p = Math.min(1, (ts - t0) / dur);
+      el.textContent = Math.round(to * easeOut(p));
+      if (p < 1) requestAnimationFrame(step); else finish();
+    }
+    requestAnimationFrame(step);
+    setTimeout(finish, 1100);
+  }
+  if ('IntersectionObserver' in window && !reduce) {
+    var io3 = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if (e.isIntersecting) { runCnt(e.target); io3.unobserve(e.target); } });
+    }, { threshold: 0.6 });
+    cnts.forEach(function(el){ io3.observe(el); });
+  } else { cnts.forEach(function(el){ el.textContent = el.getAttribute('data-to'); }); }
+
+  var links = [].slice.call(document.querySelectorAll('nav a'));
+  links.forEach(function(a){
+    a.addEventListener('click', function(ev){
+      var el = document.querySelector(a.getAttribute('href'));
+      if (!el) return;
+      ev.preventDefault();
+      el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    });
+  });
+})();
+</script>
+</body>
+</html>

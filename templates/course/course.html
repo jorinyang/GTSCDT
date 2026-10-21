@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI 超级个体创造营 · 课件</title>
+<style>:root{--ink:#0A1F1A;--text:#F4EFE2;--muted:#9DB3A6;--jade:#2F8F73;--jade-l:#63B79A;--amber:#D98A2B;--amber-l:#E9B45C;--line:rgba(244,239,226,.13);--r:14px;--sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Source Han Sans SC","Noto Sans CJK SC",sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--sans);background:#081813;color:var(--text);overflow:hidden;-webkit-font-smoothing:antialiased}
+.app{display:flex;height:100vh}
+.side{width:268px;flex:0 0 268px;background:linear-gradient(180deg,#0C2A21,#081813);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px 12px}
+.logo{font-size:11px;letter-spacing:.16em;color:#7E978A;padding:2px 8px 6px;line-height:1.7}
+.logo b{display:block;color:#F4EFE2;font-size:13px;letter-spacing:.04em;margin-top:4px}
+.mnav{display:grid;gap:3px;margin-top:10px}
+.mnav button{all:unset;cursor:pointer;padding:9px 10px;border-radius:10px;color:#C7D5C8;font-size:13px;line-height:1.45;transition:.18s}
+.mnav button:hover{background:rgba(255,255,255,.06)}
+.mnav button.on{background:rgba(47,143,115,.20);color:#fff;box-shadow:inset 2px 0 0 var(--jade)}
+.mnav .n{display:block;font-size:10px;letter-spacing:.16em;color:#6E8779;margin-bottom:2px}
+.side .foot{margin-top:auto;font-size:11px;color:#6E8779;line-height:1.9;padding:8px}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 18px;border-bottom:1px solid var(--line);background:rgba(8,24,19,.55);flex-wrap:wrap}
+.crumb{font-size:12px;color:#9DB3A6;letter-spacing:.06em}
+.tools{display:flex;gap:7px;flex-wrap:wrap}
+.tools a,.tools button{all:unset;cursor:pointer;font-family:inherit;font-size:11.5px;color:#D9E4D8;border:1px solid var(--line);padding:5px 11px;border-radius:999px;white-space:nowrap;transition:.18s}
+.tools a:hover,.tools button:hover{background:rgba(255,255,255,.09)}
+.tools a.pri{background:linear-gradient(135deg,rgba(217,138,43,.85),rgba(181,112,27,.85));border-color:transparent;color:#241705;font-weight:700}
+.chips{display:flex;gap:7px;overflow-x:auto;padding:10px 18px 0;scrollbar-width:none;flex-wrap:nowrap}
+.chips::-webkit-scrollbar{display:none}
+.chips button{all:unset;cursor:pointer;font-family:inherit;white-space:nowrap;font-size:12px;color:#B9CBBF;border:1px solid var(--line);padding:5px 11px;border-radius:999px;transition:.18s}
+.chips button:hover{background:rgba(255,255,255,.07)}
+.chips button.on{background:rgba(217,138,43,.14);border-color:rgba(233,180,92,.45);color:#F0D9AC}
+.stage{flex:1;overflow:auto;padding:22px 26px 70px}
+.view{display:none;max-width:1060px;margin:0 auto}
+.view.on{display:block;animation:viewIn .38s ease both}
+@keyframes up{from{transform:translateY(8px)}to{transform:none}}
+@keyframes viewIn{from{opacity:0}to{opacity:1}}
+.fx-in{animation:fxIn .28s ease both}
+@keyframes fxIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.eyebrow{font-size:11.5px;letter-spacing:.2em;color:var(--amber-l);font-weight:700;margin-bottom:10px}
+h1{font-size:clamp(25px,3.3vw,42px);line-height:1.18;letter-spacing:-.015em;font-weight:800}
+h2{font-size:clamp(19px,2.2vw,26px);line-height:1.3;letter-spacing:-.01em}
+h3{font-size:16px;line-height:1.4}
+.lead{color:var(--muted);font-size:14px;margin:8px 0 16px;max-width:56em;line-height:1.75}
+.card{background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:var(--r)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.pad{padding:18px 20px}
+.k{font-size:11px;letter-spacing:.16em;color:var(--muted);margin-bottom:6px}
+.muted{color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.65}
+th{color:#9DB3A6;font-weight:600;font-size:12px;letter-spacing:.06em}
+ul{list-style:none}
+li.dot{position:relative;padding-left:14px;color:#CFDCD2;font-size:13.5px;line-height:1.85}
+li.dot:before{content:"";position:absolute;left:0;top:.72em;width:5px;height:5px;border-radius:2px;background:var(--jade-l)}
+.pill{display:inline-block;font-size:11px;letter-spacing:.08em;border:1px solid rgba(233,180,92,.35);color:var(--amber-l);border-radius:999px;padding:2px 9px;margin-right:6px}
+.hintbar{position:fixed;bottom:0;left:268px;right:0;padding:8px 18px;font-size:11px;color:#6E8779;background:rgba(8,24,19,.6);border-top:1px solid var(--line);text-align:center;letter-spacing:.04em}
+@media(max-width:900px){.app{flex-direction:column}.side{width:auto;flex:0 0 auto;border-right:0;border-bottom:1px solid var(--line);padding:10px 10px 6px}.mnav{display:flex;overflow-x:auto;gap:4px;margin-top:2px}.mnav button{white-space:nowrap;font-size:12px;padding:7px 10px}.mnav .n{display:none}.side .foot{display:none}.hintbar{left:0}.stage{padding:16px 14px 64px}.bar{padding:8px 12px}.chips{padding:8px 12px 0}.grid2,.grid3,.grid4{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}.tlnode{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--amber);border:3px solid #0B241C;box-shadow:0 0 0 7px rgba(217,138,43,.14);cursor:pointer;z-index:3;transform:translate(-50%,50%);transition:transform .2s,box-shadow .2s}
+.tlnode:hover,.tlnode.on{transform:translate(-50%,50%) scale(1.3);box-shadow:0 0 0 10px rgba(217,138,43,.22)}
+.tldate{position:absolute;transform:translate(-50%,100%);font-size:12.5px;color:var(--amber-l);letter-spacing:.06em;margin-top:8px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tlgap{position:absolute;transform:translate(-50%,-50%);font-size:11.5px;color:#F0D9AC;background:rgba(8,24,19,.72);border:1px solid rgba(233,180,92,.28);padding:3px 10px;border-radius:999px;white-space:nowrap;z-index:2}
+.archbtn{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;font-size:14px;color:#C7D5C8;border:1px solid transparent;margin-bottom:6px;transition:.18s}
+.archbtn:hover{background:rgba(255,255,255,.05)}
+.archbtn.on{background:rgba(47,143,115,.18);border-color:rgba(99,183,154,.35);color:#fff}
+.archbtn .an{font-size:11px;letter-spacing:.1em;color:var(--amber-l);width:34px;flex:0 0 auto}
+.archbtn b{font-weight:600}
+.btn2{all:unset;cursor:pointer;font-family:inherit;font-size:12.5px;color:#D9E4D8;border:1px solid var(--line);padding:7px 13px;border-radius:999px;transition:.18s;display:inline-block}
+.btn2:hover{background:rgba(255,255,255,.09)}
+.btn2.pri{background:linear-gradient(135deg,rgba(217,138,43,.85),rgba(181,112,27,.85));border-color:transparent;color:#241705;font-weight:700}
+.pylayer{position:relative;margin:0 auto;height:46px;border-radius:9px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;
+  background:linear-gradient(90deg,rgba(47,143,115,.18),rgba(47,143,115,.4));border:1px solid rgba(99,183,154,.26);
+  opacity:0;transform:translateY(12px) scaleX(.95);transition:opacity .5s,transform .6s cubic-bezier(.16,1,.3,1)}
+.pylayer.show{opacity:1;transform:none}
+.pylayer b{font-size:13px;color:#EAF3EC}
+.pylayer span{font-size:13px;font-weight:800;color:var(--jade-l);font-variant-numeric:tabular-nums}
+.pylayer.hi{background:linear-gradient(90deg,rgba(217,138,43,.16),rgba(217,138,43,.42));border-color:rgba(233,180,92,.4)}
+.pylayer.hi span{color:var(--amber-l)}
+.pylayer em{position:absolute;right:-4px;top:-17px;font-style:normal;font-size:11px;color:#F0D9AC;white-space:nowrap}
+/* ===== 新版外壳 ===== */
+.topbar{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 16px;background:rgba(8,24,19,.72);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);z-index:60}
+.brandline{display:flex;flex-direction:column;line-height:1.3;min-width:0}
+.brandline b{font-size:14px;color:#F4EFE2;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brandline span{font-size:10.5px;color:#7E978A;letter-spacing:.12em}
+.tright{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.tright a{color:#C7D5C8;text-decoration:none;font-size:11.5px;border:1px solid var(--line);padding:5px 10px;border-radius:999px;white-space:nowrap}
+.tright a:hover{background:rgba(255,255,255,.09);color:#fff}
+.icobtn{all:unset;cursor:pointer;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:9px;color:#E9E4D6;font-size:15px;margin-left:2px}
+.icobtn:hover{background:rgba(255,255,255,.09)}
+.crumbfloating{position:fixed;left:16px;bottom:38px;z-index:40;font-size:11.5px;color:#8FA79A;letter-spacing:.04em;background:rgba(8,24,19,.6);border:1px solid var(--line);padding:4px 10px;border-radius:999px;pointer-events:none}
+.menu{position:fixed;top:56px;left:0;z-index:55;width:min(420px,92vw);max-height:calc(100vh - 120px);overflow:auto;padding:12px;background:rgba(10,26,21,.97);border-right:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0 0 16px 0;transform:translateY(-12px);opacity:0;pointer-events:none;transition:.22s}
+.menu.open{transform:none;opacity:1;pointer-events:auto}
+.menu .mnav{display:grid;gap:2px;margin:0 0 8px}
+.menu .mnav button{all:unset;cursor:pointer;padding:9px 10px;border-radius:9px;color:#C7D5C8;font-size:13.5px}
+.menu .mnav button:hover{background:rgba(255,255,255,.06)}
+.menu .mnav button.on{background:rgba(47,143,115,.22);color:#fff;box-shadow:inset 2px 0 0 var(--jade)}
+.menu .mnav .n{display:block;font-size:10px;letter-spacing:.16em;color:#6E8779;margin-bottom:1px}
+.menu .chips{display:flex;flex-wrap:wrap;gap:6px;padding:8px 4px 2px}
+.menu .chips button{all:unset;cursor:pointer;font-size:12px;color:#B9CBBF;border:1px solid var(--line);padding:4px 10px;border-radius:999px}
+.menu .chips button.on{background:rgba(217,138,43,.14);border-color:rgba(233,180,92,.45);color:#F0D9AC}
+.stage{padding:72px 22px 70px;height:100vh;overflow:auto}
+.view{max-width:1500px;margin:0 auto}
+.drawer-handle{all:unset;cursor:pointer;position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:58;writing-mode:vertical-rl;letter-spacing:.18em;font-size:11.5px;color:#F0D9AC;background:rgba(10,26,21,.9);border:1px solid var(--line);border-right:0;border-radius:12px 0 0 12px;padding:12px 7px;line-height:1.2}
+.drawer-handle:hover{background:rgba(47,143,115,.25)}
+.drawer{position:fixed;top:56px;right:0;bottom:32px;width:min(300px,88vw);z-index:57;background:rgba(10,26,21,.97);border-left:1px solid var(--line);transform:translateX(105%);transition:transform .24s cubic-bezier(.16,1,.3,1);display:flex;flex-direction:column}
+.drawer.open{transform:none}
+.drawer-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);font-size:13px;color:#F4EFE2}
+.drawer-body{padding:10px 12px;overflow:auto}
+.grow{display:flex;align-items:center;gap:8px;padding:8px 9px;border:1px solid var(--line);border-radius:10px;margin-bottom:7px;font-size:12.5px}
+.grow b{width:18px;color:#F0D9AC}
+.grow .cnt{color:#7E978A;font-size:11px;width:30px}
+.grow .pf{flex:1;text-align:right;font-variant-numeric:tabular-nums;color:#E9E4D6}
+.grow button{all:unset;cursor:pointer;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:7px;color:#D9E4D8;font-size:13px}
+.grow button:hover{background:rgba(255,255,255,.1)}
+.hintbar{left:0!important;padding-left:150px}
+@media(max-width:720px){.tright a{display:none}.tright a.keep{display:inline-block}.brandline b{font-size:12.5px}.stage{padding:66px 12px 64px}.crumbfloating{display:none}.hintbar{padding-left:12px}}
+
+/* 1.4 五阶段 */
+.evo-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.evo-card{position:relative;cursor:pointer;border:1px solid var(--line);border-radius:12px;padding:14px 8px;text-align:center;background:rgba(255,255,255,.03);transition:.18s}
+.evo-card:hover{background:rgba(255,255,255,.07)}
+.evo-card.on{background:rgba(217,138,43,.14);border-color:rgba(233,180,92,.5)}
+.evo-card b{display:block;font-size:13px;color:#EAF3EC;line-height:1.35}
+.evo-card span{display:block;margin-top:6px;font-size:12.5px;color:var(--amber-l)}
+.evo-card:not(:last-child):after{content:"→";position:absolute;right:-11px;top:50%;transform:translateY(-50%);color:#7E978A;font-size:12px}
+/* 视图自适应 */
+.stage{position:relative;overflow:hidden;height:calc(100vh - 56px);padding:0!important;margin-top:56px}
+.view{position:absolute;left:0;top:0;width:100%;max-width:none;margin:0;padding:16px 20px 18px;transform-origin:top left}
+/* 2.x 架构 */
+.arch-page{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:start}
+.arch-side{display:grid;gap:4px}
+.arch-side button{all:unset;cursor:pointer;padding:7px 9px;border:1px solid var(--line);border-radius:9px;font-size:12px;color:#C7D5C8}
+.arch-side button.on{background:rgba(47,143,115,.22);color:#fff;border-color:rgba(99,183,154,.45)}
+.arch-main{min-width:0}
+.arch-diagram{position:relative;height:280px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.03);margin-bottom:10px}
+.arch-diagram svg{position:absolute;inset:0;width:100%;height:100%}
+.arch-node{position:absolute;transform:translate(-50%,-50%);cursor:pointer;border:1px solid rgba(244,239,226,.2);background:rgba(10,26,21,.9);color:#E9E4D6;font-family:inherit;font-size:12.5px;padding:7px 13px;border-radius:10px;white-space:nowrap}
+.arch-node:hover{background:rgba(47,143,115,.25)}
+.arch-node.on{background:rgba(47,143,115,.35);border-color:rgba(99,183,154,.6);color:#fff}
+.arch-node.core{font-size:15px;font-weight:700;padding:12px 20px;background:rgba(217,138,43,.2);border-color:rgba(233,180,92,.45);color:#F6E4C6}
+.arch-linkwrap{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:0}
+.arch-linkwrap .brace{font-size:42px;color:var(--amber-l);line-height:1}
+.arch-linkwrap .arch-node{position:static;transform:none}
+.arch-detail{min-height:140px}
+/* 3.1 */
+.p31{display:grid;grid-template-columns:330px 170px 1fr;gap:12px;align-items:center;min-height:360px}
+.pie2{width:100%;height:auto;display:block}
+.slice-g{transition:.25s;cursor:pointer}
+.slice-g:hover{transform:translateY(-6px);filter:drop-shadow(0 8px 16px rgba(217,138,43,.5))}
+.funnel-box{text-align:center;font-size:12px;color:var(--muted)}
+.lbar{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.lbar .lb{width:150px;font-size:12px;color:#CFDCD2}
+.lbar .track{flex:1;height:14px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.lbar .fill{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--jade),var(--jade-l))}
+.lbar.hi .fill{background:linear-gradient(90deg,var(--amber),var(--amber-l))}
+.lbar .pct{width:46px;text-align:right;font-size:12px;color:#E9D6B0}
+/* 模块四 */
+.m4{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;height:560px;min-height:0;align-items:stretch}
+.m4 .card{height:100%}
+.m4 .side{width:auto;flex:1 1 auto;min-width:0;overflow:auto;display:flex;flex-direction:column;justify-content:space-between}
+.m4 .side .k:first-child{margin-top:0}
+.m4 .center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.m4 #wtimer{font-size:104px;font-weight:800;line-height:1.05;letter-spacing:.01em;font-variant-numeric:tabular-nums;color:#F6E4C6}
+@media(max-width:720px){
+ .evo-row{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}.evo-card{padding:9px 3px}.evo-card b{font-size:10.5px}.evo-card span{font-size:10px}.evo-card:not(:last-child):after{display:none}
+ .view{padding:12px 12px 14px}
+ .arch-page{grid-template-columns:1fr}.arch-side{grid-template-columns:repeat(3,1fr)}
+ .arch-diagram{height:240px}
+ .p31{grid-template-columns:1fr}.funnel-box{display:none}.lbar .lb{width:110px}
+ .m4{grid-template-columns:1fr;height:auto}
+}
+#v-1-5 svg{height:min(50vh,470px)!important;width:auto!important;max-width:100%!important;display:block;margin:0 auto}
+.arch-diagram{height:300px}
+.arch-detail{min-height:170px;overflow:auto}
+/* ===== 封面 ===== */
+.cover{display:flex;flex-direction:column;justify-content:center;min-height:70vh;gap:4px}
+.cover .cv-brand{font-size:12px;letter-spacing:.22em;color:#7E978A}
+.cover .cv-title{font-size:clamp(44px,5.8vw,86px);line-height:1.08;margin:10px 0 8px;font-weight:800}
+.cover .cv-sub{font-size:16px;color:var(--amber-l);letter-spacing:.08em}
+.cover .cv-lead{font-size:15px;color:#B9CBBF;max-width:46em;margin-top:12px;line-height:1.8}
+.cover .cv-stats{display:flex;gap:44px;margin-top:38px;flex-wrap:wrap}
+.cover .cv-stats b{font-size:27px;color:var(--amber-l);font-variant-numeric:tabular-nums}
+.cover .cv-stats span{display:block;font-size:11.5px;color:var(--muted);letter-spacing:.1em;margin-top:2px}
+.cover .cv-foot{margin-top:34px;font-size:12px;color:#6E8779}
+/* ===== 2.x 架构 ===== */
+.arch-page{display:grid;grid-template-columns:2fr 1fr;gap:18px;align-items:stretch}
+.arch-side{display:flex;flex-direction:column;gap:10px;height:100%;align-self:stretch}
+.arch-side button{flex:1 1 0;min-height:56px;display:flex;align-items:center;font-size:14.5px;padding:10px 18px;text-align:left;border:1px solid var(--line);border-radius:9px;color:#C7D5C8;background:transparent;cursor:pointer}
+.arch-side button.on{background:rgba(47,143,115,.25);color:#fff;border-color:rgba(99,183,154,.5)}
+.arch-main{display:flex;flex-direction:column;gap:12px;min-width:0}
+.arch-stage{position:relative;display:flex;align-items:center;min-height:330px;padding:4px 0}
+.arch-stage .arch-node{position:static;left:auto;top:auto;transform:none;font-size:14px;padding:9px 14px}
+.arch-node.anode{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:11px}
+.arch-node.anode b{font-size:13.5px;color:var(--text);font-weight:700}
+.arch-node.anode span{font-size:10px;color:var(--muted);line-height:1.5;white-space:normal}
+.arch-stage .arch-node.on{background:rgba(217,138,43,.22);border-color:var(--amber);color:#fff;box-shadow:0 0 0 1px rgba(233,180,92,.55),0 0 22px rgba(233,180,92,.28)}
+.arch-stage .arch-node.on b{color:#FFEBC8}
+.arch-stage .arch-node.on span{color:#F2DCB6}
+@keyframes nodePulse{0%,100%{box-shadow:0 0 0 1px rgba(233,180,92,.5),0 0 16px rgba(233,180,92,.22)}50%{box-shadow:0 0 0 2px rgba(233,180,92,.7),0 0 28px rgba(233,180,92,.36)}}
+.arch-stage .arch-node.on{animation:nodePulse 2s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.arch-stage .arch-node.on{animation:none}}
+.arch-core{position:relative;display:flex;align-items:center;justify-content:center;width:100%;padding-right:176px}
+.arch-flow{display:flex;flex-direction:column;align-items:center;gap:5px}
+.arch-row{display:flex;align-items:center;justify-content:center;gap:8px}
+.arch-arrow{color:var(--amber);font-size:19px;line-height:1;opacity:.9;flex:0 0 auto}
+.arch-arrow.v{font-size:21px}
+.arch-stage .brace-cell{position:absolute;right:128px;top:0;bottom:0;display:flex;align-items:center;justify-content:center;overflow:visible}
+.arch-stage .brace-cell span{font-family:Georgia,"Times New Roman",serif;font-size:clamp(150px,23vh,285px);line-height:.7;color:var(--amber);font-weight:400;transform:scaleX(.7)}
+.arch-stage .node-link{position:absolute;right:0;top:50%;transform:translateY(-50%)}
+/* ===== 3.1 ===== */
+.p31{display:grid;grid-template-columns:minmax(0,470px) minmax(0,1fr);gap:20px;align-items:center}
+.pie-funnel{display:flex;align-items:center}
+.pie-funnel .pie2{width:340px;max-width:100%;height:auto;flex:0 0 auto}
+.pie-funnel .funnel-svg{width:118px;height:340px;margin-left:-4px;flex:0 0 auto}
+/* ===== 路线图 ===== */
+.road{display:flex;align-items:center;gap:8px;margin:8px 0 12px;flex-wrap:wrap}
+.road .rn{flex:1;min-width:132px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:rgba(47,143,115,.12)}
+.road .rn b{display:block;font-size:13.5px;color:#EAF3EC}
+.road .rn span{font-size:11px;color:var(--muted)}
+.road .ra{color:var(--amber);font-size:18px}
+.branches{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}
+.branch{border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:rgba(255,255,255,.03)}
+.branch .bh{font-size:12px;font-weight:700;color:var(--amber-l);margin-bottom:6px;line-height:1.45}
+.branch .bn{font-size:11px;color:#CFDCD2;line-height:1.5;padding:5px 0;border-top:1px dashed rgba(244,239,226,.1)}
+.branch .bn:first-of-type{border-top:0}
+.branch .bn i{color:#63B79A;font-style:normal;margin-right:4px}
+@media(max-width:900px){
+  .arch-page{grid-template-columns:1fr}
+  .arch-stage{grid-template-columns:1fr 1fr;grid-template-rows:auto;gap:8px}
+  .arch-stage .arch-node,.arch-stage .brace-cell,.arch-stage .node-link{grid-area:auto}
+  .arch-stage .brace-cell{display:none}
+  .p31{grid-template-columns:1fr}
+  .branches{grid-template-columns:1fr 1fr}
+  .pie-funnel .pie2{width:280px}
+  .pie-funnel .funnel-svg{height:280px;width:96px}
+}
+/* ===== 讲师介绍 ===== */
+.teach{display:grid;grid-template-columns:360px 1fr;gap:44px;align-items:center;min-height:62vh}
+.teach-photo{position:relative;display:flex;justify-content:center;align-items:flex-end;background:transparent;border:0;padding:0;box-shadow:none;overflow:visible}
+.teach-photo img{display:block;width:100%;height:auto;border-radius:0;aspect-ratio:560/735;object-fit:contain}
+.teach-name{font-size:64px;line-height:1.05;margin:0 0 8px;font-weight:800}
+.teach-name span{font-size:22px;color:var(--amber-l);margin-left:14px;font-weight:600;letter-spacing:.1em}
+.teach-role{font-size:18px;color:#E9B45C;letter-spacing:.04em;margin-bottom:22px}
+.teach-stats{display:flex;gap:38px;flex-wrap:wrap;margin-bottom:24px}
+.teach-stats b{font-size:38px;color:var(--amber-l);font-variant-numeric:tabular-nums}
+.teach-stats span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.teach-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.teach-grid>div{border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.75;color:#CFDCD2;background:rgba(255,255,255,.03)}
+.teach-grid b{display:block;font-size:11px;letter-spacing:.16em;color:var(--jade-l);margin-bottom:5px;font-weight:600}
+@media(max-width:900px){.teach{grid-template-columns:1fr;gap:20px;min-height:0}.teach-photo{max-width:280px}.teach-name{font-size:40px}.teach-grid{grid-template-columns:1fr}.teach-stats{gap:22px}.teach-stats b{font-size:28px}}
+#stage{opacity:0}
+#stage.fit-ready{opacity:1;transition:opacity .3s ease}
+.cv-accent{color:var(--amber-l)}
+.cv-chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:clamp(18px,2.6vh,32px)}
+.cv-chip{font-size:clamp(11px,.85vw,15px);color:#CFDCD2;border:1px solid rgba(244,239,226,.18);border-radius:999px;padding:7px 14px;background:rgba(255,255,255,.03)}
+.cv-chip b{color:#F4EFE2;font-weight:700;margin-right:6px}
+</style></head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brandline"><b>AI 超级个体创造营</b><span>示例文旅集团 × 弈策智询</span></div>
+    <div class="tright">
+      <a data-nav="promo" href="../index.html" target="_blank" rel="noopener">宣传页</a>
+      <a data-nav="grader" href="grader.html" target="_blank" rel="noopener">作业中心后台</a>
+      <a data-nav="admin" href="admin.html" target="_blank" rel="noopener">课堂页后台</a>
+      <a class="keep" data-nav="live" href="../live.html" target="_blank" rel="noopener">手机课堂页</a>
+      <button class="icobtn" id="menuBtn" title="目录">☰</button>
+      <button class="icobtn" id="fs" title="全屏">⛶</button>
+    </div>
+  </div>
+  <div class="menu" id="menu">
+    <nav class="mnav" id="mnav"></nav>
+    <div class="chips" id="chips"></div>
+  </div>
+  <div class="crumbfloating" id="crumb">开场 · 议程</div>
+  <div class="stage" id="stage">
+
+      <!-- ========== 开场 ========== -->
+            <section class="view" id="v-cover">
+        <div class="cover">
+          <div class="cv-brand">示例文旅集团 × 弈策智询</div>
+          <h1 class="cv-title">AI 超级个体<br /><span class="cv-accent">创造营</span></h1>
+          <div class="cv-sub">一个人 + 一群 AI = 一支队伍</div>
+          <p class="cv-lead">看懂 AI，理解 AI，学会 AI，应用 AI。<br />让你的经验成为 AI 的榜样，让 AI 的能力变成你的延展。</p>
+          <div class="cv-chips">
+            <span class="cv-chip"><b>09:00–17:40</b> 全天</span>
+            <span class="cv-chip"><b>20 人</b> 小组作战</span>
+            <span class="cv-chip"><b>6 个</b> 真实任务</span>
+            <span class="cv-chip">手机互动</span>
+          </div>
+          <div class="cv-foot">2026 年 10 月 23 日（周五）09:00–17:40 · 示例文旅集团会议室</div>
+        </div>
+      </section>
+
+      <section class="view" id="v-teacher">
+        <div class="eyebrow">讲师介绍</div>
+        <div class="teach">
+          <div class="teach-photo"><img alt="讲师照片" src="assets/teacher-placeholder.svg" /></div>
+          <div class="teach-body">
+            <h1 class="teach-name">讲师<span>花名</span></h1>
+            <div class="teach-role">AI 应用架构师 · 数字化转型专家</div>
+            <div class="teach-stats">
+              <div><b>17</b><span>年从业经验</span></div>
+              <div><b>10</b><span>年管理咨询</span></div>
+              <div><b>6</b><span>年 AI 落地实战</span></div>
+              <div><b>4</b><span>年 AI 技术布道</span></div>
+            </div>
+            <div class="teach-grid">
+              <div><b>认证</b>阿里云 ACP 人工智能高级工程师 / 大数据分析师 / 上云规划师；ACA 数据化运营师 / 大数据工程师</div>
+              <div><b>任职</b>钉钉 AI 咨询研究院 高级研究员 / AI 应用架构师；弈策智询 联合创始人；示例州大数据局专家组成员；州内多家国企集团公司技术顾问</div>
+              <div><b>擅长</b>AI 应用场景识别、解决方案架构、系统集成与工程化落地</div>
+              <div><b>行业</b>政务 · 文旅 · 教育 · 制造 · 金融</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+<section class="view" id="v-open">
+        <div class="eyebrow">开场 · 09:00–09:20</div>
+        <h1>今天怎么过</h1>
+        <p class="lead">先分组，再开讲。上午看懂它、下午动手做；小组作战，全天计分，有奖励。</p>
+        <div class="grid2">
+          <div class="card pad">
+            <div class="k">上午 · 会议室</div>
+            <table>
+              <tr><th style="width:110px">时间</th><th>环节</th></tr>
+              <tr><td>09:00–09:20</td><td>开场：抽签分组 + 计分规则</td></tr>
+              <tr><td>09:20–10:15</td><td>模块一 · AI 到底到哪一步了</td></tr>
+              <tr><td>10:15–10:25</td><td>茶歇</td></tr>
+              <tr><td>10:25–11:40</td><td>模块二 · workbuddy 六模块</td></tr>
+            </table>
+          </div>
+          <div class="card pad">
+            <div class="k">下午 · 会议室 → 工位 → 会议室</div>
+            <table>
+              <tr><th style="width:110px">时间</th><th>环节</th></tr>
+              <tr><td>14:30–14:35</td><td>下午开场 · 要点快答</td></tr>
+              <tr><td>14:35–15:25</td><td>模块三 · 六类活儿六种干法</td></tr>
+              <tr><td>15:35–17:05</td><td>模块四 · 工作坊（工位）</td></tr>
+              <tr><td>17:05–17:10</td><td>提交成果 · 回会议室</td></tr>
+              <tr><td>17:10–17:18</td><td>复盘 · 公布小组积分与发奖</td></tr>
+              <tr><td>17:18–17:38</td><td>模块五 · 以后的路线</td></tr>
+              <tr><td>17:38–17:40</td><td>结语</td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="grid3" style="margin-top:14px">
+          <div class="card pad"><div class="k">分组</div><h3>抽签 A–G，三人一组</h3><p class="muted" style="font-size:13px;margin-top:6px">开场一次抽定，全天不变；手机课堂页抽签，组别提交时用。</p></div>
+          <div class="card pad"><div class="k">计分</div><h3>课堂表现 + 作业得分</h3><p class="muted" style="font-size:13px;margin-top:6px">提问、互动、投票都算；作业按小组提交，六关全做。</p></div>
+          <div class="card pad"><div class="k">奖励</div><h3>前三名 500 / 300 / 200 元</h3><p class="muted" style="font-size:13px;margin-top:6px">等价算力，并非现金；按全天课堂表现与作业积分评定。</p></div>
+        </div>
+      </section>
+
+      <!-- ========== 模块一 ========== -->
+      <section class="view" id="v-1-1">
+        <div class="eyebrow">模块一 · 1.1</div>
+        <h1>三年四代：间隔越来越短</h1>
+        <p class="lead">从「会聊天」到「会想」、到「会干活」、再到「一套装备」。四个节点，看懂 AI 的加速节奏。</p>
+        <div class="card pad" style="position:relative;height:340px;margin-bottom:14px" id="tlStage">
+          <svg viewBox="0 0 1000 300" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true">
+            <defs><linearGradient id="ln" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2F8F73" stop-opacity=".35"/><stop offset="1" stop-color="#E9B45C" stop-opacity=".95"/></linearGradient></defs>
+            <path d="M 60 240 C 260 228 340 210 400 190 C 500 158 540 150 640 118 C 720 92 760 76 800 56" fill="none" stroke="url(#ln)" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+          <div class="tlnode" data-i="0" style="left:6%;bottom:20%"></div><div class="tldate" style="left:6%;bottom:11%">2023.01</div>
+          <div class="tlgap" style="left:23%;bottom:27%">24 个月</div>
+          <div class="tlnode" data-i="1" style="left:40%;bottom:34%"></div><div class="tldate" style="left:40%;bottom:25%">2025.01</div>
+          <div class="tlgap" style="left:52%;bottom:46%">12 个月</div>
+          <div class="tlnode" data-i="2" style="left:64%;bottom:56%"></div><div class="tldate" style="left:64%;bottom:47%">2026.01</div>
+          <div class="tlgap" style="left:72%;bottom:66%">9 个月</div>
+          <div class="tlnode" data-i="3" style="left:80%;bottom:78%"></div><div class="tldate" style="left:80%;bottom:69%">2026.10</div>
+        </div>
+        <div class="grid2">
+          <div class="card pad">
+            <h2 id="tlTitle" style="font-size:22px">GPT-3.5 / ChatGPT</h2>
+            <div class="muted" id="tlMeta" style="font-size:12.5px;letter-spacing:.06em;margin:4px 0 10px">2023.01 · 大模型登场</div>
+            <p id="tlDesc" style="color:#D9E4D8;font-size:14px;line-height:1.85">第一次，机器能像人一样表达。</p>
+          </div>
+          <div class="card pad" id="tlRows"></div>
+        </div>
+        <div class="card pad" style="margin-top:14px;border-left:2px solid var(--amber);background:linear-gradient(90deg,rgba(217,138,43,.08),transparent 70%)">
+          <b style="color:#F0D9AC">认知要按「代际」更新，不按年度。</b><span style="color:#CFDCD2;font-size:14px"> 每代都在把上一代的「高级用法」变成默认配置；你现在的方式，决定你在下一代是领先还是掉队。</span>
+        </div>
+      </section>
+
+      <section class="view" id="v-1-2">
+        <div class="eyebrow">模块一 · 1.2</div>
+        <h1>大模型、智能体、框架：三层不是一回事</h1>
+        <p class="lead">一句话记住：大脑、有手有脚的人、让一群人稳定干活的制度。</p>
+        <div class="grid3">
+          <div class="card pad"><div class="pill">第一层</div><h3 style="margin:8px 0 6px">大模型 · 大脑</h3><p class="muted" style="font-size:13.5px;line-height:1.8">会说、会写、会推理；但只会在对话框里动嘴，不会自己找资料、不会点按钮。</p><p style="margin-top:8px;font-size:13px;color:var(--jade-l)">代表：ChatGPT / DeepSeek / 千问</p></div>
+          <div class="card pad"><div class="pill">第二层</div><h3 style="margin:8px 0 6px">智能体 · 有手有脚</h3><p class="muted" style="font-size:13.5px;line-height:1.8">大脑 + 目标 + 工具 + 循环；能自己查、自己做、自己检查，把一件事干完。</p><p style="margin-top:8px;font-size:13px;color:var(--jade-l)">代表：Manus / 扣子空间</p></div>
+          <div class="card pad"><div class="pill">第三层</div><h3 style="margin:8px 0 6px">框架 · 制度</h3><p class="muted" style="font-size:13.5px;line-height:1.8">把一批智能体组织起来：谁调度、记什么、接哪些工具、边界在哪；让「偶尔能干」变成「稳定能干」。</p><p style="margin-top:8px;font-size:13px;color:var(--jade-l)">代表：Openclaw / Harness</p></div>
+        </div>
+        <div class="card pad" style="margin-top:16px">
+          <div class="k">举个例子</div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:15px;color:#E9E4D6">
+            <span class="card pad" style="padding:10px 14px">名导演（模型）</span><span class="muted">→</span>
+            <span class="card pad" style="padding:10px 14px">能落地的制片团队（智能体）</span><span class="muted">→</span>
+            <span class="card pad" style="padding:10px 14px">电影公司（智能体框架）</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="v-1-3">
+        <div class="eyebrow">模块一 · 1.3</div>
+        <h1>它为什么一本正经地胡说</h1>
+        <p class="lead">模型不知道你公司的方案库、合同价、活动流程。让它「先查资料再回答」，就是检索增强（RAG）。</p>
+        <div class="grid4">
+          <div class="card pad"><div class="k">第 1 步</div><h3>提问</h3><p class="muted" style="font-size:13px;margin-top:6px">「上一届山旅会的场地预算是多少？」</p></div>
+          <div class="card pad"><div class="k">第 2 步</div><h3>检索命中</h3><p class="muted" style="font-size:13px;margin-top:6px">从公司的资料库/项目文件里，找到那届山旅会的举办时间与场地预算原文，连同出处一起取出来。</p></div>
+          <div class="card pad"><div class="k">第 3 步</div><h3>拼接上下文</h3><p class="muted" style="font-size:13px;margin-top:6px">把找到的原文和问题一起交给模型，让它按同一口径回答，不许自己编。</p></div>
+          <div class="card pad"><div class="k">第 4 步</div><h3>生成回答</h3><p class="muted" style="font-size:13px;margin-top:6px">给出带出处、能核对的数字；没找到的项，明确标出缺口。</p></div>
+        </div>
+        <div class="grid2" style="margin-top:16px">
+          <div class="card pad" style="border-color:rgba(201,90,70,.35)"><div class="k" style="color:#E08A76">不挂资料</div><p class="muted" style="font-size:13.5px;line-height:1.85">它会「猜」：编一个听起来很像的报价，引用不存在的文件名。你越信，错得越远。</p></div>
+          <div class="card pad" style="border-color:rgba(99,183,154,.35)"><div class="k" style="color:var(--jade-l)">挂了资料</div><p class="muted" style="font-size:13.5px;line-height:1.85">它会「查」：引用你给的原文段落，数字能对上；找不到就告诉你缺口在哪。</p></div>
+        </div>
+        <div class="card pad" style="margin-top:14px;font-size:13.5px;color:#CFDCD2">公司知识接进来的两种方式：<b style="color:#fff">知识库问答</b>（把资料放进知识库，随时问）与<b style="color:#fff">项目资料挂载</b>（干一个项目，就把这个项目的文件挂给它）。</div>
+      </section>
+
+      <section class="view" id="v-1-4">
+  <div class="eyebrow">模块一 · 1.4</div>
+  <h1>这几年，我们是用什么姿势在用 AI</h1>
+  <p class="lead">从「说清楚一句话」到「派一队人干活」：五个阶段，人的介入越来越少。</p>
+  <div class="evo-row" id="evoChips"></div>
+  <div class="grid2" style="margin-top:16px">
+    <div class="card pad">
+      <div class="k" id="evoStage">阶段 1 · Prompt Engineering</div>
+      <h2 id="evoTitle" style="font-size:24px">提示词工程</h2>
+      <p id="evoDesc" style="color:#CFDCD2;font-size:14px;line-height:1.9;margin-top:8px"></p>
+      <p id="evoEx" style="color:var(--amber-l);font-size:13.5px;margin-top:12px"></p>
+    </div>
+    <div class="card pad">
+      <div class="k">主线</div>
+      <div style="display:grid;gap:10px;margin-top:6px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:#CFDCD2"><span>人的介入</span><b style="color:var(--jade-l)">越来越少</b></div>
+        <div style="height:6px;border-radius:99px;background:linear-gradient(90deg,var(--jade),var(--amber))"></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:#CFDCD2"><span>AI 的自主度</span><b style="color:var(--amber-l)">越来越高</b></div>
+        <p class="muted" style="font-size:12.5px;margin-top:6px">每一阶段都不是替代，而是叠加：会用「派一队人」的人，也要会说清楚一句话。</p>
+      </div>
+      <div class="k" style="margin-top:14px">五阶段</div>
+      <div style="font-size:13px;color:#CFDCD2;line-height:1.9">提示词工程 → 上下文工程 → 控制工程 → 循环工程 → 图谱工程</div>
+    </div>
+  </div>
+</section>
+
+      <section class="view" id="v-1-5">
+  <div class="eyebrow">模块一 · 1.5</div>
+  <h1>远处正在逼近</h1>
+  <p class="lead">基于递归自我改进（RSI）的实现路径，AGI 在不远的将来即将到来。这句话意味着什么、又不意味着什么。</p>
+  <div class="card pad" style="padding:6px 8px">
+    <svg viewBox="0 0 1200 560" style="width:100%;height:auto" aria-label="左侧 RSI 循环，中间箭头，右侧 AGI">
+      <defs>
+        <marker id="ar" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#63B79A"/></marker>
+        <marker id="ar2" markerWidth="12" markerHeight="12" refX="10" refY="5" orient="auto"><path d="M0,0 L12,5 L0,10 z" fill="#E9B45C"/></marker>
+        <radialGradient id="glow"><stop offset="0" stop-color="#E9B45C" stop-opacity=".55"/><stop offset="1" stop-color="#E9B45C" stop-opacity="0"/></radialGradient>
+      </defs>
+      <text x="300" y="40" text-anchor="middle" fill="#E9B45C" font-size="19" font-weight="700" letter-spacing="4">RSI · 递归自我改进</text>
+      <circle cx="300" cy="300" r="150" fill="none" stroke="rgba(99,183,154,.25)" stroke-width="1.5" stroke-dasharray="4 10"/>
+      <path d="M 300 190 A 110 110 0 0 1 410 300" fill="none" stroke="#63B79A" stroke-width="2.5" marker-end="url(#ar)"/>
+      <path d="M 410 300 A 110 110 0 0 1 300 410" fill="none" stroke="#63B79A" stroke-width="2.5" marker-end="url(#ar)"/>
+      <path d="M 300 410 A 110 110 0 0 1 190 300" fill="none" stroke="#63B79A" stroke-width="2.5" marker-end="url(#ar)"/>
+      <path d="M 190 300 A 110 110 0 0 1 300 190" fill="none" stroke="#63B79A" stroke-width="2.5" marker-end="url(#ar)"/>
+      <g font-size="14" fill="#EAF3EC" text-anchor="middle">
+        <rect x="206" y="150" width="188" height="46" rx="11" fill="rgba(47,143,115,.25)" stroke="rgba(99,183,154,.45)"/><text x="300" y="179">AI 写 AI 的代码</text>
+        <rect x="432" y="277" width="150" height="46" rx="11" fill="rgba(47,143,115,.25)" stroke="rgba(99,183,154,.45)"/><text x="507" y="306">更快、更强</text>
+        <rect x="206" y="404" width="188" height="46" rx="11" fill="rgba(47,143,115,.25)" stroke="rgba(99,183,154,.45)"/><text x="300" y="433">AI 训练下一版</text>
+        <rect x="18" y="277" width="150" height="46" rx="11" fill="rgba(47,143,115,.25)" stroke="rgba(99,183,154,.45)"/><text x="93" y="306">能力上限抬升</text>
+      </g>
+      <text x="300" y="292" text-anchor="middle" fill="#9DB3A6" font-size="13">一圈比一圈快</text>
+      <text x="300" y="314" text-anchor="middle" fill="#9DB3A6" font-size="13">能力持续复利</text>
+      <line x1="600" y1="300" x2="790" y2="300" stroke="#E9B45C" stroke-width="3" marker-end="url(#ar2)"/>
+      <text x="695" y="278" text-anchor="middle" fill="#F0D9AC" font-size="14" letter-spacing="2">能力复利</text>
+      <circle cx="990" cy="300" r="160" fill="url(#glow)" opacity=".6"/>
+      <circle cx="990" cy="300" r="96" fill="none" stroke="#E9B45C" stroke-width="2.5"/>
+      <circle cx="990" cy="300" r="126" fill="none" stroke="#E9B45C" stroke-width="1" opacity=".45" stroke-dasharray="3 10"/>
+      <text x="990" y="292" text-anchor="middle" fill="#FFF6E6" font-size="40" font-weight="800" letter-spacing="4">AGI</text>
+      <text x="990" y="326" text-anchor="middle" fill="#F0D9AC" font-size="13">通用人工智能</text>
+      <text x="990" y="360" text-anchor="middle" fill="#9DB3A6" font-size="12">不远的将来</text>
+    </svg>
+  </div>
+  <div class="grid2" style="margin-top:10px">
+    <div class="card pad"><div class="k" style="color:var(--amber-l)">它意味着</div><p class="muted" style="font-size:12.5px;line-height:1.75">能力提升会「自己踩油门」：今天需要人搭的流程，明天可能它自己就优化了。所以现在就要把「怎么用它」练成习惯。</p></div>
+    <div class="card pad"><div class="k">它不意味着</div><p class="muted" style="font-size:12.5px;line-height:1.75">不是明天就全自动、也不是它能替你担责。责任、授权、对外的承诺，仍然在人这边。</p></div>
+  </div>
+</section>
+
+
+      <!-- ========== 模块二 ========== -->
+            <section class="view" id="v-2">
+  <div class="eyebrow">模块二 · 2.1–2.6</div>
+  <h1>拆开你每天用的那个 AI</h1>
+  <p class="lead">智能体能力在中央；上面是模型，左边是入口，右边是记忆，下面是工具；最右侧的连接器把这一整套接到外部系统。</p>
+  <div class="arch-page">
+    <div class="arch-main">
+      <div class="arch-stage arch-diagram" id="archDiagram">
+        <div class="arch-core">
+          <div class="arch-flow">
+            <button class="arch-node anode node-model" data-a="2"><b>模型</b><span>内置模型 · 自定义模型（API-Key / Base URL / Endpoint）</span></button>
+            <div class="arch-arrow v" aria-hidden="true">⇅</div>
+            <div class="arch-row">
+              <button class="arch-node anode node-entry" data-a="1"><b>入口</b><span>飞书 · 钉钉 · 微信 · 小程序 · APP</span></button>
+              <div class="arch-arrow" aria-hidden="true">⇄</div>
+              <button class="arch-node anode core node-agent" data-a="5"><b>智能体能力</b><span>数据搜索 · 脚本执行 · 文件管理</span><span>浏览器控制 · 电脑操控</span></button>
+              <div class="arch-arrow" aria-hidden="true">⇄</div>
+              <button class="arch-node anode node-memory" data-a="3"><b>记忆</b><span>身份记忆 · 用户画像</span><span>长期记忆 · 短期记忆</span></button>
+            </div>
+            <div class="arch-arrow v" aria-hidden="true">⇅</div>
+            <button class="arch-node anode node-tools" data-a="4"><b>工具</b><span>技能 · 专家 · 专家团</span></button>
+          </div>
+          <div class="brace-cell" aria-hidden="true"><span>}</span></div>
+          <button class="arch-node anode node-link" data-a="6"><b>连接器</b><span>API · MCP · CLI</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="card pad arch-detail" id="archDetail"></div>
+  </div>
+</section>
+
+
+
+      <!-- ========== 模块三 ========== -->
+            <section class="view" id="v-3-1">
+  <div class="eyebrow">模块三 · 3.1</div>
+  <h1>你在哪一层</h1>
+  <p class="lead">全球约 80 亿人，约 4 亿人在用 AI——也就是 5%。把这 5% 放大，是五个不一样的位置。</p>
+  <div class="p31">
+    <div class="pie-funnel">
+      <svg viewBox="0 0 340 340" class="pie2" aria-label="AI 使用者占全球人口 5%">
+        <circle cx="170" cy="170" r="132" fill="rgba(244,239,226,.07)"/>
+        <g class="slice-g"><path d="M170,170 L300.4,148.5 A132,132 0 0 1 300.4,191.5 Z" fill="#D98A2B"/></g>
+        <text x="170" y="156" text-anchor="middle" fill="#F4EFE2" font-size="32" font-weight="800">80 亿</text>
+        <text x="170" y="182" text-anchor="middle" fill="#9DB3A6" font-size="12">全球人口</text>
+        <text x="170" y="214" text-anchor="middle" fill="#E9B45C" font-size="13" font-weight="700">其中 4 亿在用 AI</text>
+        <text x="286" y="136" text-anchor="middle" fill="#F0D9AC" font-size="13" font-weight="700">5%</text>
+      </svg>
+      <svg class="funnel-svg" viewBox="0 0 118 300" preserveAspectRatio="none" aria-hidden="true">
+        <defs><linearGradient id="fg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="rgba(217,138,43,.18)"/><stop offset="1" stop-color="rgba(217,138,43,.7)"/></linearGradient></defs>
+        <polygon points="0,150 116,12 116,288" fill="url(#fg)" stroke="rgba(233,180,92,.5)"/>
+      </svg>
+    </div>
+    <div>
+      <div class="lbar"><span class="lb">研究员 · 自建装备</span><span class="track"><span class="fill" style="width:4%"></span></span><span class="pct">&lt;1%</span></div>
+      <div class="lbar"><span class="lb">极客 · 开源智能体</span><span class="track"><span class="fill" style="width:8%"></span></span><span class="pct">4%</span></div>
+      <div class="lbar hi"><span class="lb">早期用户 · 大厂产品</span><span class="track"><span class="fill" style="width:45%"></span></span><span class="pct">25%</span></div>
+      <div class="lbar hi"><span class="lb">晚期大众 · 聊天助手</span><span class="track"><span class="fill" style="width:88%"></span></span><span class="pct">55%</span></div>
+      <div class="lbar"><span class="lb">落后者 · 听过没用过</span><span class="track"><span class="fill" style="width:26%"></span></span><span class="pct">15%</span></div>
+      <p class="muted" style="font-size:12.5px;margin-top:12px">多数人在 <b style="color:#F0D9AC">55%</b> 层，少数已进 <b style="color:#F0D9AC">25%</b> 层。今天下课时，全员站进 25% 层。</p>
+      <p class="small" style="margin-top:8px;color:#9DB3A6">现场：手机课堂页投票「你在哪一层」，讲师在大屏汇总。</p>
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:12px">
+    <div class="card pad"><div class="k">为什么分五层</div><p class="muted" style="font-size:12.5px;line-height:1.75">同样叫「用过 AI」：有人只聊过天，有人天天拿它写材料，有人能让它自己把活干完。</p></div>
+    <div class="card pad"><div class="k">今天要发生的变化</div><p class="muted" style="font-size:12.5px;line-height:1.75">从「用过」到「用对」：知道什么活交给它、怎么交代、怎么验收。这一层的人，效率是上一层的数倍。</p></div>
+  </div>
+</section>
+
+
+
+      <section class="view" id="v-3-2">
+        <div class="eyebrow">模块三 · 3.2</div>
+        <h1>六类活儿，六种干法</h1>
+        <p class="lead">六道题，对应下午六关。现在只看题面：背景是什么、要交什么、做到什么程度算过关；工作坊倒计时开始时，手机端会收到每关的行动卡。</p>
+        <div class="grid3">
+          <div class="card pad"><div class="rowflex" style="justify-content:space-between"><div class="k">T1 · 20 分</div><span class="pill">方案文档</span></div><h3 style="margin:6px 0 8px">示例景区三天两晚研学产品</h3><p class="muted" style="font-size:12.5px;line-height:1.7"><b style="color:var(--jade-l)">背景：</b>北京研学机构「示例研学机构」要在示例景区做一条三天两晚研学产品，30 人团、人均预算 1200 元，本周内要看到可送审方案。<br /><b style="color:var(--amber-l)">要求：</b>≥2000 字；六要素（背景与目标 / 服务对象 / 内容与日程 / 预算框架 / 分工 / 风险预案）；用 workbuddy 生成并至少迭代 2 轮，保留指令链。</p></div>
+          <div class="card pad"><div class="rowflex" style="justify-content:space-between"><div class="k">T2 · 20 分</div><span class="pill">结果表格</span></div><h3 style="margin:6px 0 8px">1080 行报名表清洗</h3><p class="muted" style="font-size:12.5px;line-height:1.7"><b style="color:var(--jade-l)">背景：</b>同一批研学报名表 1080 行，混着重复报名、身份证校验位错误、性别与证件不符、字段缺失、年龄异常。<br /><b style="color:var(--amber-l)">要求：</b>去重 → 校验修正 → 提取出生日期与年龄 → 划分学段 → 按学段×性别分住宿（学前&小学 A 栋、初中 B 栋、高中 C 栋、成年随行 D 栋；男东女西）；交《异常清单》+《住宿分配汇总表》，校验未过的进「待核区」。</p></div>
+          <div class="card pad"><div class="rowflex" style="justify-content:space-between"><div class="k">T3 · 15 分</div><span class="pill">推介 PPT</span></div><h3 style="margin:6px 0 8px">《示例剧目》对外推介</h3><p class="muted" style="font-size:12.5px;line-height:1.7"><b style="color:var(--jade-l)">背景：</b>贵州「村舞」民族歌舞剧《示例剧目》在示例市驻场，公益演出 + 最高 500 元票根消费券；要给合作方一份对外推介 PPT。<br /><b style="color:var(--amber-l)">要求：</b>≥8 页；叙事线：是什么 / 亮点 / 数据 / 合作方式 / 联系方式；控制图文比与单页字数，能直接讲。</p></div>
+          <div class="card pad"><div class="rowflex" style="justify-content:space-between"><div class="k">T4 · 10 分 + 加分</div><span class="pill">宣传物料</span></div><h3 style="margin:6px 0 8px">示例行业大会 60 秒介绍</h3><p class="muted" style="font-size:12.5px;line-height:1.7"><b style="color:var(--jade-l)">背景：</b>示例行业大会需要一条 ≤60 秒的介绍视频，先交脚本与分镜，成片为加分项。<br /><b style="color:var(--amber-l)">要求：</b>三段结构（钩子 / 主体 / 收尾）；分镜字段齐全（镜头 / 时长 / 画面 / 字幕 / 音效）；成片现场由讲师机跑。</p></div>
+          <div class="card pad"><div class="rowflex" style="justify-content:space-between"><div class="k">T5 · 15 分</div><span class="pill">项目截图</span></div><h3 style="margin:6px 0 8px">给活动筹备开一个工作台</h3><p class="muted" style="font-size:12.5px;line-height:1.7"><b style="color:var(--jade-l)">背景：</b>小组要为「XX 活动筹备」开一个项目工作台，3 人协作，后续组员要能接着干。<br /><b style="color:var(--amber-l)">要求：</b>建项目 → 邀请 ≥2 名协作人 → 上传 ≥3 份文档 → 建 ≥8 条任务并写负责人与截止时间；交四张截图（项目主页 / 成员 / 文档 / 任务），截图含系统时间。</p></div>
+          <div class="card pad"><div class="rowflex" style="justify-content:space-between"><div class="k">T6 · 20 分</div><span class="pill">对账报告</span></div><h3 style="margin:6px 0 8px">《示例剧目》六方演出对账</h3><p class="muted" style="font-size:12.5px;line-height:1.7"><b style="color:var(--jade-l)">背景：</b>《示例剧目》专场演出结算，六方各一表（演出方 / 场地方 / 执行方示例文旅集团 / 设施提供方 / 渠道合作方 / 服务提供方），各表之间对不上，差在哪、差多少要自己核出来。<br /><b style="color:var(--amber-l)">要求：</b>以执行方总账为基准交叉核对；交《对账差异报告》（问题 / 位置 / 金额差 / 责任方 / 处理建议）；差异全找到、口径清楚。</p></div>
+        </div>
+      </section>
+
+      <section class="view" id="v-3-3">
+        <div class="eyebrow">模块三 · 3.3</div>
+        <h1>工作坊怎么算过关</h1>
+        <p class="lead">不是听讲，是交活。三人一组、六关全做、交上去就出分。</p>
+        <div class="grid3">
+          <div class="card pad"><div class="k">分组</div><h3>抽签 A–G，三人一组</h3><p class="muted" style="font-size:13px;margin-top:6px">开场一次抽定，全天不变。手机课堂页抽签，作业按小组提交。</p></div>
+          <div class="card pad"><div class="k">分工</div><h3>每人认领两关</h3><p class="muted" style="font-size:13px;margin-top:6px">作业按小组提交，每个小组共同完成。</p></div>
+          <div class="card pad"><div class="k">评分</div><h3>产物 70% + 拆解 30%</h3><p class="muted" style="font-size:13px;margin-top:6px">产物看质量；拆解看你能不能先说清目标、步骤与验收。</p></div>
+        </div>
+        <div class="card pad" style="margin-top:14px">
+          <div class="k">全天积分</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:13.5px;color:#CFDCD2">
+            <span class="card" style="padding:8px 12px">课堂表现分：提问、互动、手机投票</span><span class="muted">+</span>
+            <span class="card" style="padding:8px 12px">作业得分：六关评分</span><span class="muted">=</span>
+            <span class="card" style="padding:8px 12px">小组积分</span>
+          </div>
+          <p class="muted" style="font-size:13px;margin-top:10px">前三名 500 / 300 / 200 元等价算力，并非现金；结束时公布并发奖。</p>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+          <a class="btn2 pri" href="grader.html" target="_blank" rel="noopener">打开作业中心</a>
+          <a class="btn2" href="https://example.com/course-kit/live.html" target="_blank" rel="noopener">打开手机课堂页</a>
+        </div>
+      </section>
+
+      <!-- ========== 模块四 ========== -->
+      <section class="view" id="v-4">
+  <div class="eyebrow">模块四 · 15:25–17:10</div>
+  <h1 style="text-align:center;margin-bottom:6px">90 分钟怎么跑</h1>
+  <div class="m4">
+    <div class="card pad side">
+      <div class="k">流程</div>
+      <table style="font-size:12.5px">
+        <tr><td>15:25–15:35</td><td>茶歇 · 移动作业区</td></tr>
+        <tr><td>15:35–15:45</td><td>规则 + 组内分工</td></tr>
+        <tr><td>15:45–17:00</td><td>六关实战，组内并行</td></tr>
+        <tr><td>17:00–17:05</td><td>缓冲 · 提交检查</td></tr>
+        <tr><td>17:05–17:10</td><td>提交 · 回会议室</td></tr>
+      </table>
+      <div class="k" style="margin-top:10px">要求</div>
+      <p class="muted" style="font-size:12px;line-height:1.7">三人一组、每人两关、六关全做；作业按小组提交，每个小组共同完成。</p>
+    </div>
+    <div class="card pad center">
+      <div class="k">现场计时</div>
+      <div id="wtimer">90:00</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px">
+        <button class="btn2 pri" id="wStart">开始</button>
+        <button class="btn2" id="wPause">暂停</button>
+        <button class="btn2" id="wReset">重置</button>
+      </div>
+      <p class="muted" style="font-size:12px;margin-top:10px">建议 15:45 准点开始</p>
+    </div>
+    <div class="card pad side">
+      <div class="k">六关</div>
+      <table style="font-size:12px">
+        <tr><td>T1 方案文档</td><td style="text-align:right">20</td></tr>
+        <tr><td>T2 报名表清洗</td><td style="text-align:right">20</td></tr>
+        <tr><td>T3 推介 PPT</td><td style="text-align:right">15</td></tr>
+        <tr><td>T4 视频脚本</td><td style="text-align:right">10</td></tr>
+        <tr><td>T5 项目协作</td><td style="text-align:right">15</td></tr>
+        <tr><td>T6 六方对账</td><td style="text-align:right">20</td></tr>
+      </table>
+      <div class="k" style="margin-top:10px">评分</div>
+      <p class="muted" style="font-size:12px;line-height:1.7">产物 70% + 三问拆解 30%；提交后讲师在作业中心后台即时评分。</p>
+      <div style="margin-top:10px"><a class="btn2 pri" data-nav="grader" href="grader.html" target="_blank" rel="noopener">打开作业中心后台</a></div>
+    </div>
+  </div>
+</section>
+
+      <!-- ========== 模块五 ========== -->
+            <section class="view" id="v-5">
+        <div class="eyebrow">模块五 · 17:18–17:38</div>
+        <h1>以后的路线：从一个场景走到一条路线</h1>
+        <p class="lead">今天把六类活儿的固定干法带走；之后往哪儿走，看你想成为哪一种人。</p>
+        <div class="road">
+          <div class="rn"><b>基础应用</b><span>今天：会用、会验收</span></div><span class="ra">→</span>
+          <div class="rn"><b>能力沉淀</b><span>把一类活做熟做透</span></div><span class="ra">→</span>
+          <div class="rn"><b>技能封装</b><span>做成自己的技能/模板</span></div><span class="ra">→</span>
+          <div class="rn"><b>连接系统</b><span>连上表格、文档、业务系统</span></div><span class="ra">→</span>
+          <div class="rn" style="border-color:rgba(233,180,92,.45)"><b>路线分支</b><span>选一条，往深里走</span></div>
+        </div>
+        <div class="branches">
+          <div class="branch">
+            <div class="bh">事务类场景<br />→ vibe coding</div>
+            <div class="bn"><i>1</i>用 AI 起一个小工具</div>
+            <div class="bn"><i>2</i>长成业务小系统</div>
+            <div class="bn"><i>3</i>多人共用的工作台</div>
+            <div class="bn"><i>4</i>交给全公司复用</div>
+          </div>
+          <div class="branch">
+            <div class="bh">多模态内容<br />→ ComfyUI 工作流</div>
+            <div class="bn"><i>1</i>模板出图（海报/封面）</div>
+            <div class="bn"><i>2</i>自建工作流统一风格</div>
+            <div class="bn"><i>3</i>视频/动效管线</div>
+            <div class="bn"><i>4</i>内容中台与分发</div>
+          </div>
+          <div class="branch">
+            <div class="bh">工具类场景<br />→ 开源项目工程化</div>
+            <div class="bn"><i>1</i>选型、读代码</div>
+            <div class="bn"><i>2</i>本地跑通并按业务改</div>
+            <div class="bn"><i>3</i>封装成内部工具</div>
+            <div class="bn"><i>4</i>提 PR、反哺社区</div>
+          </div>
+          <div class="branch">
+            <div class="bh">咨询服务类<br />→ FDE</div>
+            <div class="bn"><i>1</i>讲清用法（内训/陪跑）</div>
+            <div class="bn"><i>2</i>场景诊断与 POC</div>
+            <div class="bn"><i>3</i>交付落地（部署/培训/SOP）</div>
+            <div class="bn"><i>4</i>行业方案沉淀</div>
+          </div>
+          <div class="branch">
+            <div class="bh">技术类<br />→ 控制工程规划与实施</div>
+            <div class="bn"><i>1</i>流程写成 Harness 规则</div>
+            <div class="bn"><i>2</i>多智能体编排（Loop/Graph）</div>
+            <div class="bn"><i>3</i>权限、安全、审计边界</div>
+            <div class="bn"><i>4</i>平台化：全公司的底座</div>
+          </div>
+        </div>
+        <div class="card pad" style="margin-top:12px;border-left:2px solid var(--amber);background:linear-gradient(90deg,rgba(217,138,43,.08),transparent 70%)">
+          <b style="color:#F0D9AC">结语：</b><span style="color:#CFDCD2;font-size:13.5px">一个人 + 一群 AI = 一支队伍。今天先把这一代的用法吃到最深，下一代来了，你已经在队伍里。</span>
+        </div>
+      </section>
+
+  </div>
+
+  <button id="drawerBtn" class="drawer-handle" title="学员分组与加减分">分组·加减分</button>
+  <aside class="drawer" id="drawer">
+    <div class="drawer-head"><b>学员分组</b><span id="drawerTip" style="font-size:11px;color:#7E978A">读取中…</span></div>
+    <div class="drawer-body" id="drawerBody"></div>
+  </aside>
+</div>
+<div class="hintbar">← / → 切换小节 · 1–6 切换模块 · 点左上角 ☰ 打开目录</div>
+<script>
+function fx(el){if(!el)return;el.classList.remove('fx-in');void el.offsetWidth;el.classList.add('fx-in')}
+var NAV=[
+ {id:'m0',name:'开场',num:'00',items:[{v:'v-cover',t:'封面'},{v:'v-teacher',t:'讲师介绍'},{v:'v-open',t:'今天怎么过'}]},
+ {id:'m1',name:'模块一 · AI 到哪一步了',num:'01',items:[
+   {v:'v-1-1',t:'1.1 三年四代'},{v:'v-1-2',t:'1.2 三层区别'},{v:'v-1-3',t:'1.3 为什么胡说'},{v:'v-1-4',t:'1.4 用法的演进'},{v:'v-1-5',t:'1.5 RSI → AGI'}]},
+ {id:'m2',name:'模块二 · workbuddy 六模块',num:'02',items:[
+   {v:'v-2',t:'总览',sub:0},{v:'v-2',t:'2.1 入口',sub:1},{v:'v-2',t:'2.2 模型',sub:2},{v:'v-2',t:'2.3 记忆',sub:3},{v:'v-2',t:'2.4 工具',sub:4},{v:'v-2',t:'2.5 自己动手',sub:5},{v:'v-2',t:'2.6 连上系统',sub:6}]},
+ {id:'m3',name:'模块三 · 六类活儿',num:'03',items:[
+   {v:'v-3-1',t:'3.1 你在哪一层'},{v:'v-3-2',t:'3.2 六个场景'},{v:'v-3-3',t:'3.3 工作坊规则'}]},
+ {id:'m4',name:'模块四 · 工作坊',num:'04',items:[{v:'v-4',t:'90 分钟怎么跑'}]},
+ {id:'m5',name:'模块五 · 进阶预告',num:'05',items:[{v:'v-5',t:'以后还能做什么'}]}
+];
+var state={m:0,i:0};
+var mnav=document.getElementById('mnav'),chips=document.getElementById('chips'),crumb=document.getElementById('crumb');
+function render(){
+  mnav.innerHTML=NAV.map(function(m,k){return '<button class="'+(k===state.m?'on':'')+'" data-m="'+k+'"><span class="n">'+m.num+'</span>'+m.name+'</button>'}).join('');
+  var items=NAV[state.m].items;
+  chips.innerHTML=items.map(function(it,k){return '<button class="'+(k===state.i?'on':'')+'" data-i="'+k+'">'+it.t+'</button>'}).join('');
+  crumb.textContent=NAV[state.m].name+' / '+items[state.i].t;
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on')});
+  var el=document.getElementById(items[state.i].v);
+  if(el){el.classList.add('on');document.getElementById('stage').scrollTop=0;if(window.fitView)setTimeout(window.fitView,30)}
+  if(items[state.i].sub!==undefined&&window.archSelect){window.archSelect(items[state.i].sub)}
+  if(location.hash!=='#'+NAV[state.m].id+'-'+state.i){history.replaceState(null,'','#'+NAV[state.m].id+'-'+state.i)}
+}
+mnav.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;state.m=Number(b.getAttribute('data-m'));state.i=0;render()});
+chips.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;state.i=Number(b.getAttribute('data-i'));render()});
+document.addEventListener('keydown',function(e){
+  if(e.key==='ArrowRight'){state.i=Math.min(NAV[state.m].items.length-1,state.i+1);render()}
+  if(e.key==='ArrowLeft'){state.i=Math.max(0,state.i-1);render()}
+  var n=Number(e.key);if(n>=0&&n<=5&&NAV[n]){state.m=n;state.i=0;render()}
+});
+document.getElementById('fs').addEventListener('click',function(){
+  if(!document.fullscreenElement){document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen()}else{document.exitFullscreen&&document.exitFullscreen()}
+});
+/* 1.1 时间轴交互 */
+var TLDATA=[
+ {t:'GPT-3.5 / ChatGPT',m:'2023.01 · 大模型登场',d:'第一次，机器能像人一样表达。',rows:[['能干什么','对话、写作、翻译、总结；像一个知识面很广的实习生'],['怎么用','问它、让它写；一句话换一段文字'],['代表','ChatGPT、GPT-3.5'],['一句话','它把「写东西」的门槛降到了零']]},
+ {t:'DeepSeek-R1',m:'2025.01 · 推理时代',d:'先想清楚，再回答。',rows:[['能干什么','拆解难题、算数、自我检查；复杂问题能一步步推'],['怎么用','把「要动脑」的活交给它：方案推演、对账找错、风险排查'],['代表','R1 系列开源推理模型'],['一句话','它开始「会想」，而不只是「会说」']]},
+ {t:'Openclaw',m:'2026.01 · 智能体框架',d:'AI 有了手脚，能自己把活干完。',rows:[['能干什么','开浏览器、管文件、跑流程；给它目标和工具，它自己动手'],['怎么用','不再只让它写，而是让它「去办」：查资料、整理表、发流程'],['代表','Openclaw 等开源智能体框架'],['一句话','从「生成内容」走到「完成任务」']]},
+ {t:'DeepSeek-Harness',m:'2026.10 · 代际架构演进',d:'从「用工具」到「搭装备」。',rows:[['能干什么','组织多个智能体稳定协作；记忆、工具、规则打包成一套'],['怎么用','给自己搭工作流：把重复的活固化成可复用的装备'],['代表','Harness 架构'],['一句话','一个人，可以像一支队伍那样组织 AI 干活']]}
+];
+function tlShow(i){
+  document.querySelectorAll('.tlnode').forEach(function(n,k){n.classList.toggle('on',k===i)});
+  var d=TLDATA[i];
+  document.getElementById('tlTitle').textContent=d.t;
+  document.getElementById('tlMeta').textContent=d.m;
+  document.getElementById('tlDesc').textContent=d.d;
+  fx(document.getElementById('tlTitle').closest('.card'));fx(document.getElementById('tlRows'));
+document.getElementById('tlRows').innerHTML=d.rows.map(function(r){return '<div style="display:grid;grid-template-columns:70px 1fr;gap:10px;font-size:13.5px;line-height:1.75;margin-bottom:7px"><b style="color:var(--jade-l);font-weight:600">'+r[0]+'</b><span style="color:#CFDCD2">'+r[1]+'</span></div>'}).join('');
+}
+document.querySelectorAll('.tlnode').forEach(function(n){n.addEventListener('click',function(){tlShow(Number(n.getAttribute('data-i')))});});
+tlShow(0);
+/* 1.4 演进交互 */
+
+try{
+  var hh=location.hash.replace('#','');
+  if(hh){
+    var parts=hh.split('-');var mid=parts[0];var ii2=parseInt(parts[1],10);
+    var found=-1;for(var mi=0;mi<NAV.length;mi++){if(NAV[mi].id===mid){found=mi}}
+    if(found>=0){state.m=found;state.i=(isNaN(ii2)?0:Math.min(ii2,NAV[found].items.length-1))}
+    else{var vid=hh;for(var mi2=0;mi2<NAV.length;mi2++){for(var ii3=0;ii3<NAV[mi2].items.length;ii3++){if(NAV[mi2].items[ii3].v===vid){state.m=mi2;state.i=ii3}}}}
+  }
+}catch(e){}
+render();
+</script>
+
+<script>
+/* ===== 模块二：六模块 ===== */
+
+
+/* ===== 3.1 金字塔动画 ===== */
+var palyers=[].slice.call(document.querySelectorAll('#pyr2 .pylayer'));
+function pyrPlay(){
+  var s=document.getElementById('pSlice');if(s){s.style.transform='scale(1.08)';s.style.opacity='1';setTimeout(function(){s.style.transform='';s.style.opacity='.9'},900)}
+  palyers.forEach(function(l,i){l.classList.remove('show');setTimeout(function(){l.classList.add('show')},250+i*180)});
+}
+var pRep=document.getElementById('pRep');if(pRep)pRep.addEventListener('click',pyrPlay);
+if('IntersectionObserver' in window){var pio=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){pyrPlay();pio.disconnect()}})},{threshold:.35});var pyrEl=document.getElementById('pyr2');if(pyrEl)pio.observe(pyrEl)}else{pyrPlay()}
+
+/* ===== 3.2 六场景 ===== */
+var SCENES=[
+ {id:'S1',t:'活动策划方案',in:'需求要点 + 往期方案',act:'框架生成 / 内容填充 / 风险审查',out:'可送审方案',ok:'六要素齐全、可执行',task:'T1'},
+ {id:'S2',t:'表格协作',in:'报名表、对账表等原始表',act:'清洗 / 校验 / 统计 / 透视',out:'干净数据 + 汇总表',ok:'数值可复核',task:'T2'},
+ {id:'S3',t:'汇报与推介 PPT',in:'素材包（《示例剧目》等）',act:'结构生成 / 文案精炼 / 排版',out:'成稿 PPT',ok:'叙事线清晰、可直接讲',task:'T3'},
+ {id:'S4',t:'对外宣传',in:'活动素材 + 参考片',act:'选题 / 脚本 / 分镜 /（成片）',out:'宣传物料包',ok:'符合传播逻辑',task:'T4'},
+ {id:'S5',t:'项目协同',in:'项目信息、人员、资料',act:'建项目 / 拆任务 / 排期 / 归档',out:'项目工作台',ok:'责任到人、进度可视',task:'T5'},
+ {id:'S6',t:'对外核对',in:'多方账目与资料',act:'交叉比对 / 差异定位',out:'对账差异报告',ok:'差异全找到、口径清楚',task:'T6'}
+];
+var sg=document.getElementById('sceneGrid');
+if(sg){sg.innerHTML=SCENES.map(function(s){return '<div class="card pad"><div style="display:flex;justify-content:space-between;align-items:center"><div class="k" style="margin:0">'+s.id+' · 对应对照 '+s.task+'</div><span class="pill">DEMO 已跑通</span></div><h3 style="margin:8px 0 8px">'+s.t+'</h3><div style="font-size:13px;line-height:1.9;color:#CFDCD2"><div><b style="color:var(--jade-l)">输入：</b>'+s.in+'</div><div><b style="color:var(--jade-l)">AI 动作：</b>'+s.act+'</div><div><b style="color:var(--jade-l)">产物：</b>'+s.out+'</div><div><b style="color:var(--amber-l)">验收线：</b>'+s.ok+'</div></div></div>'}).join('')}
+
+/* ===== 工作坊计时器 ===== */
+var wLeft=90*60,wTimer=null;
+function wfmt(s){var m=Math.floor(s/60),x=s%60;return (m<10?'0':'')+m+':'+(x<10?'0':'')+x}
+function wshow(){var el=document.getElementById('wtimer');if(el)el.textContent=wfmt(Math.max(0,wLeft))}
+function wsFlag(open){try{fetch((window.API||'')+'/api/admin/workshop',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({open:open})})}catch(e){}}
+var ws=document.getElementById('wStart'),wp=document.getElementById('wPause'),wr=document.getElementById('wReset');
+if(ws)ws.addEventListener('click',function(){if(wTimer)return;wsFlag(true);wTimer=setInterval(function(){if(wLeft>0){wLeft--;wshow()}else{clearInterval(wTimer);wTimer=null}},1000)});
+if(wp)wp.addEventListener('click',function(){clearInterval(wTimer);wTimer=null});
+if(wr)wr.addEventListener('click',function(){clearInterval(wTimer);wTimer=null;wLeft=90*60;wshow();wsFlag(false)});
+wshow();
+if(typeof state!=='undefined'&&state.m===2&&NAV[2]&&NAV[2].items[state.i]&&NAV[2].items[state.i].sub!==undefined){
+  try{archRender(NAV[2].items[state.i].sub)}catch(e){}
+}
+</script>
+
+<script>
+var menuEl=null,menuBtn=null;
+if(menuBtn){menuBtn.addEventListener('click',function(e){e.stopPropagation();menuEl.classList.toggle('open')});
+ menuEl.addEventListener('mouseleave',function(){setTimeout(function(){menuEl.classList.remove('open')},450)});
+ document.addEventListener('click',function(e){if(!menuEl.contains(e.target)&&e.target!==menuBtn)menuEl.classList.remove('open')});}
+var FC_API='https://YOUR-FC-DOMAIN';
+var API=(location.port==='8899'||location.protocol==='file:')?'':FC_API;
+var drawer=document.getElementById('drawer'),drawerBtn=document.getElementById('drawerBtn'),drawerBody=document.getElementById('drawerBody'),drawerTip=document.getElementById('drawerTip');
+if(drawerBtn){drawerBtn.addEventListener('click',function(){drawer.classList.toggle('open');if(drawer.classList.contains('open'))loadDrawer()});
+ drawer.addEventListener('mouseleave',function(){setTimeout(function(){drawer.classList.remove('open')},2600)});}
+function localPerf(){var p={};try{var db=JSON.parse(localStorage.getItem('camp_grader_v1')||'{}');p=db.perf||{}}catch(e){}return p}
+function renderDrawer(st){
+  var gs=st&&st.groups?st.groups:['A','B','C','D','E','F','G'].map(function(g){return {id:g,name:g+'组',perf:(localPerf()[g]||0),count:'—'}});
+  var students=st&&st.students?st.students:[];
+  drawerBody.innerHTML=gs.map(function(g){
+    var names=students.filter(function(s){return s.group===g.id}).map(function(s){return s.name}).join('、');
+    return '<div class="grow"><b>'+g.id+'</b><span class="cnt">'+g.count+'</span><span class="pf">'+g.perf+'</span><button data-perf="-1" data-g="'+g.id+'">−</button><button data-perf="1" data-g="'+g.id+'">＋</button></div>'+(names?'<div style="font-size:10.5px;color:#6E8779;margin:-2px 0 7px 4px">'+names+'</div>':'');
+  }).join('');
+  [].slice.call(drawerBody.querySelectorAll('[data-perf]')).forEach(function(b){b.addEventListener('click',async function(){
+    var g=b.getAttribute('data-g'),d=Number(b.getAttribute('data-perf'));
+    try{await fetch(API+'/api/admin/perf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({group:g,delta:d})});loadDrawer();}
+    catch(e){var p=localPerf();p[g]=(p[g]||0)+d;try{var db=JSON.parse(localStorage.getItem('camp_grader_v1')||'{}');db.perf=p;localStorage.setItem('camp_grader_v1',JSON.stringify(db))}catch(x){}renderDrawer(null);}
+  })});
+}
+async function loadDrawer(){
+  try{var r=await fetch(API+'/api/admin/state',{cache:'no-store'});if(!r.ok)throw 0;var st=await r.json();drawerTip.textContent='已连接服务';renderDrawer(st);}
+  catch(e){drawerTip.textContent='服务未连接（本地分）';renderDrawer(null)}
+}
+setInterval(function(){if(drawer.classList.contains('open'))loadDrawer()},5000);
+
+/* ===== 1.4 双语五卡 ===== */
+var EVO=[
+ {en:'Prompt Engineering',zh:'提示词工程',d:'把话说清楚：你是谁、要做什么、有什么要求、给个范例。',e:'文旅小例：帮我写一条赛事报名推文。'},
+ {en:'Context Engineering',zh:'上下文工程',d:'把资料喂够：公司文件、往期方案、规则、范例，让它照着材料说。',e:'文旅小例：把去年的方案和报价单一起给它，照着改。'},
+ {en:'Harness Engineering',zh:'控制工程',d:'给一套装备与边界：能用什么工具、守什么规矩、按什么流程、哪里必须人确认。',e:'文旅小例：让它能读表、能查资料、按公司模板填，越界就停。'},
+ {en:'Loop Engineering',zh:'循环工程',d:'让它自己转：计划 → 执行 → 检查 → 修正，人只在关键节点拍板。',e:'文旅小例：对账时自己找差异、自己复核，最后给你一份差异表。'},
+ {en:'Graph Engineering',zh:'图谱工程',d:'组团协作：多个智能体分工，按图跑完一整个大任务。',e:'文旅小例：一个人、一个赛事宣传包，从选题到成片。'}
+];
+var evoChips=document.getElementById('evoChips');
+function evoRender(i){
+  if(!evoChips)return;
+  evoChips.innerHTML=EVO.map(function(e,k){return '<button class="evo-card'+(k===i?' on':'')+'" data-e="'+k+'"><b>'+e.en+'</b><span>'+e.zh+'</span></button>'}).join('');
+  var d=EVO[i];
+  document.getElementById('evoStage').textContent='阶段 '+(i+1)+' · '+d.en;
+  document.getElementById('evoTitle').textContent=d.zh;
+  document.getElementById('evoDesc').textContent=d.d;
+  document.getElementById('evoEx').textContent=d.e;
+  fx(document.getElementById('evoStage'));fx(document.getElementById('evoTitle').closest('.card'));
+}
+if(evoChips){evoChips.addEventListener('click',function(e){var b=e.target.closest('button');if(b)evoRender(Number(b.getAttribute('data-e')))});evoRender(0)}
+/* ===== 2.x 架构 ===== */
+var ARCH=[
+ {n:'2.1',t:'入口',what:'飞书 / 钉钉 / 微信 / 小程序 / APP——你在哪儿跟它说话。',when:'手机轻交互走 IM 入口；重度干活用客户端。',how:'把常用入口固定住；一个账号换设备登录即可。',demo:'现场：在钉钉里发一句话，让它整理会议要点。'},
+ {n:'2.2',t:'模型',what:'它用的「脑子」有强有弱：内置 vs 自定义（API-KEY 钥匙 / Base_url 门牌 / Endpoint 房间）。',when:'日常写材料用内置；专业判断、长文推理换更强的。',how:'设置里填三件套；同一问题换模型对比一次就懂。',demo:'现场：同一道风险审查，不同档位模型各跑一次。'},
+ {n:'2.3',t:'记忆',what:'四类：身份记忆、用户画像、长期记忆、短期记忆。',when:'要它记得公司背景、你的偏好、项目来龙去脉与刚才聊到哪时。',how:'把业务与术语写进角色设定；用项目挂资料。',demo:'现场：注入公司画像前后，同一句话生成的方案对比。'},
+ {n:'2.4',t:'工具',what:'三种干活方式：技能（单点）、专家（固定流程）、专家团（多流程协作）。',when:'重复活→技能；固定流程→专家；跨环节→专家团。',how:'先用现成的，再把做法沉淀成技能。',demo:'现场：调一个活动方案专家工作流跑一遍。'},
+ {n:'2.5',t:'智能体能力',what:'五件事：数据搜索、脚本执行、文件管理、浏览器控制、电脑操控——不只是打字。',when:'需要它跑腿、翻资料、整理数据时；敏感操作必须人在场。',how:'目标与边界写清楚；先小范围试再放开。',demo:'现场三连：搜资料成表、批量处理表格、整理文件夹。'},
+ {n:'2.6',t:'连接器',what:'连接器（钉钉/飞书现成接入）、MCP（标准插座）、CLI（技术直通道）。',when:'要读系统真数据、把结果写回去时。',how:'优先现成连接器；没有的用 MCP 接一个。',demo:'现场：直接读一份钉钉表格，汇总一句话结论。'}
+];
+var archList=document.getElementById('archList'),archDetail=document.getElementById('archDetail');
+function archRender(sel){
+  if(archList) archList.innerHTML=ARCH.map(function(a,k){return '<button class="'+(k+1===sel?'on':'')+'" data-a="'+(k+1)+'">'+a.n+' '+a.t+'</button>'}).join('');
+  document.querySelectorAll('.arch-node').forEach(function(n){n.classList.toggle('on',Number(n.getAttribute('data-a'))===sel)});
+  if(sel>0){var a=ARCH[sel-1];archDetail.innerHTML='<div class="k">'+a.n+' · '+a.t+'</div><div style="display:grid;gap:6px;font-size:12.5px;line-height:1.7"><div><b style="color:var(--jade-l)">是什么：</b>'+a.what+'</div><div><b style="color:var(--jade-l)">什么时候用：</b>'+a.when+'</div><div><b style="color:var(--jade-l)">怎么用：</b>'+a.how+'</div><div><b style="color:var(--amber-l)">现场演示：</b>'+a.demo+'</div></div>'}
+  else{archDetail.innerHTML='<div class="k">总览</div><div style="font-size:12.5px;line-height:1.8;color:#CFDCD2">模型在上、入口在左、能力居中、记忆在右、工具在下；连接器（API / MCP / CLI）把这一整套接到外部系统。点任意模块看细节。</div>'}
+  fx(archDetail);
+}
+window.archSelect=function(i){archRender(i)};
+if(archList){archList.addEventListener('click',function(e){var b=e.target.closest('button');if(b)archRender(Number(b.getAttribute('data-a')))});}
+ document.querySelectorAll('.arch-node').forEach(function(n){n.addEventListener('click',function(){archRender(Number(n.getAttribute('data-a')))});});
+ var __a=0;try{if(state.m===2&&NAV[2].items[state.i]&&NAV[2].items[state.i].sub!==undefined)__a=NAV[2].items[state.i].sub;}catch(e){}
+ archRender(__a);
+/* ===== 视图自适应 ===== */
+function fitView(){
+  var v=document.querySelector('.view.on');var stage=document.getElementById('stage');if(!v||!stage)return;
+  v.style.transform='';v.style.left='';v.style.top='';v.style.width='';v.style.marginTop='';
+  var mobile=window.innerWidth<1024;
+  if(!mobile) v.style.width='1440px';
+  var sw=stage.clientWidth, sh=stage.clientHeight;
+  var w=v.offsetWidth||1440, h=v.scrollHeight;
+  var s=Math.min((sw-10)/w,(sh-8)/Math.max(1,h));
+  var minS=mobile?0.55:0.6, maxS=mobile?1.1:6;
+  if(s<minS)s=minS; if(s>maxS)s=maxS;
+  v.style.transformOrigin='top left';
+  v.style.transform='scale('+s+')';
+  v.style.left=Math.max(0,Math.round((sw-w*s)/2))+'px';
+  v.style.top=Math.max(0,Math.round((sh-h*s)/2))+'px';
+  try{document.body.setAttribute('data-fit',[s.toFixed(3),w,h,sw,sh].join('/'))}catch(e){}
+}
+window.fitView=fitView;
+window.addEventListener('resize',function(){setTimeout(fitView,60)});
+function showStage(){var st=document.getElementById('stage');if(st)st.classList.add('fit-ready')}
+function bootFit(){
+  fitView();
+  requestAnimationFrame(function(){
+    fitView();
+    requestAnimationFrame(function(){ fitView(); showStage(); });
+  });
+}
+function waitImages(){
+  var imgs=[].slice.call(document.images||[]);
+  var jobs=imgs.map(function(im){try{return im.decode?im.decode().catch(function(){}):Promise.resolve()}catch(e){return Promise.resolve()}});
+  Promise.all(jobs).then(bootFit).catch(bootFit);
+}
+if(document.readyState==='complete'){waitImages()}
+else{window.addEventListener('load',waitImages)}
+setTimeout(function(){var st=document.getElementById('stage');if(st&&!st.classList.contains('fit-ready')){bootFit()}},4000);
+/* ===== 菜单贴按钮弹出 ===== */
+(function(){
+  var btn=document.getElementById('menuBtn'),menu=document.getElementById('menu');
+  if(!btn||!menu)return;
+  btn.addEventListener('click',function(e){
+    e.stopPropagation();
+    var open=menu.classList.toggle('open');
+    if(open){var r=btn.getBoundingClientRect();var mw=Math.min(430,window.innerWidth-16);
+      menu.style.width=mw+'px';
+      menu.style.left=Math.max(8,Math.min(r.left+12,window.innerWidth-mw-8))+'px';
+      menu.style.top=(r.bottom+6)+'px';}
+  });
+  menu.addEventListener('mouseleave',function(){setTimeout(function(){menu.classList.remove('open')},450)});
+  try{if(new URLSearchParams(location.search).get('menu')==='1'){setTimeout(function(){btn.click()},300)}}catch(e){}
+  document.addEventListener('click',function(e){if(!menu.contains(e.target)&&e.target!==btn)menu.classList.remove('open')});
+})();
+/* ===== 链接按运行环境落位 ===== */
+(function(){
+  var local=(location.port==='8899'||location.pathname==='/course'||location.pathname==='/course.html'||location.pathname==='/admin'||location.pathname==='/grader'||location.pathname==='/live');
+  var map=local?{promo:'/promo',live:'/live',grader:'/grader',admin:'/admin'}:{promo:'../index.html',live:'../live.html',grader:'grader.html',admin:'admin.html'};
+  document.querySelectorAll('[data-nav]').forEach(function(a){var k=a.getAttribute('data-nav');if(map[k])a.setAttribute('href',map[k])});
+})();
+/* ===== 3.1 动画 ===== */
+(function(){
+  var s=document.querySelector('.p31 .slice-g');
+  if(s){s.style.opacity='1';s.addEventListener('mouseenter',function(){s.style.transform='translateY(-6px)';s.style.filter='drop-shadow(0 8px 16px rgba(217,138,43,.5))'});
+  s.addEventListener('mouseleave',function(){s.style.transform='';s.style.filter=''})}
+})();
+
+</script>
+</body></html>

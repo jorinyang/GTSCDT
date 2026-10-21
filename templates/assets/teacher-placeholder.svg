@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="735" viewBox="0 0 560 735">
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#163A2E"/><stop offset="1" stop-color="#0B241C"/></linearGradient></defs>
+<rect width="560" height="735" fill="url(#g)"/>
+<circle cx="280" cy="270" r="96" fill="rgba(244,239,226,.12)"/>
+<path d="M120,620 C120,470 200,410 280,410 C360,410 440,470 440,620 Z" fill="rgba(244,239,226,.10)"/>
+<text x="280" y="690" text-anchor="middle" fill="#7E978A" font-family="sans-serif" font-size="22">讲师照片（请替换 assets/teacher-placeholder.svg）</text>
+</svg>

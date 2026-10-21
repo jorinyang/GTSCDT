@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>课堂页后台 · AI 超级个体创造营</title>
+<style>
+:root{--text:#F4EFE2;--muted:#9DB3A6;--jade:#2F8F73;--jade-l:#63B79A;--amber:#D98A2B;--amber-l:#E9B45C;--line:rgba(244,239,226,.13);--r:14px;--sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Source Han Sans SC",sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:radial-gradient(120% 90% at 80% 0,#14493A,#0B241C 55%,#081813) fixed;color:var(--text);font-family:var(--sans);min-height:100vh;line-height:1.6}
+.top{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 20px;background:rgba(8,24,19,.68);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);z-index:20;flex-wrap:wrap}
+.brand{font-size:11.5px;letter-spacing:.16em;color:#BFD8C9}
+.links{display:flex;gap:8px;flex-wrap:wrap}
+.links a{color:#D9E4D8;text-decoration:none;font-size:12px;border:1px solid var(--line);padding:6px 12px;border-radius:999px}
+.links a:hover{background:rgba(255,255,255,.08)}
+.wrap{max-width:1200px;margin:0 auto;padding:20px 20px 60px}
+h1{font-size:clamp(22px,3vw,30px);margin-bottom:4px}
+.sub{color:var(--muted);font-size:13.5px;margin-bottom:16px}
+.grid2{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}
+.card{background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px}
+.k{font-size:11px;letter-spacing:.16em;color:var(--muted);margin-bottom:8px}
+input,textarea,select{width:100%;background:rgba(8,24,19,.6);border:1px solid var(--line);border-radius:10px;color:#F4EFE2;font-family:inherit;font-size:13.5px;padding:8px 10px;outline:none}
+textarea{min-height:64px;resize:vertical}
+.btn{all:unset;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:#241705;background:linear-gradient(135deg,#E9B45C,#D98A2B);padding:8px 16px;border-radius:9px;display:inline-block}
+.btn.ghost{background:transparent;color:#D9E4D8;border:1px solid var(--line);font-weight:500}
+.btn.danger{background:transparent;color:#E08A76;border:1px solid rgba(224,138,118,.4)}
+.btn.sm{padding:4px 10px;font-size:12px;border-radius:8px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{color:#9DB3A6;font-size:11.5px;letter-spacing:.05em}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.bar{height:10px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--jade),var(--jade-l));width:0;transition:width .5s}
+.pill{display:inline-block;font-size:11px;border:1px solid rgba(233,180,92,.35);color:var(--amber-l);border-radius:999px;padding:1px 8px}
+.pill.on{border-color:rgba(99,183,154,.5);color:var(--jade-l)}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+.rowflex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.hidden{display:none!important}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+body{animation:pageIn .32s ease both}
+@keyframes pageIn{from{opacity:0}to{opacity:1}}
+#groupStats table th,#groupStats table td{text-align:center}
+</style></head><body>
+<div class="top"><div class="brand">示例文旅集团 × 弈策智询 · 课堂后台</div>
+<div class="links"><a data-nav="course" href="course.html">← 课件</a><a data-nav="grader" href="grader.html">作业中心后台</a><a data-nav="live" href="../live.html" target="_blank">学员页</a><a data-nav="promo" href="../index.html" target="_blank">宣传页</a></div></div>
+<div class="wrap">
+  <h1>课堂页后台</h1>
+  <p class="sub">投票发起与结果、抽签与分组管理、课堂表现加减分。学员手机页会自动刷新。<span id="svc" class="pill">连接中…</span></p>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="k">投票</div>
+      <div id="pollForm">
+        <label class="small muted">问题</label>
+        <input id="qText" placeholder="例如：你觉得自己现在在哪一层？" />
+        <label class="small muted" style="display:block;margin-top:8px">选项（每行一个）</label>
+        <textarea id="qOpts" placeholder="几乎没用过&#10;用过聊天助手&#10;每天在用&#10;会搭流程&#10;会做东西"></textarea>
+        <div class="rowflex" style="margin-top:10px">
+          <button class="btn" id="startPoll">发起投票</button>
+          <button class="btn ghost" id="stopPoll">结束投票</button>
+          <span class="muted small" id="pollStat"></span>
+        </div>
+      </div>
+      <div id="pollResults" style="margin-top:14px"></div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="k">抽签与分组</div>
+        <div id="groupStats"></div>
+        <div class="rowflex" style="margin-top:10px;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="muted small">每组最多</span>
+          <select id="groupMax" style="width:64px;padding:3px 6px"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option></select>
+          <span class="muted small">人</span>
+          <button class="btn sm ghost" id="addGroup">新增分组</button>
+          <button class="btn ghost" id="resetGroups">清空分组（重抽）</button>
+        </div>
+        <p class="muted small" style="margin-top:6px">抽签按人数平均分配、不超过上限；改动会实时同步到学员页。</p>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <div class="k">抢答</div>
+        <div class="rowflex" style="gap:8px;flex-wrap:wrap">
+          <button class="btn" id="buzzToggle">开启抢答</button>
+          <button class="btn ghost" id="buzzStart">开始抢答</button>
+          <span class="pill" id="buzzStat">未开启</span>
+        </div>
+        <input id="buzzWinner" readonly placeholder="抢答结果会显示在这里" style="margin-top:10px;width:100%;font-size:17px;font-weight:700;color:#F6E4C6" />
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="k">课堂表现分</div>
+    <div id="perfBox"></div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="k">学员管理</div>
+    <div id="studentsBox"></div>
+  </div>
+</div>
+<script>
+var FC_API='https://YOUR-FC-DOMAIN';
+var API=(location.port==='8899'||location.protocol==='file:')?'':FC_API;
+function fmt(n){return n==null?'—':n}
+async function api(p,opt){
+  var r=await fetch(API+p,opt||{});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return await r.json();
+}
+async function post(p,body){return api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})}
+var state=null,editingKey=null;
+function render(){
+  if(!state) return;
+  var p=state.poll||{};
+  document.getElementById('pollStat').textContent=p.active?('进行中 · 已投 '+(Object.keys(p.votes||{}).length)+' 人'):'未发起';
+  var stat=document.getElementById('svc');
+  stat.textContent='已连接';stat.className='pill on';
+  /* 结果 */
+  var rr='';
+  if(p.active&&p.options&&p.options.length){
+    var total=0;Object.keys(p.votes||{}).forEach(function(k){total++});
+    p.options.forEach(function(o,i){
+      var c=(p.results||{})[i]||0;var pct=total?Math.round(c/total*100):0;
+      rr+='<div style="margin-bottom:9px"><div class="rowflex" style="justify-content:space-between;font-size:12.5px"><span>'+o+'</span><span class="muted">'+c+' 票 · '+pct+'%</span></div><div class="bar"><i style="width:'+pct+'%"></i></div></div>';
+    });
+    rr+='<div class="muted small">投票人数 '+total+' · 开始于 '+(p.startedAt||'')+'</div>';
+  } else { rr='<div class="muted small">没有进行中的投票。发起后学员手机页会出现投票卡片。</div>'; }
+  document.getElementById('pollResults').innerHTML=rr;
+  /* 分组 */
+  var gs=state.groups||[];
+  var gt='<table><tr><th>组</th><th>名称</th><th class="num">人数</th><th>成员</th><th class="num">表现分</th><th>操作</th></tr>';
+  gs.forEach(function(g){
+    var names=(state.students||[]).filter(function(s){return s.group===g.id}).map(function(s){return s.name}).join('、')||'—';
+    gt+='<tr><td><b>'+g.id+'</b></td><td class="small">'+(g.name||'')+'</td><td class="num">'+g.count+'</td><td class="small muted">'+names+'</td><td class="num">'+fmt(g.perf)+'</td>'
+      +'<td><button class="btn sm ghost" data-gren="'+g.id+'">编辑</button> <button class="btn sm danger" data-gdel="'+g.id+'">删除</button></td></tr>';
+  });
+  gt+='</table>';
+  var unassigned=(state.students||[]).filter(function(s){return !s.group}).map(function(s){return s.name+'（'+s.tail+'）'}).join('、')||'无';
+  gt+='<div class="muted small" style="margin-top:8px">未分组：'+unassigned+'</div>';
+  document.getElementById('groupStats').innerHTML=gt;
+  var gm=document.getElementById('groupMax');
+  if(gm){var _max=(state.config&&state.config.groupMax)||3; if(document.activeElement!==gm)gm.value=String(_max);}
+  /* 表现分 */
+  var pb='<div class="rowflex">';
+  gs.forEach(function(g){pb+='<div style="border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;gap:8px;align-items:center"><b>'+g.id+'</b><span class="muted small">'+fmt(g.perf)+'</span><button class="btn sm ghost" data-perf="-1" data-g="'+g.id+'">−</button><button class="btn sm" data-perf="1" data-g="'+g.id+'">＋</button></div>'});
+  pb+='</div>';
+  document.getElementById('perfBox').innerHTML=pb;
+  /* 抢答 */
+  var bz=state.buzz||{};
+  document.getElementById('buzzStat').textContent=(bz.round?('第 '+bz.round+' 轮 · '):'')+(bz.winner?('已抢到：'+bz.winner):(bz.running?'抢答中':(bz.enabled?'已开启':'未开启')));
+  document.getElementById('buzzToggle').textContent=bz.enabled?'关闭抢答':'开启抢答';
+  document.getElementById('buzzWinner').value=bz.winner||'';
+  document.getElementById('buzzStart').disabled=!bz.enabled;
+  /* 学员管理 */
+  var gopts=function(cur){return ['','A','B','C','D','E','F','G'].map(function(g){return '<option value="'+g+'" '+(cur===g?'selected':'')+'>'+(g||'未分')+'</option>'}).join('')};
+  var sb='<div class="rowflex" style="justify-content:space-between;margin-bottom:8px"><span class="muted small">共 '+((state.students||[]).length)+' 人</span><button class="btn sm danger" id="clearStudents">清空全部学员</button></div>';
+  sb+='<table><tr><th>姓名</th><th>尾号</th><th>分组</th><th class="num">投票</th><th class="num">抢答</th><th>操作</th></tr>';
+  (state.students||[]).forEach(function(s){
+    if(editingKey===s.key){
+      sb+='<tr data-row="'+s.key+'"><td><input data-edit="name" value="'+s.name+'" style="width:96px;padding:3px 6px"></td>'
+        +'<td><input data-edit="tail" value="'+s.tail+'" style="width:64px;padding:3px 6px"></td>'
+        +'<td><select data-edit="group" style="width:78px;padding:3px 6px">'+gopts(s.group)+'</select></td>'
+        +'<td class="num">'+(s.votes||0)+'</td><td class="num">'+(s.buzzes||0)+'</td>'
+        +'<td><button class="btn sm" data-save="'+s.key+'">保存</button> <button class="btn sm ghost" data-cancel="1">取消</button></td></tr>';
+    }else{
+      sb+='<tr><td>'+s.name+'</td><td class="muted">'+s.tail+'</td>'
+        +'<td><select data-group="'+s.key+'" style="width:80px;padding:3px 6px;font-size:12px">'+gopts(s.group)+'</select></td>'
+        +'<td class="num">'+(s.votes||0)+'</td><td class="num">'+(s.buzzes||0)+'</td>'
+        +'<td><button class="btn sm ghost" data-edit="'+s.key+'">编辑</button> <button class="btn sm danger" data-del="'+s.key+'">删除</button></td></tr>';
+    }
+  });
+  sb+='</table>';
+  document.getElementById('studentsBox').innerHTML=sb;
+  bind();
+}
+function bind(){
+  [].slice.call(document.querySelectorAll('[data-perf]')).forEach(function(b){b.addEventListener('click',async function(){
+    await post('/api/admin/perf',{group:b.getAttribute('data-g'),delta:Number(b.getAttribute('data-perf'))});refresh();
+  })});
+  var gm2=document.getElementById('groupMax');
+  if(gm2)gm2.addEventListener('change',async function(){ await post('/api/admin/groupcfg',{max:Number(gm2.value)}); refresh(); });
+  var ag=document.getElementById('addGroup');
+  if(ag)ag.addEventListener('click',async function(){ await post('/api/admin/groupadd',{}); refresh(); });
+  [].slice.call(document.querySelectorAll('[data-gren]')).forEach(function(b){b.addEventListener('click',async function(){
+    var id=b.getAttribute('data-gren'), g=(state.groups||[]).filter(function(x){return x.id===id})[0]||{};
+    var nm=prompt('分组名称', g.name||(id+'组')); if(nm===null)return;
+    await post('/api/admin/grouprename',{id:id,name:nm}); refresh();
+  })});
+  [].slice.call(document.querySelectorAll('[data-gdel]')).forEach(function(b){b.addEventListener('click',async function(){
+    var id=b.getAttribute('data-gdel');
+    if(!confirm('删除分组 '+id+'？该组学员会变为未分组。'))return;
+    await post('/api/admin/groupdel',{id:id}); refresh();
+  })});
+  var btnClear=document.getElementById('clearStudents');
+  if(btnClear)btnClear.addEventListener('click',async function(){
+    if(!confirm('清空全部学员？姓名、投票、抢答记录与提交都会删除，用于下一场培训。'))return;
+    await post('/api/admin/student',{action:'clear'});refresh();
+  });
+  [].slice.call(document.querySelectorAll('[data-group]')).forEach(function(sel){sel.addEventListener('change',async function(){
+    var key=sel.getAttribute('data-group');
+    await post('/api/admin/student',{action:'update',key:key,group:sel.value});
+    refresh();
+  })});
+  [].slice.call(document.querySelectorAll('[data-edit]')).forEach(function(b){b.addEventListener('click',function(){editingKey=b.getAttribute('data-edit');render()})});
+  [].slice.call(document.querySelectorAll('[data-cancel]')).forEach(function(b){b.addEventListener('click',function(){editingKey=null;render()})});
+  [].slice.call(document.querySelectorAll('[data-save]')).forEach(function(b){b.addEventListener('click',async function(){
+    var key=b.getAttribute('data-save');var row=document.querySelector('tr[data-row="'+key+'"]');
+    if(!row)return;
+    var name=row.querySelector('[data-edit="name"]').value.trim();
+    var tail=row.querySelector('[data-edit="tail"]').value.trim();
+    var group=row.querySelector('[data-edit="group"]').value;
+    if(name.length<2||!/^[0-9]{4}$/.test(tail)){alert('姓名至少 2 字，尾号 4 位数字');return}
+    await post('/api/admin/student',{action:'update',key:key,name:name,tail:tail,group:group});
+    editingKey=null;refresh();
+  })});
+  [].slice.call(document.querySelectorAll('[data-del]')).forEach(function(b){b.addEventListener('click',async function(){
+    var key=b.getAttribute('data-del');
+    if(!confirm('删除学员 '+key.split('|')[0]+'？其提交记录一并删除。'))return;
+    await post('/api/admin/student',{action:'delete',key:key});refresh();
+  })});
+}
+async function refresh(){ try{ state=await api('/api/admin/state'); render(); }catch(e){ document.getElementById('svc').textContent='未连接（先启动讲师机服务）'; document.getElementById('svc').className='pill'; } }
+document.getElementById('startPoll').addEventListener('click',async function(){
+  var q=document.getElementById('qText').value.trim();
+  var opts=document.getElementById('qOpts').value.split('\n').map(function(x){return x.trim()}).filter(Boolean);
+  if(!q||opts.length<2){alert('问题 + 至少两个选项');return}
+  await post('/api/admin/poll',{action:'start',question:q,options:opts});refresh();
+});
+document.getElementById('stopPoll').addEventListener('click',async function(){ await post('/api/admin/poll',{action:'stop'}); refresh(); });
+document.getElementById('resetGroups').addEventListener('click',async function(){ if(!confirm('清空所有人的分组？学员需要重新抽签。'))return; await post('/api/admin/reset',{scope:'groups'}); refresh(); });
+document.getElementById('buzzToggle').addEventListener('click',async function(){
+  var bz=(state&&state.buzz)||{};
+  await post('/api/admin/buzz',{action:bz.enabled?'disable':'enable'});
+  refresh();
+});
+document.getElementById('buzzStart').addEventListener('click',async function(){
+  await post('/api/admin/buzz',{action:'start'});
+  refresh();
+});
+refresh();setInterval(refresh,2500);
+</script>
+<script>(function(){var local=(location.port==='8899'||['/course','/admin','/grader','/live'].indexOf(location.pathname)>=0);var map=local?{course:'/course',admin:'/admin',grader:'/grader',live:'/live',promo:'/promo'}:{course:'course.html',admin:'admin.html',grader:'grader.html',live:'../live.html',promo:'../index.html'};document.querySelectorAll('[data-nav]').forEach(function(a){var k=a.getAttribute('data-nav');if(map[k])a.setAttribute('href',map[k])})})();</script>
+</body></html>
