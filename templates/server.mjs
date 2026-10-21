@@ -62,7 +62,7 @@ function listRooms(teacher){
   const one=function(code){
     let meta={}; try{ meta=JSON.parse(fs.readFileSync(roomMetaFile(code),'utf8')); }catch(e){}
     const st=loadRoom(code);
-    const _t=teacher||{}; if(_t.role!=='admin' && meta.owner && meta.owner!==_t.id) return;
+    const _t=teacher||{}; if(_t.role!=='admin'){ if(code===DEFAULT_ROOM||!meta.owner||meta.owner!==_t.id) return; }
     out.push({code,title:meta.title||('课堂 '+code),city:meta.city||'',date:meta.date||'',owner:meta.owner||'',files:meta.files||[],createdAt:meta.createdAt||'',students:Object.keys(st.students||{}).length,active:!!(st.poll&&st.poll.active)||!!(st.quiz&&st.quiz.paper&&st.quiz.paper.active)});
   };
   one(DEFAULT_ROOM);
