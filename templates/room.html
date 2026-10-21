@@ -64,6 +64,7 @@ try{
     var fs=room.files||[], h='';
     if(fs.length)h=fs.map(function(f){return '<div><a href="'+f.url+'" target="_blank">'+f.name+'</a></div>'}).join('');
     else h='<span class="muted">还没有上传课程大纲文件</span>';
+    if(room.frameworkUrl){h+='<div style="margin-top:6px"><a href="'+room.frameworkUrl+'" target="_blank">大纲框架页</a></div>'}
     if(room.packageId){h+='<div style="margin-top:6px"><a href="/pkg/'+room.packageId+'/index.html" target="_blank">生成的课程页</a> · <a href="/pkg/'+room.packageId+'/promo.html" target="_blank">宣传页</a> · <a href="/package-edit?pkg='+room.packageId+'">编辑内容</a></div>'}
     document.getElementById('roomFiles').innerHTML=h;
   });

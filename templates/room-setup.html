@@ -100,7 +100,7 @@ document.getElementById('mdFile').onchange=function(){
   fr.onload=function(){
     fetch('/api/room/markdown',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:String(fr.result||'')})}).then(function(r){return r.json()}).then(function(d){
       if(!d.ok){msg.textContent='失败：'+(d.error||'');return}
-      msg.textContent='已生成框架页'; loadFiles();
+      msg.innerHTML='已生成框架页：<a href="'+d.url+'" target="_blank">打开</a>'; loadFiles();
     });
   };
   fr.readAsText(f);

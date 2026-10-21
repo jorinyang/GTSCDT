@@ -63,7 +63,7 @@ function listRooms(teacher){
     let meta={}; try{ meta=JSON.parse(fs.readFileSync(roomMetaFile(code),'utf8')); }catch(e){}
     const st=loadRoom(code);
     const _t=teacher||{}; if(_t.role!=='admin'){ if(code===DEFAULT_ROOM||!meta.owner||meta.owner!==_t.id) return; }
-    out.push({code,title:meta.title||('课堂 '+code),city:meta.city||'',date:meta.date||'',owner:meta.owner||'',files:meta.files||[],createdAt:meta.createdAt||'',students:Object.keys(st.students||{}).length,active:!!(st.poll&&st.poll.active)||!!(st.quiz&&st.quiz.paper&&st.quiz.paper.active)});
+    out.push({code,title:meta.title||('课堂 '+code),city:meta.city||'',date:meta.date||'',owner:meta.owner||'',files:meta.files||[],frameworkUrl:meta.frameworkUrl||'',createdAt:meta.createdAt||'',students:Object.keys(st.students||{}).length,active:!!(st.poll&&st.poll.active)||!!(st.quiz&&st.quiz.paper&&st.quiz.paper.active)});
   };
   one(DEFAULT_ROOM);
   if(fs.existsSync(ROOMS_DIR)) fs.readdirSync(ROOMS_DIR).forEach(function(d){ if(validRoom(d)&&d!==DEFAULT_ROOM) one(d); });
@@ -580,6 +580,7 @@ const server=http.createServer(async (req,res)=>{
     const dir=ensureRoomAssets(currentRoom);
     const base='syllabus-'+Date.now().toString(36);
     fs.writeFileSync(path.join(dir,base+'.html'), mdToHtml(text));
+    let _m={}; try{_m=JSON.parse(fs.readFileSync(roomMetaFile(currentRoom),'utf8'));}catch(e){} _m.frameworkUrl='/api/room/asset?name='+base; fs.writeFileSync(roomMetaFile(currentRoom),JSON.stringify(_m,null,1));
     return send(res,200,{ok:true,url:'/api/room/asset?name='+base});
   }
   if(p==='/api/extract' && req.method==='POST'){
