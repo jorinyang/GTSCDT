@@ -47,7 +47,7 @@ a{color:var(--amber-l);text-decoration:none}
 var q=new URLSearchParams(location.search), room=(q.get('room')||'').toUpperCase();
 document.getElementById('room').textContent=room||'ROOM0';
 var _jr=room||'ROOM0';
-document.getElementById('qrroom').textContent=_jr;
+var _qre=document.getElementById('qrroom'); if(_qre)_qre.textContent=_jr;
 new QRCode(document.getElementById('qr'),{text:location.origin+'/join?room='+_jr,width:88,height:88,colorDark:'#0E0E10',colorLight:'#CBF74E'});
 document.getElementById('fs').onclick=function(){document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen()};
 function esc(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
