@@ -55,7 +55,6 @@ body{animation:pageIn .32s ease both}
     <button class="tabbtn on" data-tab="class">课堂管理</button>
     <button class="tabbtn" data-tab="hw">作业评分</button>
     <button class="tabbtn" data-tab="quiz">在线答题</button>
-    <button class="tabbtn" data-tab="model">模型管理</button>
   </div>
   <div id="pane-class"><div class="grid2">
     <div class="card">
@@ -417,7 +416,7 @@ refresh();setInterval(refresh,2500);
     document.getElementById('pane-class').classList.toggle('hidden',t!=='class');
     document.getElementById('pane-hw').classList.toggle('hidden',t!=='hw');
     document.getElementById('pane-quiz').classList.toggle('hidden',t!=='quiz');
-    document.getElementById('pane-model').classList.toggle('hidden',t!=='model');
+    var pm=document.getElementById('pane-model'); if(pm)pm.classList.toggle('hidden',t!=='model');
     tabs.forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===t)});
     if(t==='hw'){var f=document.getElementById('hwFrame');if(f&&!f.src)f.src=local?'grader?embed=1':'grader.html?embed=1'}
     try{history.replaceState(null,'','#'+t)}catch(e){}
