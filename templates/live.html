@@ -142,9 +142,8 @@ body{animation:pageIn .32s ease both}
   </section>
 </div>
 <script>
-var FC_API='https://YOUR-FC-DOMAIN';
-var API=(location.port==='8899'||location.protocol==='file:')?'':FC_API;
-var MAT=((location.port==='8899'||location.protocol==='file:')?'/materials/':'https://example.com/course-kit/materials/');
+var API=(window.GTSCDT_API||'');
+var MAT='/materials/';
 var KEY='camp_live_v3';
 var me={name:'',tail:''};
 var stateData=null,pollChoice=-1,lastPollId='',pending=[];

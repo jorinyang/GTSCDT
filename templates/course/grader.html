@@ -83,8 +83,7 @@ body{animation:pageIn .32s ease both}
 </div>
 
 <script>
-var FC_API='https://YOUR-FC-DOMAIN';
-var API=(location.port==='8899'||location.protocol==='file:')?'':FC_API;
+var API=(window.GTSCDT_API||'');
 var TASKS=[
  {id:'T1',name:'方案文档',pts:20,product:14,breakdown:6,
   auto:[{t:'六要素（背景/目标/对象/日程/预算/分工/风险）',pts:12,type:'kw',kw:['背景','目标','对象','日程','预算','分工','风险'],per:2},{t:'字数≥2000',pts:2,type:'len',min:2000}],

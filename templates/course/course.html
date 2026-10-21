@@ -814,8 +814,7 @@ var menuEl=null,menuBtn=null;
 if(menuBtn){menuBtn.addEventListener('click',function(e){e.stopPropagation();menuEl.classList.toggle('open')});
  menuEl.addEventListener('mouseleave',function(){setTimeout(function(){menuEl.classList.remove('open')},450)});
  document.addEventListener('click',function(e){if(!menuEl.contains(e.target)&&e.target!==menuBtn)menuEl.classList.remove('open')});}
-var FC_API='https://YOUR-FC-DOMAIN';
-var API=(location.port==='8899'||location.protocol==='file:')?'':FC_API;
+var API=(window.GTSCDT_API||''); window.API=API;
 var drawer=document.getElementById('drawer'),drawerBtn=document.getElementById('drawerBtn'),drawerBody=document.getElementById('drawerBody'),drawerTip=document.getElementById('drawerTip');
 if(drawerBtn){drawerBtn.addEventListener('click',function(){drawer.classList.toggle('open');if(drawer.classList.contains('open'))loadDrawer()});
  drawer.addEventListener('mouseleave',function(){setTimeout(function(){drawer.classList.remove('open')},2600)});}
