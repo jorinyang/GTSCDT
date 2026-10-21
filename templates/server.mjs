@@ -234,6 +234,7 @@ async function genText(prompt,maxTokens){
   if(!r.ok) return {err:r.error};
   return {text:String(r.content||'')};
 }
+function cleanText(t){ return String(t||'').replace(/```[a-zA-Z]*\n?/g,'').replace(/^\s*markdown\s*$/gim,'').trim(); }
 function parseCourseText(t){
   const lines=String(t||'').split(/\r?\n/); let title=''; const secs=[]; let cur=null;
   lines.forEach(function(l){ const s=l.trim(); if(!s)return;
@@ -460,11 +461,16 @@ const server=http.createServer(async (req,res)=>{
     const r2=await genText('根据素材输出宣传页文案，逐行输出，不要解释。格式：\n标题：一句话主标题\n副标题：一句话副标题\n介绍：80 字以内介绍\n模块：模块名\n- 该模块要点\n收益：一条学员收益（可多行）\n安排：09:00|开场与分组\n行动：报名或咨询\n'+base,1400);
     const r3=await genText('根据素材生成随堂题库，每行一条，用竖线分隔，不要解释。格式：\n选择|题目|选项A|选项B|选项C|选项D|正确答案字母\n判断|题目|对或错\n填空|题目|答案\n简答|题目|参考答案\n要求：选择 6 道、判断 4 道、填空 4 道、简答 2 道。\n'+base,2000);
     const r4=await genText('根据素材生成课程过程素材与作业场景题，每行一条，用竖线分隔，不要解释。格式：\n素材|标题|正文（可含要点，用；分隔）\n作业|标题|场景描述|要求1;要求2|交付物|验收标准\n要求：素材至少 4 条，作业 6 条。\n'+base,2000);
-    const course=parseCourseText(r1.text||'');
-    const promo=parsePromoText(r2.text||'');
-    const quiz=normalizeQuiz(parseQuizText(r3.text||''));
-    const misc=parseMiscText(r4.text||'');
     const pk=newPackageDir(title); const id=pk.id, dir=pk.dir;
+    const course=parseCourseText(cleanText(r1.text));
+    const promo=parsePromoText(cleanText(r2.text));
+    const quiz=normalizeQuiz(parseQuizText(cleanText(r3.text)));
+    const misc=parseMiscText(cleanText(r4.text));
+    fs.mkdirSync(path.join(dir,'raw'),{recursive:true});
+    fs.writeFileSync(path.join(dir,'raw','course.txt'),String(r1.text||''));
+    fs.writeFileSync(path.join(dir,'raw','promo.txt'),String(r2.text||''));
+    fs.writeFileSync(path.join(dir,'raw','quiz.txt'),String(r3.text||''));
+    fs.writeFileSync(path.join(dir,'raw','misc.txt'),String(r4.text||''));
     if(!course.sections||!course.sections.length) course.sections=[{type:'cover',title:title,text:outline.slice(0,120)}];
     fs.writeFileSync(path.join(dir,'index.html'), renderCoursePackage({title:course.title||title,subtitle:promo.subline||'',date:''}, course));
     fs.writeFileSync(path.join(dir,'promo.html'), renderPromo({title:title}, promo));
