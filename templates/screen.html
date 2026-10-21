@@ -24,10 +24,12 @@ a{color:var(--amber-l);text-decoration:none}
 .list{overflow:auto;flex:1}
 .row{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 0;font-size:15px}
 .win{font-size:64px;font-weight:800;color:var(--amber-l);text-align:center;margin-top:26px}
+#viewFrame{position:fixed;inset:0;width:100%;height:100%;border:0;background:#081813;z-index:5;display:none}
 .qrbox{position:fixed;right:18px;bottom:18px;background:#0A1F1A;border:1px solid var(--line);border-radius:14px;padding:10px;text-align:center;z-index:9}
 #qr{background:#F4EFE2;padding:8px;border-radius:10px;display:inline-block}
 </style></head><body>
 <div class="top"><div class="brand">GTSCDT · 课堂大屏</div><div class="links"><span class="pill" id="room">ROOM</span><span class="pill" id="timer">--</span><a href="/remote" target="_blank">遥控器</a><a href="/ops" target="_blank">后台</a><button class="btn" id="fs">全屏</button></div></div>
+<iframe id="viewFrame" title="大屏视图"></iframe>
 <div class="qrbox"><div id="qr"></div><div class="small" style="margin-top:6px">扫码加入</div><div class="small" id="qrroom"></div></div>
 <div class="screen">
   <div style="display:grid;grid-template-rows:1fr 1fr;gap:16px">
@@ -51,6 +53,14 @@ function esc(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return 
 var _end=0;
 setInterval(function(){ if(_end){ var s=Math.max(0,Math.floor((_end-Date.now())/1000)); document.getElementById('timer').textContent='倒计时 '+String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); } },1000);
 function render(d){
+  var f=document.getElementById('viewFrame');
+  var view=d.screenView||'stats';
+  if((view==='course'||view==='promo')&&d.packageId){
+    var url='/pkg/'+d.packageId+'/'+(view==='promo'?'promo.html':'index.html');
+    if(f.getAttribute('src')!==url)f.src=url;
+    f.style.display='block';
+  }else{ f.style.display='none'; }
+
   _end=(d.timer&&d.timer.running)?d.timer.endAt:0;
   if(!_end)document.getElementById('timer').textContent='计时未开始';
   var p=d.poll||{}, r=p.results||{}, total=Math.max(1,Object.values(r).reduce(function(a,b){return a+b},0));

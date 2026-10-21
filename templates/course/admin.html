@@ -114,6 +114,20 @@ body{animation:pageIn .32s ease both}
   </div>
 
   <div class="card" style="margin-top:14px">
+    <div class="k">投票题库（遥控器从这里选）</div>
+    <div id="vpList" class="small"></div>
+    <div class="rowflex" style="margin-top:8px"><input id="vpQ" placeholder="问题" style="width:260px" /></div>
+    <textarea id="vpOpts" rows="2" placeholder="选项，每行一个" style="margin-top:6px;width:100%"></textarea>
+    <div class="rowflex" style="margin-top:6px"><button class="btn sm" id="vpAdd">添加题目</button><span class="muted small" id="vpMsg"></span></div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="k">课程素材（发放后学员端可见）</div>
+    <div class="rowflex"><button class="btn sm" id="matToggle">素材发放：—</button><input id="matFile" type="file" multiple /><span class="muted small" id="matMsg"></span></div>
+    <div id="matList" class="small" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
     <div class="k">课堂表现分</div>
     <div id="perfBox"></div>
   </div>
@@ -430,4 +444,39 @@ refresh();setInterval(refresh,2500);
 
 </script>
 <script>(function(){var local=(location.port==='8899'||['/course','/admin','/grader','/live'].indexOf(location.pathname)>=0);var map=local?{course:'/course',admin:'/admin',grader:'/grader',live:'/live',promo:'/promo'}:{course:'course.html',admin:'admin.html',grader:'grader.html',live:'../live.html',promo:'../index.html'};document.querySelectorAll('[data-nav]').forEach(function(a){var k=a.getAttribute('data-nav');if(map[k])a.setAttribute('href',map[k])})})();</script>
+<script>
+(function(){
+  var ROOM=(new URLSearchParams(location.search).get('room')||'ROOM0').toUpperCase();
+  function post(p,b){return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json()})}
+  function load(){
+    fetch('/api/admin/state?room='+ROOM,{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+      var vp=d.votePresets||[];
+      var el=document.getElementById('vpList');
+      if(el)el.innerHTML=vp.length?vp.map(function(v){return '<div style="padding:4px 0">'+v.question+' <button class="btn sm danger" data-vdel="'+v.id+'" style="padding:1px 6px;font-size:11px">删</button></div>'}).join(''):'<span class="muted">还没有预置题目</span>';
+      document.querySelectorAll('[data-vdel]').forEach(function(b){b.onclick=function(){post('/api/admin/votepreset',{action:'delete',id:b.getAttribute('data-vdel')}).then(load)}});
+      var mt=document.getElementById('matToggle');
+      if(mt){mt.textContent='素材发放：'+(d.config&&d.config.materialOpen?'已开启':'已关闭');}
+    }).catch(function(){});
+    fetch('/api/rooms',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+      var room=(d.rooms||[]).filter(function(x){return x.code===ROOM})[0]||{}; var fs=room.files||[];
+      var ml=document.getElementById('matList');
+      if(ml)ml.innerHTML=fs.length?fs.map(function(f){return '<div><a href="'+f.url+'" target="_blank">'+f.name+'</a></div>'}).join(''):'<span class="muted">还没有素材文件</span>';
+    }).catch(function(){});
+  }
+  document.getElementById('vpAdd').onclick=function(){
+    var opts=document.getElementById('vpOpts').value.split('\n').map(function(x){return x.trim()}).filter(Boolean);
+    post('/api/admin/votepreset',{action:'add',question:document.getElementById('vpQ').value,options:opts}).then(function(d){document.getElementById('vpMsg').textContent=d.ok?'已添加':(d.error||'失败');load()});
+  };
+  document.getElementById('matToggle').onclick=function(){
+    fetch('/api/admin/state?room='+ROOM).then(function(r){return r.json()}).then(function(d){return post('/api/admin/material',{open:!(d.config&&d.config.materialOpen)})}).then(load);
+  };
+  document.getElementById('matFile').onchange=function(){
+    var files=[].slice.call(this.files||[]); var msg=document.getElementById('matMsg'); msg.textContent='上传中…';
+    Promise.all(files.map(function(f){return new Promise(function(res){
+      var fr=new FileReader(); fr.onload=function(){ var b64=String(fr.result).split(',')[1]||''; post('/api/room/upload?room='+ROOM,{filename:f.name,data:b64}).then(res); }; fr.readAsDataURL(f);
+    })})).then(function(){msg.textContent='已上传';load();});
+  };
+  setInterval(load,4000); load();
+})();
+</script>
 </body></html>

@@ -85,7 +85,7 @@ function cookieRoom(req){ const m=String(req.headers.cookie||'').match(/(?:^|;\s
 function ensureDir(){ if(!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR,{recursive:true}); }
 function blank(){
   const groups={}; GROUPS.forEach(g=>groups[g]={name:g+'组',perf:0});
-  return {students:{},groups,poll:{active:false,question:'',options:[],votes:{},startedAt:''},submissions:{},config:{hwOpen:false,workshopOpen:false,groupMax:3,model:{baseUrl:'https://api.deepseek.com',model:'deepseek-flash',apiKey:''}},buzz:{enabled:false,running:false,winner:'',round:0,at:''},tasks:[],timer:{running:false,endAt:0,duration:0},quiz:{bank:{choice:[],judge:[],blank:[],short:[]},config:{mode:'random',counts:{choice:5,judge:3,blank:2,short:1},scores:{choice:2,judge:2,blank:3,short:10}},paper:null,answers:{}},updatedAt:new Date().toISOString()};
+  return {students:{},groups,poll:{active:false,question:'',options:[],votes:{},startedAt:''},submissions:{},config:{hwOpen:false,workshopOpen:false,materialOpen:false,screenView:'stats',slide:0,groupMax:3,model:{baseUrl:'https://api.deepseek.com',model:'deepseek-flash',apiKey:''}},buzz:{enabled:false,running:false,winner:'',round:0,at:''},tasks:[],votePresets:[],timer:{running:false,endAt:0,duration:0},quiz:{bank:{choice:[],judge:[],blank:[],short:[]},config:{mode:'random',counts:{choice:5,judge:3,blank:2,short:1},scores:{choice:2,judge:2,blank:3,short:10}},paper:null,answers:{}},updatedAt:new Date().toISOString()};
 }
 function load(){ ensureDir(); if(!fs.existsSync(STATE_FILE)) return blank();
   try{ const s=JSON.parse(fs.readFileSync(STATE_FILE,'utf8')); return Object.assign(blank(),s); }catch(e){ return blank(); } }
@@ -149,6 +149,8 @@ function studentView(k){
     workshopOpen: !!(state.config&&state.config.workshopOpen),
     tasksVersion:(function(){try{return fs.statSync(path.join(DATA_DIR,'rooms',currentRoom,'assets','quests.html')).mtimeMs}catch(e){return 0}})(),
     tasksCount:(state.tasks||[]).length,
+    materialOpen:!!(state.config&&state.config.materialOpen),
+    materials:(function(){try{var m=JSON.parse(fs.readFileSync(roomMetaFile(currentRoom),'utf8'));return (m.files||[]).map(function(f){return {name:f.name,url:'/api/room/file?name='+encodeURIComponent(f.stored)}})}catch(e){return []}})(),
     tasks:(state.tasks||[]).map(function(t){return {id:t.id,title:t.title,scenario:t.scenario,requirements:t.requirements||[],deliverable:t.deliverable||'',acceptance:t.acceptance||''}}),
     timer:{running:!!(state.timer&&state.timer.running),endAt:(state.timer&&state.timer.endAt)||0,left:(state.timer&&state.timer.running)?Math.max(0,state.timer.endAt-Date.now()):0},
     buzz:{enabled:!!(state.buzz&&state.buzz.enabled),running:!!(state.buzz&&state.buzz.running),winner:(state.buzz&&state.buzz.winner)||'',round:(state.buzz&&state.buzz.round)||0},
@@ -431,7 +433,8 @@ function screenView(){
   Object.values(poll.votes||{}).forEach(v=>{ if(results[v]!==undefined) results[v]++ });
   const quiz=state.quiz||{};
   const paper=quiz.paper;
-  return {ok:true,room:currentRoom,at:Date.now(),workshopOpen:!!(state.config&&state.config.workshopOpen),timer:{running:!!(state.timer&&state.timer.running),endAt:(state.timer&&state.timer.endAt)||0,left:(state.timer&&state.timer.running)?Math.max(0,state.timer.endAt-Date.now()):0},
+  let _meta={}; try{ _meta=JSON.parse(fs.readFileSync(roomMetaFile(currentRoom),'utf8')); }catch(e){}
+  return {ok:true,room:currentRoom,at:Date.now(),screenView:(state.config&&state.config.screenView)||'stats',slide:(state.config&&state.config.slide)||0,packageId:_meta.packageId||'',materialOpen:!!(state.config&&state.config.materialOpen),files:(_meta.files||[]).map(function(f){return {name:f.name,url:'/api/room/file?name='+encodeURIComponent(f.stored)}}),workshopOpen:!!(state.config&&state.config.workshopOpen),timer:{running:!!(state.timer&&state.timer.running),endAt:(state.timer&&state.timer.endAt)||0,left:(state.timer&&state.timer.running)?Math.max(0,state.timer.endAt-Date.now()):0},
     poll:{active:!!poll.active,question:poll.question||'',options:poll.options||[],results,count:Object.keys(poll.votes||{}).length},
     buzz:{enabled:!!(state.buzz&&state.buzz.enabled),running:!!(state.buzz&&state.buzz.running),winner:(state.buzz&&state.buzz.winner)||'',round:(state.buzz&&state.buzz.round)||0},
     quiz:paper?{active:!!paper.active,count:paper.questions.length,points:paper.questions.reduce((a,b)=>a+(b.score||0),0),answered:Object.keys(quiz.answers||{}).length,avg:(function(){const v=Object.values(quiz.answers||{});return v.length?Math.round(v.reduce((a,b)=>a+(b.score||0),0)/v.length*10)/10:0})()}:null,
@@ -595,6 +598,7 @@ const server=http.createServer(async (req,res)=>{
     let hw=[]; try{ hw=JSON.parse(fs.readFileSync(path.join(PACKAGES_DIR,id,'homework.json'),'utf8')); }catch(e){}
     if(!Array.isArray(hw)||!hw.length) return send(res,400,{ok:false,error:'该课程包没有作业题'});
     state.tasks=hw.map(function(t,i){ return {id:'HW'+(i+1),title:String(t.title||('作业 '+(i+1))),scenario:String(t.scenario||''),requirements:(t.requirements||[]).map(String),deliverable:String(t.deliverable||''),acceptance:String(t.acceptance||'')}; });
+    let _m={}; try{_m=JSON.parse(fs.readFileSync(roomMetaFile(currentRoom),'utf8'));}catch(e){} _m.packageId=id; fs.writeFileSync(roomMetaFile(currentRoom),JSON.stringify(_m,null,1));
     const ad=ensureRoomAssets(currentRoom);
     fs.writeFileSync(path.join(ad,'quests.html'), renderQuestsPage(state.tasks));
     fs.writeFileSync(path.join(ad,'quests.json'), JSON.stringify(state.tasks,null,2));
@@ -652,6 +656,7 @@ const server=http.createServer(async (req,res)=>{
     state.quiz=state.quiz||{};
     state.quiz.bank=normalizeQuiz(q);
     state.quiz.config={mode:'random',counts:{choice:5,judge:3,blank:2,short:1},scores:{choice:2,judge:2,blank:3,short:10}};
+    let _m={}; try{_m=JSON.parse(fs.readFileSync(roomMetaFile(currentRoom),'utf8'));}catch(e){} _m.packageId=id; fs.writeFileSync(roomMetaFile(currentRoom),JSON.stringify(_m,null,1));
     save();
     return send(res,200,{ok:true,counts:{choice:state.quiz.bank.choice.length,judge:state.quiz.bank.judge.length,blank:state.quiz.bank.blank.length,short:state.quiz.bank.short.length}});
   }
@@ -902,6 +907,7 @@ const server=http.createServer(async (req,res)=>{
             state.quiz.answers={}; save();
             return send(res,200,{ok:true,count:qs.length,points:qs.reduce(function(a,q){return a+(q.score||0)},0)});
           }
+          if(b.action==='startPreset'){ const cfg=state.quiz.config||{mode:'random',counts:{choice:5,judge:3,blank:2,short:1},scores:{choice:2,judge:2,blank:3,short:10}}; const pick=function(t,n){ let arr=(state.quiz.bank[t]||[]).slice(); if(cfg.mode!=='seq')arr.sort(function(){return Math.random()-0.5}); return arr.slice(0,Math.max(0,Math.min(Number(n)||0,arr.length))).map(function(q){const c=Object.assign({},q);c.type=t;c.score=Number((cfg.scores||{})[t]||0)||0;return c}); }; const qs=[].concat(pick('choice',(cfg.counts||{}).choice),pick('judge',(cfg.counts||{}).judge),pick('blank',(cfg.counts||{}).blank),pick('short',(cfg.counts||{}).short)); if(!qs.length) return send(res,400,{ok:false,error:'题库为空'}); state.quiz.paper={active:true,at:new Date().toLocaleString('zh-CN'),questions:qs}; state.quiz.answers={}; save(); return send(res,200,{ok:true,count:qs.length}); }
           if(b.action==='close'){ if(state.quiz.paper) state.quiz.paper.active=false; save(); return send(res,200,{ok:true}); }
           if(b.action==='clear'){ state.quiz.paper=null; state.quiz.answers={}; save(); return send(res,200,{ok:true}); }
           if(b.action==='resetbank'){ state.quiz.bank={choice:[],judge:[],blank:[],short:[]}; state.quiz.paper=null; state.quiz.answers={}; save(); return send(res,200,{ok:true}); }
@@ -972,6 +978,19 @@ const server=http.createServer(async (req,res)=>{
           if(!state.buzz.running) return send(res,400,{ok:false,error:'not running'});
           state.buzz.winner=s.name;state.buzz.running=false;s.buzzes=(s.buzzes||0)+1;state.updatedAt=new Date().toISOString();save();
           return send(res,200,{ok:true,winner:state.buzz.winner});
+        }
+        if(p==='/api/admin/votepreset'){
+          state.votePresets=state.votePresets||[];
+          if(b.action==='delete'){ state.votePresets=state.votePresets.filter(function(x){return x.id!==b.id}); save(); return send(res,200,{ok:true,list:state.votePresets}); }
+          if(b.action==='add'){ const q=String(b.question||'').trim(); const opts=(b.options||[]).map(String).filter(Boolean); if(!q||opts.length<2) return send(res,400,{ok:false,error:'问题+至少两个选项'}); state.votePresets.push({id:'v-'+Date.now().toString(36),question:q,options:opts}); save(); return send(res,200,{ok:true,list:state.votePresets}); }
+          return send(res,200,{ok:true,list:state.votePresets});
+        }
+        if(p==='/api/admin/material'){ state.config=state.config||{}; state.config.materialOpen=!!b.open; save(); return send(res,200,{ok:true,materialOpen:state.config.materialOpen}); }
+        if(p==='/api/admin/screen'){ state.config=state.config||{}; const v=['stats','course','promo'].indexOf(b.view)>=0?b.view:'stats'; state.config.screenView=v; save(); return send(res,200,{ok:true,screenView:v}); }
+        if(p==='/api/admin/slide'){
+          state.config=state.config||{}; let n=Number(state.config.slide)||0;
+          if(b.action==='next')n++; else if(b.action==='prev')n=Math.max(0,n-1); else if(b.value!==undefined)n=Math.max(0,Number(b.value)||0);
+          state.config.slide=n; save(); return send(res,200,{ok:true,slide:n});
         }
         if(p==='/api/admin/timer'){
           state.timer=state.timer||{running:false,endAt:0,duration:0};

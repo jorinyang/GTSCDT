@@ -112,6 +112,8 @@ body{animation:pageIn .32s ease both}
       <p class="small" style="margin-top:8px">投票后卡片会消失，结果由讲师在大屏公布。</p>
     </div>
 
+    <div class="card hidden" id="matCard"><div class="hw-head"><b>课程素材</b><span class="small" id="matCount"></span></div><div id="matList" class="small"></div></div>
+
     <div class="card hidden" id="quizCard">
       <div class="hw-head"><b id="quizTitle">在线答题</b><span class="small" id="quizMeta"></span></div>
       <div id="quizList"></div>
@@ -294,6 +296,12 @@ function render(){
     $('gLetter').textContent=m.group;
     $('gText').innerHTML='你是 <b>'+m.group+' 组</b><br />三人一组，成果一起算分';
   }else{$('groupNone').classList.remove('hidden');$('groupGot').classList.add('hidden')}
+  var mc=$('matCard');
+  if(mc){
+    var mshow=!!(stateData.materialOpen&&stateData.materials&&stateData.materials.length);
+    mc.classList.toggle('hidden',!mshow);
+    if(mshow){ $('matCount').textContent=stateData.materials.length+' 份'; $('matList').innerHTML=stateData.materials.map(function(f){return '<div style="padding:4px 0"><a href="'+f.url+'" target="_blank">'+f.name+'</a></div>'}).join(''); }
+  }
   var qz=stateData.quiz||{active:false};
   $('quizCard').classList.toggle('hidden',!qz.active);
   if(qz.active){

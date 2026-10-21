@@ -18,6 +18,8 @@ input,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(
 </style></head><body>
 <div class="top"><div class="brand">GTSCDT · 遥控器</div><div class="links"><span class="pill" id="room">ROOM</span><a href="/screen" target="_blank">大屏</a><a href="/ops" target="_blank">后台</a></div></div>
 <div class="card"><div class="k">投票</div>
+  <select id="presetSel" style="margin-bottom:8px"></select>
+  <button class="btn primary wide" id="presetStart">用预置题目发起</button>
   <input id="q" placeholder="问题（例：今天讲清楚了吗？）" />
   <textarea id="opts" rows="3" placeholder="选项，每行一个">清楚
 一般
@@ -39,8 +41,23 @@ input,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(
   <div class="muted small" id="wsStat">未开始</div>
 </div>
 <div class="card"><div class="k">答题</div>
+  <button class="btn primary wide" id="quizStart">开始答题（按题库配置）</button>
   <button class="btn wide" id="quizClose">结束答题</button>
   <div class="muted small" id="quizStat">—</div>
+</div>
+<div class="card"><div class="k">课堂控制</div>
+  <button class="btn wide" id="matToggle">素材发放：—</button>
+  <button class="btn wide" id="hwToggle">作业提交：—</button>
+  <button class="btn wide" id="buzzReset">抢答重置（开始新一轮）</button>
+  <div class="row" style="display:flex;gap:8px;margin-top:8px">
+    <button class="btn" data-view="stats">大屏·数据</button>
+    <button class="btn" data-view="course">大屏·课件</button>
+    <button class="btn" data-view="promo">大屏·宣传页</button>
+  </div>
+  <div class="row" style="display:flex;gap:8px;margin-top:8px">
+    <button class="btn" id="slidePrev">课件上一页</button>
+    <button class="btn" id="slideNext">课件下一页</button>
+  </div>
 </div>
 <script>
 var q=new URLSearchParams(location.search), ROOM=(q.get('room')||'').toUpperCase();
@@ -51,6 +68,9 @@ function refresh(){api('/api/screen').then(function(d){
   document.getElementById('pollStat').textContent=d.poll.active?('进行中 · '+d.poll.count+' 票'):'未进行';
   document.getElementById('buzzStat').textContent='第 '+(d.buzz.round||0)+' 轮 · '+(d.buzz.winner?('已抢到：'+d.buzz.winner):(d.buzz.running?'抢答中':(d.buzz.enabled?'已开启':'未开启')));
   document.getElementById('quizStat').textContent=d.quiz?('进行中 · '+d.quiz.answered+' 人已答'):'未发布';
+  window.__mat=!!d.materialOpen;
+  document.getElementById('matToggle').textContent='素材发放：'+(d.materialOpen?'已开启':'已关闭');
+  document.getElementById('matToggle').className='btn wide '+(d.materialOpen?'primary':'');
   window.__wsOpen=!!d.workshopOpen;
   document.getElementById('wsStat').textContent=(d.timer&&d.timer.running?('计时中 · 剩 '+Math.max(0,Math.round(d.timer.left/60000))+' 分钟'):'计时未开始')+(d.workshopOpen?' · 行动卡已推送':' · 行动卡未推送');
 }).catch(function(){})}
@@ -64,5 +84,25 @@ document.getElementById('wsStart').onclick=function(){post('/api/admin/timer',{a
 document.getElementById('wsReset').onclick=function(){post('/api/admin/timer',{action:'reset'}).then(refresh)};
 document.getElementById('wsPush').onclick=function(){post('/api/admin/workshop',{open:!window.__wsOpen}).then(refresh)};
 var _ws=null;
+function loadPresets(){
+  post('/api/admin/votepreset',{action:'list'}).then(function(d){
+    var sel=document.getElementById('presetSel'); var list=(d&&d.list)||[];
+    sel.innerHTML='<option value="">（选择预置题目）</option>'+list.map(function(v){return '<option value="'+v.id+'">'+v.question+'</option>'}).join('');
+    window.__presets=list;
+  }).catch(function(){});
+}
+document.getElementById('presetStart').onclick=function(){
+  var id=document.getElementById('presetSel').value; var v=(window.__presets||[]).filter(function(x){return x.id===id})[0];
+  if(!v){alert('先在课堂后台添加预置题目');return}
+  post('/api/admin/poll',{action:'start',question:v.question,options:v.options}).then(refresh);
+};
+document.getElementById('quizStart').onclick=function(){post('/api/admin/quiz',{action:'startPreset'}).then(function(d){ if(d&&d.ok===false)alert(d.error||'题库为空'); refresh(); })};
+document.getElementById('matToggle').onclick=function(){post('/api/admin/material',{open:!window.__mat}).then(refresh)};
+document.getElementById('hwToggle').onclick=function(){post('/api/admin/hw',{open:!window.__hw}).then(refresh)};
+document.getElementById('buzzReset').onclick=function(){post('/api/admin/buzz',{action:'start'}).then(refresh)};
+document.querySelectorAll('[data-view]').forEach(function(b){b.onclick=function(){post('/api/admin/screen',{view:b.getAttribute('data-view')}).then(refresh)}});
+document.getElementById('slidePrev').onclick=function(){post('/api/admin/slide',{action:'prev'})};
+document.getElementById('slideNext').onclick=function(){post('/api/admin/slide',{action:'next'})};
+loadPresets();
 refresh();setInterval(refresh,2500);
 </script></body></html>
