@@ -36,6 +36,7 @@ input{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radiu
     <button class="btn" id="reload">重新加载</button>
     <input id="room" placeholder="房间码（应用题库用）" style="width:150px" />
     <button class="btn" id="applyQuiz">把题库应用到房间</button>
+    <button class="btn" id="applyHw">把作业题应用到学员页</button>
     <span class="small" id="msg"></span>
   </div>
   <p class="muted small" id="schema" style="margin-top:8px"></p>
@@ -77,6 +78,12 @@ document.getElementById('save').onclick=function(){
   }).catch(function(e){document.getElementById('msg').textContent='失败：'+e.message});
 };
 document.getElementById('reload').onclick=load;
+document.getElementById('applyHw').onclick=function(){
+  var room=document.getElementById('room').value.trim().toUpperCase();
+  fetch('/api/generate/apply-homework'+(room?('?room='+room):''),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pkg:PKG})}).then(function(r){return r.json()}).then(function(d){
+    document.getElementById('msg').textContent=d.ok?('作业题已应用到学员页：'+d.count+' 道'):('失败：'+(d.error||''));
+  });
+};
 document.getElementById('applyQuiz').onclick=function(){
   var room=document.getElementById('room').value.trim().toUpperCase();
   fetch('/api/generate/apply-quiz'+(room?('?room='+room):''),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pkg:PKG})}).then(function(r){return r.json()}).then(function(d){

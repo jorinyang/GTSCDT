@@ -184,6 +184,9 @@ function submittedTasks(){
   return m;
 }
 function renderHw(){
+  if(stateData&&stateData.tasks&&stateData.tasks.length){
+    HWS=stateData.tasks.map(function(t,i){return {id:t.id,no:i+1,title:(i+1)+' 号作业：'+t.title,hint:t.deliverable||'按题目要求提交',accept:'.md,.txt,.docx,.pdf,.pptx,.xlsx,.zip,.png,.jpg,.jpeg'}});
+  }
   var subs=submittedTasks();
   var open=!!(stateData&&stateData.hwOpen);
   $('hwCard').style.display=open?'':'none';

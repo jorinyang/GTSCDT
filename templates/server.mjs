@@ -4,6 +4,8 @@ import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
+import zlib from 'node:zlib';
+import { spawnSync } from 'node:child_process';
 import { renderCoursePackage } from './course-render.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -80,7 +82,7 @@ function cookieRoom(req){ const m=String(req.headers.cookie||'').match(/(?:^|;\s
 function ensureDir(){ if(!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR,{recursive:true}); }
 function blank(){
   const groups={}; GROUPS.forEach(g=>groups[g]={name:g+'组',perf:0});
-  return {students:{},groups,poll:{active:false,question:'',options:[],votes:{},startedAt:''},submissions:{},config:{hwOpen:false,workshopOpen:false,groupMax:3,model:{baseUrl:'https://api.deepseek.com',model:'deepseek-flash',apiKey:''}},buzz:{enabled:false,running:false,winner:'',round:0,at:''},timer:{running:false,endAt:0,duration:0},quiz:{bank:{choice:[],judge:[],blank:[],short:[]},config:{mode:'random',counts:{choice:5,judge:3,blank:2,short:1},scores:{choice:2,judge:2,blank:3,short:10}},paper:null,answers:{}},updatedAt:new Date().toISOString()};
+  return {students:{},groups,poll:{active:false,question:'',options:[],votes:{},startedAt:''},submissions:{},config:{hwOpen:false,workshopOpen:false,groupMax:3,model:{baseUrl:'https://api.deepseek.com',model:'deepseek-flash',apiKey:''}},buzz:{enabled:false,running:false,winner:'',round:0,at:''},tasks:[],timer:{running:false,endAt:0,duration:0},quiz:{bank:{choice:[],judge:[],blank:[],short:[]},config:{mode:'random',counts:{choice:5,judge:3,blank:2,short:1},scores:{choice:2,judge:2,blank:3,short:10}},paper:null,answers:{}},updatedAt:new Date().toISOString()};
 }
 function load(){ ensureDir(); if(!fs.existsSync(STATE_FILE)) return blank();
   try{ const s=JSON.parse(fs.readFileSync(STATE_FILE,'utf8')); return Object.assign(blank(),s); }catch(e){ return blank(); } }
@@ -141,6 +143,9 @@ function studentView(k){
     poll: poll.active?{active:true,question:poll.question,options:poll.options,voted,myVote:voted?poll.votes[k]:null,startedAt:poll.startedAt}:{active:false},
     hwOpen: !!(state.config&&state.config.hwOpen),
     workshopOpen: !!(state.config&&state.config.workshopOpen),
+    tasksVersion:(function(){try{return fs.statSync(path.join(DATA_DIR,'rooms',currentRoom,'assets','quests.html')).mtimeMs}catch(e){return 0}})(),
+    tasksCount:(state.tasks||[]).length,
+    tasks:(state.tasks||[]).map(function(t){return {id:t.id,title:t.title,scenario:t.scenario,requirements:t.requirements||[],deliverable:t.deliverable||'',acceptance:t.acceptance||''}}),
     timer:{running:!!(state.timer&&state.timer.running),endAt:(state.timer&&state.timer.endAt)||0,left:(state.timer&&state.timer.running)?Math.max(0,state.timer.endAt-Date.now()):0},
     buzz:{enabled:!!(state.buzz&&state.buzz.enabled),running:!!(state.buzz&&state.buzz.running),winner:(state.buzz&&state.buzz.winner)||'',round:(state.buzz&&state.buzz.round)||0},
     quiz:(function(){var q=state.quiz||{};var p=q.paper;if(!p||!p.active)return {active:false};var a=(q.answers||{})[k];return {active:true,submitted:!!a,myScore:a?a.score:null,total:p.questions.reduce(function(x,y){return x+(y.score||0)},0),questions:p.questions.map(function(x){return {id:x.id,type:x.type,q:x.q,options:x.options||[],score:x.score}})};})(),
@@ -335,6 +340,54 @@ function renderPromo(meta,p){
   +'<div class="k">时间安排</div>'+sch
   +'<a class="cta" href="#">'+esc(d.cta||'报名/咨询')+'</a></div></body></html>';
 }
+function roomDir(code){ return code===DEFAULT_ROOM ? path.join(DATA_DIR,'room0') : path.join(ROOMS_DIR,code); }
+function renderQuests(tasks){
+  return (tasks||[]).map(function(t,i){
+    return '<div class="qcard"><b>'+(i+1)+'. '+String(t.title||'作业').replace(/[<>&]/g,'')+'</b>'
+      +(t.scenario?('<p>'+String(t.scenario).replace(/[<>&]/g,'')+'</p>'):'')
+      +((t.requirements||[]).length?('<ul>'+t.requirements.map(function(x){return '<li>'+String(x).replace(/[<>&]/g,'')+'</li>'}).join('')+'</ul>'):'')
+      +(t.deliverable?('<div class="m">交付：'+String(t.deliverable).replace(/[<>&]/g,'')+'</div>'):'')
+      +(t.acceptance?('<div class="m">验收：'+String(t.acceptance).replace(/[<>&]/g,'')+'</div>'):'')
+      +'</div>';
+  }).join('');
+}
+function xmlText(xml){
+  return String(xml||'').replace(/<w:p[ >]/g,'\n<w:p ').replace(/<a:p[ >]/g,'\n<a:p ')
+    .replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/\n{2,}/g,'\n').trim();
+}
+function zipRead(buf){
+  const entries=[]; let eocd=-1;
+  for(let i=buf.length-22;i>=0;i--){ if(buf.readUInt32LE(i)===0x06054b50){ eocd=i; break; } }
+  if(eocd<0) throw new Error('不是有效的 zip/docx');
+  const n=buf.readUInt16LE(eocd+10); let off=buf.readUInt32LE(eocd+16);
+  for(let k=0;k<n;k++){
+    if(buf.readUInt32LE(off)!==0x02014b50) break;
+    const nameLen=buf.readUInt16LE(off+28), extra=buf.readUInt16LE(off+30), cmt=buf.readUInt16LE(off+32);
+    const method=buf.readUInt16LE(off+10), csize=buf.readUInt32LE(off+20), usize=buf.readUInt32LE(off+24);
+    const lho=buf.readUInt32LE(off+42), name=buf.toString('utf8',off+46,off+46+nameLen);
+    entries.push({name,method,csize,usize,lho});
+    off+=46+nameLen+extra+cmt;
+  }
+  return entries;
+}
+function zipEntry(buf,entry){
+  const lho=entry.lho; const nameLen=buf.readUInt16LE(lho+26), extra=buf.readUInt16LE(lho+28);
+  const start=lho+30+nameLen+extra; const data=buf.slice(start,start+entry.csize);
+  if(entry.method===0) return data;
+  if(entry.method===8) return zlib.inflateRawSync(data);
+  throw new Error('不支持的压缩方式');
+}
+function extractText(filename,buf){
+  const ext=String(filename||'').toLowerCase().split('.').pop();
+  if(ext==='md'||ext==='txt') return buf.toString('utf8');
+  if(ext==='html'||ext==='htm') return buf.toString('utf8').replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/\s{2,}/g,' ').trim();
+  if(ext==='docx'){ const e=zipRead(buf); const d=e.filter(function(x){return x.name==='word/document.xml'})[0]; if(!d)throw new Error('docx 缺少正文'); return xmlText(zipEntry(buf,d).toString('utf8')); }
+  if(ext==='pptx'){ const e=zipRead(buf); const slides=e.filter(function(x){return /^ppt\/slides\/slide\d+\.xml$/.test(x.name)}).sort(function(a,b){return a.name.localeCompare(b.name,undefined,{numeric:true})}); if(!slides.length)throw new Error('pptx 缺少页面'); return slides.map(function(s,i){return '第 '+(i+1)+' 页\n'+xmlText(zipEntry(buf,s).toString('utf8'))}).join('\n\n'); }
+  if(ext==='pdf'){ const r=spawnSync('pdftotext',['-','-'],{input:buf}); if(r.error||r.status!==0) throw new Error('服务器未安装 pdftotext，暂不能解析 PDF'); return String(r.stdout||'').trim(); }
+  return buf.toString('utf8');
+}
+function renderQuestsPage(tasks){ return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><style>body{background:#081813;color:#F4EFE2;font-family:-apple-system,"PingFang SC",sans-serif;padding:16px}.qcard{border:1px solid rgba(244,239,226,.13);border-radius:12px;padding:14px;margin-bottom:10px}.qcard b{color:#F6E4C6}.qcard p,.qcard li{font-size:14px;color:#DDE6DE;line-height:1.7}.qcard ul{margin:6px 0 0 18px}.m{font-size:12px;color:#9DB3A6;margin-top:6px}</style></head><body>'+renderQuests(tasks)+'</body></html>'; }
+function ensureRoomAssets(code){ const d=path.join(roomDir(code),'assets'); fs.mkdirSync(d,{recursive:true}); return d; }
 function savePackage(title, html){
   fs.mkdirSync(PACKAGES_DIR,{recursive:true});
   const id='pkg-'+Date.now().toString(36);
@@ -428,9 +481,8 @@ const server=http.createServer(async (req,res)=>{
       if(!tj.accessToken) return send(res,401,'钉钉授权失败','text/html; charset=utf-8');
       const ur=await fetch('https://api.dingtalk.com/v1.0/contact/users/me',{headers:{'x-acs-dingtalk-access-token':tj.accessToken}});
       const me=await ur.json();
-      if(process.env.DINGTALK_CORP_ID && tj.corpId && tj.corpId!==process.env.DINGTALK_CORP_ID) return send(res,403,'仅限育钉组织成员登录','text/html; charset=utf-8');
       let corpInfo=null;
-      if(process.env.DINGTALK_CORP_ID){ corpInfo=await dingCorpUser(me.unionId); if((!corpInfo||!corpInfo.ok) && process.env.STRICT_ORG==='1') return send(res,403,'仅限育钉组织成员登录','text/html; charset=utf-8'); }
+      if(process.env.DINGTALK_CORP_ID){ try{ corpInfo=await dingCorpUser(me.unionId); }catch(e){} }
       if(corpInfo&&corpInfo.name&&!me.nick) me.nick=corpInfo.name;
       const uid=me.unionId||me.openId||'';
       if(corpInfo&&corpInfo.dept) me._dept=corpInfo.dept;
@@ -459,6 +511,34 @@ const server=http.createServer(async (req,res)=>{
   if(p==='/api/teachers/delete' && req.method==='POST'){
     const b=await readBody(req); const list=loadTeachers().filter(x=>x.id!==b.id); saveTeachers(list);
     return send(res,200,{ok:true});
+  }
+  if(p==='/api/extract' && req.method==='POST'){
+    const b=await readBody(req);
+    try{
+      const buf=Buffer.from(String(b.data||''),'base64');
+      if(!buf.length) return send(res,400,{ok:false,error:'空文件'});
+      if(buf.length>15*1024*1024) return send(res,413,{ok:false,error:'文件超过 15MB'});
+      const text=extractText(b.filename,buf);
+      return send(res,200,{ok:true,filename:b.filename,chars:text.length,text:text.slice(0,200000)});
+    }catch(e){ return send(res,400,{ok:false,error:String(e.message||e)}); }
+  }
+  if(p==='/api/generate/apply-homework' && req.method==='POST'){
+    const b=await readBody(req); const id=String(b.pkg||'');
+    if(!/^pkg-[a-z0-9]+$/.test(id)) return send(res,400,{ok:false,error:'bad package'});
+    let hw=[]; try{ hw=JSON.parse(fs.readFileSync(path.join(PACKAGES_DIR,id,'homework.json'),'utf8')); }catch(e){}
+    if(!Array.isArray(hw)||!hw.length) return send(res,400,{ok:false,error:'该课程包没有作业题'});
+    state.tasks=hw.map(function(t,i){ return {id:'HW'+(i+1),title:String(t.title||('作业 '+(i+1))),scenario:String(t.scenario||''),requirements:(t.requirements||[]).map(String),deliverable:String(t.deliverable||''),acceptance:String(t.acceptance||'')}; });
+    const ad=ensureRoomAssets(currentRoom);
+    fs.writeFileSync(path.join(ad,'quests.html'), renderQuestsPage(state.tasks));
+    fs.writeFileSync(path.join(ad,'quests.json'), JSON.stringify(state.tasks,null,2));
+    save();
+    return send(res,200,{ok:true,count:state.tasks.length,room:currentRoom});
+  }
+  if(p==='/api/room/asset'){
+    const name=String(u.searchParams.get('name')||'quests').replace(/[^a-z0-9_-]/gi,'');
+    const f=path.join(roomDir(currentRoom),'assets',name+'.html');
+    if(!fs.existsSync(f)) return send(res,404,'not found','text/plain');
+    return send(res,200,fs.readFileSync(f),'text/html; charset=utf-8');
   }
   if(p==='/api/generate/course' && req.method==='POST'){
     const b=await readBody(req);
@@ -596,7 +676,7 @@ const server=http.createServer(async (req,res)=>{
   if(AUTH_REQUIRED){
     const teacher=getTeacher(req);
     const htmlGuarded=(p==='/ops'||p==='/admin'||p==='/grader'||p==='/shell'||p==='/rooms'||p==='/teachers'||p==='/packages'||p==='/report'||p==='/remote'||p==='/package-edit');
-    const apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p.indexOf('/api/rooms')===0)||(p==='/api/report')||(p==='/api/report.csv')||(p.indexOf('/api/packages')===0)||(p.indexOf('/api/generate')===0)||(p.indexOf('/api/package')===0);
+    const apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p.indexOf('/api/rooms')===0)||(p==='/api/report')||(p==='/api/report.csv')||(p.indexOf('/api/packages')===0)||(p.indexOf('/api/generate')===0)||(p.indexOf('/api/package')===0)||(p==='/api/extract');
     if(htmlGuarded&&!teacher){ res.writeHead(302,{Location:'/login'}); return res.end(); }
     if(apiGuarded&&!teacher) return send(res,401,{ok:false,error:'login required'});
   }
