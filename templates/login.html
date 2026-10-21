@@ -1,32 +1,35 @@
 <!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>弈策课程运营系统 · 登录</title>
 <link rel="stylesheet" href="/ui.css" />
 <style>
-#login{display:flex;min-height:100vh;overflow:hidden}
-.brand-side{flex:1.15;padding:56px 64px;display:flex;flex-direction:column;justify-content:space-between;position:relative;background:radial-gradient(1200px 600px at 20% 10%,rgba(203,247,78,.08),transparent),radial-gradient(900px 500px at 80% 90%,rgba(51,85,255,.12),transparent)}
-.logo{display:flex;align-items:center;gap:12px;font-weight:700;font-size:16px;letter-spacing:.5px}
-.logo-dot{width:34px;height:34px;border-radius:11px;background:var(--lime);display:grid;place-items:center;color:#0E0E10;font-weight:800}
-.hero h1{font-size:44px;line-height:1.2;font-weight:800;letter-spacing:-1px;max-width:520px}
+html,body{height:100%}
+#login{display:flex;height:100vh;overflow:hidden}
+.brand-side{flex:1.1;min-width:0;padding:48px 56px;display:flex;flex-direction:column;justify-content:space-between;background:radial-gradient(1100px 560px at 20% 8%,rgba(203,247,78,.08),transparent),radial-gradient(820px 460px at 82% 92%,rgba(51,85,255,.12),transparent)}
+.logo{display:flex;align-items:center;gap:11px;font-weight:700;font-size:15px;letter-spacing:.4px}
+.logo-dot{width:32px;height:32px;border-radius:10px;background:var(--lime);display:grid;place-items:center;color:#0E0E10;font-weight:800;font-size:15px}
+.hero h1{font-size:40px;line-height:1.22;font-weight:800;letter-spacing:-.8px;max-width:500px}
 .hero h1 em{color:var(--lime);font-style:normal}
-.hero p{color:var(--ink2);margin-top:16px;max-width:460px;font-size:15px;line-height:1.8}
-.stats{display:flex;gap:40px;flex-wrap:wrap;margin-top:34px}
-.stats .st b{display:block;font-size:30px;font-weight:800;color:var(--lime)}
-.stats .st span{color:var(--ink3);font-size:13px}
-.foot{color:var(--ink3);font-size:12px}
-.side{flex:1;display:flex;align-items:center;justify-content:center;padding:40px;background:var(--bg2)}
-.login-card{width:100%;max-width:400px;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:26px}
-.login-card h2{font-size:20px;margin-bottom:4px}
-.login-card .sub{color:var(--ink2);font-size:13px;margin-bottom:20px}
-.tabs{display:flex;background:var(--bg);border-radius:14px;padding:4px;margin-bottom:20px}
-.tabs button{flex:1;padding:9px;border-radius:11px;color:var(--ink2);font-weight:600;border:none;background:transparent}
-.tabs button.on{background:var(--lime);color:#0E0E10}
-.field{margin-bottom:12px}
-.field label{display:block;font-size:12px;color:var(--ink2);margin-bottom:6px}
-.big-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;border-radius:14px;background:var(--lime);color:#0E0E10;font-weight:800;font-size:15px;border:none;cursor:pointer}
-.msg{font-size:12px;color:var(--orange);min-height:18px;margin-top:10px}
-.links{display:flex;gap:14px;font-size:12px;margin-top:16px;color:var(--ink3)}
-.links a{color:var(--ink2)}
+.hero p{color:var(--ink2);margin-top:14px;max-width:430px;font-size:14.5px;line-height:1.8}
+.stats{display:flex;gap:36px;flex-wrap:wrap;margin-top:28px}
+.stats b{display:block;font-size:28px;font-weight:800;color:var(--lime);line-height:1.1}
+.stats span{color:var(--ink3);font-size:12px}
+.foot{color:var(--ink3);font-size:11.5px;letter-spacing:.02em}
+.side{flex:.9;min-width:0;display:flex;align-items:center;justify-content:center;padding:40px;background:var(--bg2);overflow:auto}
+.login-card{width:100%;max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:28px}
+.login-card h2{font-size:20px;margin-bottom:6px}
+.login-card .sub{color:var(--ink2);font-size:13px;margin-bottom:22px;line-height:1.6}
+.big-btn{display:flex;align-items:center;justify-content:center;width:100%;height:46px;border-radius:13px;background:var(--lime);color:#0E0E10;font-weight:800;font-size:14.5px;border:none;cursor:pointer;transition:.18s ease}
+.big-btn:hover{background:#D9FF6A}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:11.5px;color:var(--ink2);margin-bottom:5px}
+.field input{width:100%;height:42px;background:var(--bg);border:1px solid var(--line);border-radius:11px;color:var(--ink);padding:0 12px;font-size:14px}
+.field input:focus{border-color:var(--lime);outline:none}
+.linkbtn{display:block;width:100%;margin-top:14px;background:none;border:none;color:var(--ink3);font-size:12.5px;cursor:pointer;text-align:center;padding:4px}
+.linkbtn:hover{color:var(--ink2)}
+.msg{font-size:12px;color:var(--orange);min-height:16px;margin-top:8px;text-align:center}
 .hidden{display:none!important}
-@media(max-width:900px){#login{flex-direction:column}.brand-side{padding:34px 24px}.hero h1{font-size:32px}.side{padding:22px}}
+.divider{display:flex;align-items:center;gap:10px;color:var(--ink3);font-size:11.5px;margin:18px 0 0}
+.divider:before,.divider:after{content:"";flex:1;height:1px;background:var(--line)}
+@media(max-width:1000px){#login{display:block;height:auto;min-height:100vh}.brand-side{display:none}.side{min-height:100vh;padding:24px}.login-card{max-width:360px}}
 </style></head><body>
 <div id="login">
   <section class="brand-side">
@@ -35,9 +38,9 @@
       <h1>让一堂课<br /><em>从开场跑到复盘</em></h1>
       <p>课程生成、学员互动、讲师遥控、授课大屏、作业评分装进一套系统。钉钉登录，进来就是你的课堂。</p>
       <div class="stats">
-        <div class="st"><b>20 人</b><span>一场课</span></div>
-        <div class="st"><b>6 关</b><span>工作坊实战</span></div>
-        <div class="st"><b>4 端</b><span>协同</span></div>
+        <div><b>20 人</b><span>一场课</span></div>
+        <div><b>6 关</b><span>工作坊实战</span></div>
+        <div><b>4 端</b><span>协同</span></div>
       </div>
     </div>
     <div class="foot">GTSCDT · Game Theory Strategy Course Development Tools</div>
@@ -45,33 +48,35 @@
   <section class="side">
     <div class="login-card">
       <h2>登录</h2>
-      <div class="sub">使用钉钉扫码，或本地口令进入。</div>
-      <div class="tabs"><button class="on" id="tabDing">钉钉登录</button><button id="tabLocal">本地口令</button></div>
+      <p class="sub" id="sub">使用钉钉扫码进入课堂</p>
+
       <div id="paneDing">
         <a class="big-btn" id="ding" href="/auth/dingtalk">钉钉登录</a>
-        <p class="msg" id="dingMsg"></p>
+        <div class="divider">或</div>
+        <button class="linkbtn" id="showLocal">使用本地口令</button>
       </div>
+
       <div id="paneLocal" class="hidden">
         <div class="field"><label>讲师口令</label><input id="pwd" type="password" placeholder="输入本地口令" /></div>
         <button class="big-btn" id="local">进入课堂</button>
-        <p class="msg" id="msg"></p>
+        <button class="linkbtn" id="backDing">返回钉钉登录</button>
       </div>
-      <div class="links"><a href="/screen">大屏</a><a href="/join">学员入口</a><a href="/promo">宣传页</a></div>
+
+      <p class="msg" id="msg"></p>
     </div>
   </section>
 </div>
 <script>
-function tab(t){
-  document.getElementById('paneDing').classList.toggle('hidden',t!=='ding');
-  document.getElementById('paneLocal').classList.toggle('hidden',t!=='local');
-  document.getElementById('tabDing').classList.toggle('on',t==='ding');
-  document.getElementById('tabLocal').classList.toggle('on',t==='local');
+function showLocal(on){
+  document.getElementById('paneLocal').classList.toggle('hidden',!on);
+  document.getElementById('paneDing').classList.toggle('hidden',on);
+  document.getElementById('sub').textContent=on?'使用本地口令进入课堂':'使用钉钉扫码进入课堂';
 }
-document.getElementById('tabDing').onclick=function(){tab('ding')};
-document.getElementById('tabLocal').onclick=function(){tab('local')};
+document.getElementById('showLocal').onclick=function(){showLocal(true)};
+document.getElementById('backDing').onclick=function(){showLocal(false)};
 fetch('/api/auth/config').then(function(r){return r.json()}).then(function(d){
-  if(!d.dingtalk){document.getElementById('tabDing').style.display='none';tab('local');}
-  if(!d.local){document.getElementById('tabLocal').style.display='none';tab('ding');document.getElementById('pwd').disabled=true;document.getElementById('local').disabled=true;}
+  if(!d.dingtalk)showLocal(true);
+  if(!d.local){showLocal(false);document.getElementById('showLocal').style.display='none';}
 }).catch(function(){});
 document.getElementById('local').onclick=function(){
   fetch('/auth/local',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:document.getElementById('pwd').value})}).then(function(r){return r.json()}).then(function(d){
