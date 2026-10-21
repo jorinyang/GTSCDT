@@ -285,7 +285,8 @@ function parseQuizText(t){
 function parseHomeworkText(t){
   const out=[];
   cleanText(t).split(/\r?\n/).forEach(function(l){
-    const s=l.trim(); if(!s)return;
+    let s=l.trim().replace(/^[-*\d.、)\s]+/,''); if(!s)return;
+    if(s.indexOf('作业|')>0) s=s.slice(s.indexOf('作业|'));
     const a=s.split('|').map(function(x){return x.trim()});
     if(a[0]==='作业'&&a.length>=4&&a[1]) out.push({title:a[1],scenario:a[2]||'',requirements:(a[3]||'').split(/[;；]/).filter(Boolean),deliverable:a[4]||'',acceptance:a[5]||''});
   });
@@ -478,7 +479,8 @@ const server=http.createServer(async (req,res)=>{
     const misc=parseMiscText(cleanText(r4.text));
     const r5=await genText('根据素材生成 6 道作业场景题，每行一条，用竖线分隔，不要解释。格式：作业|标题|场景描述|要求1;要求2|交付物|验收标准\n'+base,4000);
     let hw=parseHomeworkText(r5.text);
-    if(hw.length<6){ const r6=await genText('再补充 '+(6-hw.length)+' 道作业场景题，每行一条，用竖线分隔，不要解释。格式：作业|标题|场景描述|要求1;要求2|交付物|验收标准\n'+base,3000); hw=hw.concat(parseHomeworkText(r6.text)); }
+    if(hw.length<6){ const r6=await genText('再补充 '+(6-hw.length)+' 道作业场景题，每行一条，用竖线分隔，不要编号、不要 markdown、不要解释。每行必须以 作业| 开头。格式：作业|标题|场景描述|要求1;要求2|交付物|验收标准\n'+base,6000); hw=hw.concat(parseHomeworkText(r6.text)); }
+    if(hw.length<1){ const r7=await genText('只输出 6 行作业场景题，不要任何解释或标题。每行严格按格式：作业|标题|场景|要求1;要求2|交付物|验收标准'+String.fromCharCode(10)+'课程主题：'+title+String.fromCharCode(10)+'大纲：'+outline,6000); hw=hw.concat(parseHomeworkText(r7.text)); }
     fs.mkdirSync(path.join(dir,'raw'),{recursive:true});
     fs.writeFileSync(path.join(dir,'raw','course.txt'),String(r1.text||''));
     fs.writeFileSync(path.join(dir,'raw','promo.txt'),String(r2.text||''));
