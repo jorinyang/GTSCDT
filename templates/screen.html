@@ -25,7 +25,7 @@ a{color:var(--amber-l);text-decoration:none}
 .row{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 0;font-size:15px}
 .win{font-size:64px;font-weight:800;color:var(--amber-l);text-align:center;margin-top:26px}
 </style></head><body>
-<div class="top"><div class="brand">GTSCDT · 课堂大屏</div><div class="links"><span class="pill" id="room">ROOM</span><a href="/remote" target="_blank">遥控器</a><a href="/ops" target="_blank">后台</a><button class="btn" id="fs">全屏</button></div></div>
+<div class="top"><div class="brand">GTSCDT · 课堂大屏</div><div class="links"><span class="pill" id="room">ROOM</span><span class="pill" id="timer">--</span><a href="/remote" target="_blank">遥控器</a><a href="/ops" target="_blank">后台</a><button class="btn" id="fs">全屏</button></div></div>
 <div class="screen">
   <div style="display:grid;grid-template-rows:1fr 1fr;gap:16px">
     <div class="card"><div class="k">投票</div><div id="poll"></div></div>
@@ -41,7 +41,11 @@ var q=new URLSearchParams(location.search), room=(q.get('room')||'').toUpperCase
 document.getElementById('room').textContent=room||'ROOM0';
 document.getElementById('fs').onclick=function(){document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen()};
 function esc(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
+var _end=0;
+setInterval(function(){ if(_end){ var s=Math.max(0,Math.floor((_end-Date.now())/1000)); document.getElementById('timer').textContent='倒计时 '+String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); } },1000);
 function render(d){
+  _end=(d.timer&&d.timer.running)?d.timer.endAt:0;
+  if(!_end)document.getElementById('timer').textContent='计时未开始';
   var p=d.poll||{}, r=p.results||{}, total=Math.max(1,Object.values(r).reduce(function(a,b){return a+b},0));
   var h='<div class="sub">'+(esc(p.question)||'未发起投票')+'</div>';
   (p.options||[]).forEach(function(o,i){var n=r[i]||0;h+='<div class="opt"><span>'+esc(o)+'</span><span>'+n+' 票 · '+Math.round(n/total*100)+'%</span></div><div class="bar"><i style="width:'+(n/total*100)+'%"></i></div>'});

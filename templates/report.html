@@ -1,0 +1,32 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>课堂报告 · GTSCDT</title>
+<style>
+:root{--bg:#081813;--line:rgba(244,239,226,.13);--text:#F4EFE2;--muted:#9DB3A6;--amber:#D98A2B;--amber-l:#E9B45C}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;padding:22px}
+a{color:var(--amber-l);text-decoration:none}
+h1{font-size:22px;margin:4px 0 14px} .muted{color:var(--muted)} .small{font-size:12px}
+.card{background:linear-gradient(180deg,#0C2A21,#081813);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.k{font-size:12px;letter-spacing:.12em;color:var(--muted);margin-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:7px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--muted);font-size:12px}
+.btn{border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);border-radius:9px;padding:7px 12px;font-size:13px;cursor:pointer}
+</style></head><body>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div class="small muted">GTSCDT · 课堂报告</div><div><a href="/ops">操作台</a> · <a href="/rooms">房间</a> · <a href="/screen">大屏</a></div></div>
+<h1 id="title">课堂报告</h1>
+<div class="card"><div class="k">课堂概览</div><div id="sum" class="small"></div></div>
+<div class="card"><div class="k">学员与作业</div><div style="overflow:auto"><table id="stu"></table></div></div>
+<div class="card"><div class="k">小组</div><div style="overflow:auto"><table id="grp"></table></div></div>
+<div class="card"><div class="k">答题</div><div style="overflow:auto"><table id="quiz"></table></div></div>
+<script>
+var q=new URLSearchParams(location.search), ROOM=(q.get('room')||'').toUpperCase();
+function esc(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
+fetch('/api/report'+(ROOM?('?room='+ROOM):'')).then(function(r){return r.json()}).then(function(d){
+  document.getElementById('title').textContent='课堂报告 · '+d.room;
+  document.getElementById('sum').innerHTML='学员 '+d.students.length+' 人 · 作业提交 '+d.submissions.count+' 份 · 答题 '+((d.quiz.answers||[]).length)+' 人参与 · <a href="/api/report.csv'+(ROOM?('?room='+ROOM):'')+'">下载 CSV</a>';
+  var byKey={}; (d.submissions.list||[]).forEach(function(x){byKey[x.name+'|'+x.tail]=(byKey[x.name+'|'+x.tail]||0)+1});
+  document.getElementById('stu').innerHTML='<tr><th>姓名</th><th>尾号</th><th>小组</th><th>投票</th><th>抢答</th><th>作业数</th></tr>'+(d.students||[]).map(function(s){return '<tr><td>'+esc(s.name)+'</td><td>'+esc(s.tail)+'</td><td>'+esc(s.group||'—')+'</td><td>'+(s.votes||0)+'</td><td>'+(s.buzzes||0)+'</td><td>'+(byKey[s.name+'|'+s.tail]||0)+'</td></tr>'}).join('');
+  document.getElementById('grp').innerHTML='<tr><th>组</th><th>名称</th><th>人数</th><th>表现分</th></tr>'+(d.groups||[]).map(function(g){return '<tr><td>'+g.id+'</td><td>'+esc(g.name)+'</td><td>'+g.count+'</td><td>'+(g.perf||0)+'</td></tr>'}).join('');
+  var qa=(d.quiz.answers||[]); document.getElementById('quiz').innerHTML='<tr><th>学员</th><th>得分</th><th>满分</th></tr>'+(qa.length?qa.map(function(a){return '<tr><td>'+esc(a.key)+'</td><td>'+(a.score||0)+'</td><td>'+(a.total||0)+'</td></tr>'}).join(''):'<tr><td colspan="3" class="muted">暂无答题</td></tr>');
+}).catch(function(){document.getElementById('sum').textContent='加载失败'});
+</script></body></html>

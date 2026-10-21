@@ -31,6 +31,13 @@ input,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(
   <button class="btn wide" id="buzzOff">关闭抢答</button>
   <div class="muted small" id="buzzStat">未开启</div>
 </div>
+<div class="card"><div class="k">工作坊</div>
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input id="wsMin" type="number" value="90" min="1" max="240" style="width:90px" /><span class="muted small">分钟</span></div>
+  <button class="btn primary wide" id="wsStart">开始计时</button>
+  <button class="btn wide" id="wsReset">重置计时</button>
+  <button class="btn wide" id="wsPush">推送/撤回行动卡</button>
+  <div class="muted small" id="wsStat">未开始</div>
+</div>
 <div class="card"><div class="k">答题</div>
   <button class="btn wide" id="quizClose">结束答题</button>
   <div class="muted small" id="quizStat">—</div>
@@ -44,6 +51,8 @@ function refresh(){api('/api/screen').then(function(d){
   document.getElementById('pollStat').textContent=d.poll.active?('进行中 · '+d.poll.count+' 票'):'未进行';
   document.getElementById('buzzStat').textContent='第 '+(d.buzz.round||0)+' 轮 · '+(d.buzz.winner?('已抢到：'+d.buzz.winner):(d.buzz.running?'抢答中':(d.buzz.enabled?'已开启':'未开启')));
   document.getElementById('quizStat').textContent=d.quiz?('进行中 · '+d.quiz.answered+' 人已答'):'未发布';
+  window.__wsOpen=!!d.workshopOpen;
+  document.getElementById('wsStat').textContent=(d.timer&&d.timer.running?('计时中 · 剩 '+Math.max(0,Math.round(d.timer.left/60000))+' 分钟'):'计时未开始')+(d.workshopOpen?' · 行动卡已推送':' · 行动卡未推送');
 }).catch(function(){})}
 document.getElementById('pollStart').onclick=function(){var opts=document.getElementById('opts').value.split('\n').map(function(x){return x.trim()}).filter(Boolean);if(opts.length<2){alert('至少两个选项');return}post('/api/admin/poll',{action:'start',question:document.getElementById('q').value||'现场投票',options:opts}).then(refresh)};
 document.getElementById('pollStop').onclick=function(){post('/api/admin/poll',{action:'stop'}).then(refresh)};
@@ -51,5 +60,9 @@ document.getElementById('buzzEnable').onclick=function(){post('/api/admin/buzz',
 document.getElementById('buzzStart').onclick=function(){post('/api/admin/buzz',{action:'start'}).then(refresh)};
 document.getElementById('buzzOff').onclick=function(){post('/api/admin/buzz',{action:'disable'}).then(refresh)};
 document.getElementById('quizClose').onclick=function(){post('/api/admin/quiz',{action:'close'}).then(refresh)};
+document.getElementById('wsStart').onclick=function(){post('/api/admin/timer',{action:'start',minutes:Number(document.getElementById('wsMin').value)||90}).then(refresh)};
+document.getElementById('wsReset').onclick=function(){post('/api/admin/timer',{action:'reset'}).then(refresh)};
+document.getElementById('wsPush').onclick=function(){post('/api/admin/workshop',{open:!window.__wsOpen}).then(refresh)};
+var _ws=null;
 refresh();setInterval(refresh,2500);
 </script></body></html>

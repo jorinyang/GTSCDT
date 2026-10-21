@@ -1,0 +1,7 @@
+templates/data
+templates/**/data
+node_modules
+**/node_modules
+.git
+*.log
+*.tmp

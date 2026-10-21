@@ -29,6 +29,20 @@ const DING_SECRET = process.env.DINGTALK_CLIENT_SECRET || '';
 function sign(v){ return crypto.createHmac('sha256',SESSION_SECRET).update(v).digest('hex').slice(0,32); }
 function setTeacherCookie(res, teacher){ const v=Buffer.from(JSON.stringify({id:teacher.id,name:teacher.name,role:teacher.role,exp:Date.now()+7*864e5})).toString('base64url'); res.setHeader('Set-Cookie','gtsc_teacher='+v+'.'+sign(v)+'; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800'); }
 function getTeacher(req){ const raw=String(req.headers.cookie||''); const m=raw.match(/(?:^|;\s*)gtsc_teacher=([^;]+)/); if(!m)return null; const [v,sig]=m[1].split('.'); if(!v||!sig||sign(v)!==sig)return null; try{ const t=JSON.parse(Buffer.from(v,'base64url').toString()); if(!t.exp||t.exp<Date.now())return null; return t; }catch(e){ return null; } }
+async function dingDept(unionId){
+  const corp=process.env.DINGTALK_CORP_ID||'';
+  if(!(corp&&DING_ID&&DING_SECRET&&unionId)) return '';
+  try{
+    const tr=await fetch('https://oapi.dingtalk.com/gettoken?appkey='+encodeURIComponent(DING_ID)+'&appsecret='+encodeURIComponent(DING_SECRET));
+    const tj=await tr.json(); if(!tj.access_token) return '';
+    const u1=await fetch('https://oapi.dingtalk.com/topapi/user/getbyunionid?access_token='+tj.access_token,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({unionid:unionId})});
+    const j1=await u1.json(); const userid=j1.result&&j1.result.userid;
+    if(!userid) return '';
+    const u2=await fetch('https://oapi.dingtalk.com/topapi/v2/user/get?access_token='+tj.access_token,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userid})});
+    const j2=await u2.json(); const list=(j2.result&&j2.result.dept_id_list)||[];
+    return list.length?list.join('/'):'';
+  }catch(e){ return ''; }
+}
 function loadTeachers(){ try{ return JSON.parse(fs.readFileSync(TEACHERS_FILE,'utf8')); }catch(e){ return []; } }
 function saveTeachers(list){ fs.mkdirSync(path.dirname(TEACHERS_FILE),{recursive:true}); fs.writeFileSync(TEACHERS_FILE, JSON.stringify(list,null,1)); }
 let currentRoom = DEFAULT_ROOM;
@@ -66,7 +80,7 @@ function cookieRoom(req){ const m=String(req.headers.cookie||'').match(/(?:^|;\s
 function ensureDir(){ if(!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR,{recursive:true}); }
 function blank(){
   const groups={}; GROUPS.forEach(g=>groups[g]={name:g+'组',perf:0});
-  return {students:{},groups,poll:{active:false,question:'',options:[],votes:{},startedAt:''},submissions:{},config:{hwOpen:false,workshopOpen:false,groupMax:3,model:{baseUrl:'https://api.deepseek.com',model:'deepseek-flash',apiKey:''}},buzz:{enabled:false,running:false,winner:'',round:0,at:''},quiz:{bank:{choice:[],judge:[],blank:[],short:[]},config:{mode:'random',counts:{choice:5,judge:3,blank:2,short:1},scores:{choice:2,judge:2,blank:3,short:10}},paper:null,answers:{}},updatedAt:new Date().toISOString()};
+  return {students:{},groups,poll:{active:false,question:'',options:[],votes:{},startedAt:''},submissions:{},config:{hwOpen:false,workshopOpen:false,groupMax:3,model:{baseUrl:'https://api.deepseek.com',model:'deepseek-flash',apiKey:''}},buzz:{enabled:false,running:false,winner:'',round:0,at:''},timer:{running:false,endAt:0,duration:0},quiz:{bank:{choice:[],judge:[],blank:[],short:[]},config:{mode:'random',counts:{choice:5,judge:3,blank:2,short:1},scores:{choice:2,judge:2,blank:3,short:10}},paper:null,answers:{}},updatedAt:new Date().toISOString()};
 }
 function load(){ ensureDir(); if(!fs.existsSync(STATE_FILE)) return blank();
   try{ const s=JSON.parse(fs.readFileSync(STATE_FILE,'utf8')); return Object.assign(blank(),s); }catch(e){ return blank(); } }
@@ -124,6 +138,7 @@ function studentView(k){
     poll: poll.active?{active:true,question:poll.question,options:poll.options,voted,myVote:voted?poll.votes[k]:null,startedAt:poll.startedAt}:{active:false},
     hwOpen: !!(state.config&&state.config.hwOpen),
     workshopOpen: !!(state.config&&state.config.workshopOpen),
+    timer:{running:!!(state.timer&&state.timer.running),endAt:(state.timer&&state.timer.endAt)||0,left:(state.timer&&state.timer.running)?Math.max(0,state.timer.endAt-Date.now()):0},
     buzz:{enabled:!!(state.buzz&&state.buzz.enabled),running:!!(state.buzz&&state.buzz.running),winner:(state.buzz&&state.buzz.winner)||'',round:(state.buzz&&state.buzz.round)||0},
     quiz:(function(){var q=state.quiz||{};var p=q.paper;if(!p||!p.active)return {active:false};var a=(q.answers||{})[k];return {active:true,submitted:!!a,myScore:a?a.score:null,total:p.questions.reduce(function(x,y){return x+(y.score||0)},0),questions:p.questions.map(function(x){return {id:x.id,type:x.type,q:x.q,options:x.options||[],score:x.score}})};})(),
     groupCounts: groupCounts(),
@@ -141,7 +156,7 @@ function adminView(){
   if(state.poll.options&&state.poll.options.length){ state.poll.options.forEach((o,i)=>{results[i]=0}); Object.values(state.poll.votes||{}).forEach(v=>{ if(results[v]!==undefined) results[v]++ }); }
   const subs=Object.keys(state.submissions).map(k=>{ const p=k.split('||'); const st=state.students[p[0]]||{}; const sub=state.submissions[k]; return {key:k,studentKey:p[0],name:st.name||p[0],tail:st.tail||'',task:p[1],text:sub.text||'',fileName:sub.fileName||'',q1:sub.q1||'',q2:sub.q2||'',q3:sub.q3||'',files:sub.files||[],at:sub.at,manual:sub.manual||[],score:sub.score||null}; });
   const _mc=modelCfg();
-  return {ok:true,quiz:quizInfo,model:{baseUrl:_mc.base,model:_mc.model,hasKey:!!_mc.key},config:state.config||{},buzz:state.buzz||{enabled:false,running:false,winner:''},students:Object.keys(state.students).map(k=>Object.assign({key:k},state.students[k])),groups:Object.keys(state.groups).map(g=>({id:g,name:state.groups[g].name,perf:state.groups[g].perf||0,count:counts[g]})),counts,poll:{active:state.poll.active,question:state.poll.question,options:state.poll.options,votes:state.poll.votes,results,startedAt:state.poll.startedAt},submissions:subs,updatedAt:state.updatedAt};
+  return {ok:true,timer:state.timer||null,workshopOpen:!!(state.config&&state.config.workshopOpen),quiz:quizInfo,model:{baseUrl:_mc.base,model:_mc.model,hasKey:!!_mc.key},config:state.config||{},buzz:state.buzz||{enabled:false,running:false,winner:''},students:Object.keys(state.students).map(k=>Object.assign({key:k},state.students[k])),groups:Object.keys(state.groups).map(g=>({id:g,name:state.groups[g].name,perf:state.groups[g].perf||0,count:counts[g]})),counts,poll:{active:state.poll.active,question:state.poll.question,options:state.poll.options,votes:state.poll.votes,results,startedAt:state.poll.startedAt},submissions:subs,updatedAt:state.updatedAt};
 }
 function mcpToolDefs(){
   return [
@@ -215,7 +230,7 @@ function screenView(){
   Object.values(poll.votes||{}).forEach(v=>{ if(results[v]!==undefined) results[v]++ });
   const quiz=state.quiz||{};
   const paper=quiz.paper;
-  return {ok:true,room:currentRoom,at:Date.now(),
+  return {ok:true,room:currentRoom,at:Date.now(),workshopOpen:!!(state.config&&state.config.workshopOpen),timer:{running:!!(state.timer&&state.timer.running),endAt:(state.timer&&state.timer.endAt)||0,left:(state.timer&&state.timer.running)?Math.max(0,state.timer.endAt-Date.now()):0},
     poll:{active:!!poll.active,question:poll.question||'',options:poll.options||[],results,count:Object.keys(poll.votes||{}).length},
     buzz:{enabled:!!(state.buzz&&state.buzz.enabled),running:!!(state.buzz&&state.buzz.running),winner:(state.buzz&&state.buzz.winner)||'',round:(state.buzz&&state.buzz.round)||0},
     quiz:paper?{active:!!paper.active,count:paper.questions.length,points:paper.questions.reduce((a,b)=>a+(b.score||0),0),answered:Object.keys(quiz.answers||{}).length,avg:(function(){const v=Object.values(quiz.answers||{});return v.length?Math.round(v.reduce((a,b)=>a+(b.score||0),0)/v.length*10)/10:0})()}:null,
@@ -232,8 +247,8 @@ function readRaw(req, limit){
 function readBody(req){ return new Promise((resolve,reject)=>{ let d=''; req.on('data',c=>{d+=c; if(d.length>2e6){reject(new Error('too large'));req.destroy()}}); req.on('end',()=>{ try{resolve(d?JSON.parse(d):{})}catch(e){resolve({})} }); req.on('error',reject); }); }
 const MIME={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.json':'application/json; charset=utf-8','.csv':'text/csv; charset=utf-8'};
 const MAP=_IS_KIT
-  ? {'/':'promo.html','/promo':'promo.html','/live':'live.html','/live.html':'live.html','/course':'course/course.html','/course.html':'course/course.html','/grader':'course/grader.html','/grader.html':'course/grader.html','/admin':'course/admin.html','/admin.html':'course/admin.html','/ops':'course/admin.html','/join':'live.html','/screen':'screen.html','/remote':'remote.html','/login':'login.html','/shell':'course-shell.html','/rooms':'rooms.html','/teachers':'teachers.html','/packages':'packages.html'}
-  : {'/':'宣传页/课程大纲-宣传版.html','/promo':'宣传页/课程大纲-宣传版.html','/live':'宣传页/live.html','/live.html':'宣传页/live.html','/course':'课件/course.html','/course.html':'课件/course.html','/grader':'课件/grader.html','/grader.html':'课件/grader.html','/admin':'课件/admin.html','/admin.html':'课件/admin.html','/ops':'课件/admin.html','/join':'宣传页/live.html','/screen':'screen.html','/remote':'remote.html','/login':'login.html','/shell':'course-shell.html','/rooms':'rooms.html','/teachers':'teachers.html','/packages':'packages.html'};
+  ? {'/':'promo.html','/promo':'promo.html','/live':'live.html','/live.html':'live.html','/course':'course/course.html','/course.html':'course/course.html','/grader':'course/grader.html','/grader.html':'course/grader.html','/admin':'course/admin.html','/admin.html':'course/admin.html','/ops':'course/admin.html','/join':'live.html','/screen':'screen.html','/remote':'remote.html','/login':'login.html','/shell':'course-shell.html','/rooms':'rooms.html','/teachers':'teachers.html','/packages':'packages.html','/report':'report.html'}
+  : {'/':'宣传页/课程大纲-宣传版.html','/promo':'宣传页/课程大纲-宣传版.html','/live':'宣传页/live.html','/live.html':'宣传页/live.html','/course':'课件/course.html','/course.html':'课件/course.html','/grader':'课件/grader.html','/grader.html':'课件/grader.html','/admin':'课件/admin.html','/admin.html':'课件/admin.html','/ops':'课件/admin.html','/join':'宣传页/live.html','/screen':'screen.html','/remote':'remote.html','/login':'login.html','/shell':'course-shell.html','/rooms':'rooms.html','/teachers':'teachers.html','/packages':'packages.html','/report':'report.html'};
 function serveStatic(res,pathname){
   let rel=MAP[pathname] || decodeURIComponent(pathname).replace(/^\/+/,'');
   const abs=path.resolve(ROOT,rel);
@@ -286,7 +301,8 @@ const server=http.createServer(async (req,res)=>{
       const ur=await fetch('https://api.dingtalk.com/v1.0/contact/users/me',{headers:{'x-acs-dingtalk-access-token':tj.accessToken}});
       const me=await ur.json();
       const teachers=loadTeachers();
-      const t=teachers.filter(x=>x.dingUnionId===me.unionId||x.dingOpenId===me.openId)[0];
+      let t=teachers.filter(x=>x.dingUnionId===me.unionId||x.dingOpenId===me.openId)[0];
+      if(t&&!t.dept){ const dept=await dingDept(me.unionId); if(dept){ t.dept=dept; saveTeachers(teachers); } }
       if(!t) return send(res,403,'该钉钉账号未加入讲师名单，请联系管理员','text/html; charset=utf-8');
       setTeacherCookie(res,t);
       res.writeHead(302,{Location:'/ops'}); return res.end();
@@ -390,6 +406,19 @@ const server=http.createServer(async (req,res)=>{
       if(p==='/api/ping') return send(res,200,{ok:true,ts:Date.now()});
       if(p==='/api/state'){ const name=u.searchParams.get('name')||''; const tail=u.searchParams.get('tail')||''; if(!name||!tail) return send(res,400,{ok:false,error:'need name+tail'}); ensureStudent(name,tail); return send(res,200,studentView(keyOf(name,tail))); }
       if(p==='/api/admin/state') return send(res,200,adminView());
+        if(p==='/api/report'){
+          const students=Object.keys(state.students).map(k=>Object.assign({key:k},state.students[k]));
+          const subs=Object.keys(state.submissions).map(k=>{const p2=k.split('||');const st=state.students[p2[0]]||{};const sub=state.submissions[k];return {name:st.name||p2[0],tail:st.tail||'',task:p2[1],total:(sub.score&&sub.score.total)||0,at:sub.at}});
+          const byTask={}; subs.forEach(x=>{byTask[x.task]=(byTask[x.task]||0)+1});
+          const quiz=state.quiz||{};
+          const answers=Object.keys(quiz.answers||{}).map(k=>{const a=quiz.answers[k];return {key:k,score:a.score,total:a.total,at:a.at}});
+          return send(res,200,{ok:true,room:currentRoom,generatedAt:new Date().toISOString(),students,groups:screenView().groups,poll:screenView().poll,quiz:{paper:screenView().quiz,answers},submissions:{count:subs.length,byTask,list:subs},timer:state.timer||null});
+        }
+        if(p==='/api/report.csv'){
+          const lines=['姓名,尾号,小组,投票,抢答,作业数'];
+          Object.keys(state.students).forEach(function(k){const st=state.students[k];const subs=Object.keys(state.submissions).filter(x=>x.indexOf(k+'||')===0).length;lines.push([st.name,st.tail,st.group||'',st.votes||0,st.buzzes||0,subs].join(','))});
+          return send(res,200,lines.join('\n'),'text/csv; charset=utf-8');
+        }
       if(req.method==='POST'){
         const b=(p==='/api/upload')?{}:await readBody(req);
         if(p==='/api/join'){ const s=ensureStudent(b.name,b.tail); return send(res,200,{ok:true,me:s}); }
@@ -552,6 +581,13 @@ const server=http.createServer(async (req,res)=>{
           if(!state.buzz.running) return send(res,400,{ok:false,error:'not running'});
           state.buzz.winner=s.name;state.buzz.running=false;s.buzzes=(s.buzzes||0)+1;state.updatedAt=new Date().toISOString();save();
           return send(res,200,{ok:true,winner:state.buzz.winner});
+        }
+        if(p==='/api/admin/timer'){
+          state.timer=state.timer||{running:false,endAt:0,duration:0};
+          if(b.action==='start'){ const min=Math.max(1,Math.min(240,Number(b.minutes)||90)); state.timer={running:true,endAt:Date.now()+min*60000,duration:min*60000}; }
+          else if(b.action==='pause'){ state.timer.running=false; state.timer.endAt=0; }
+          else if(b.action==='reset'){ state.timer={running:false,endAt:0,duration:0}; }
+          save(); return send(res,200,{ok:true,timer:state.timer});
         }
         if(p==='/api/admin/workshop'){ state.config=state.config||{}; state.config.workshopOpen=!!b.open; state.updatedAt=new Date().toISOString(); save(); return send(res,200,{ok:true,workshopOpen:state.config.workshopOpen}); }
         if(p==='/api/admin/hw'){ state.config=state.config||{hwOpen:false}; state.config.hwOpen=!!b.open; state.updatedAt=new Date().toISOString(); save(); return send(res,200,{ok:true,hwOpen:state.config.hwOpen}); }
