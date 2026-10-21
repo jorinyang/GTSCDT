@@ -232,8 +232,8 @@ function readRaw(req, limit){
 function readBody(req){ return new Promise((resolve,reject)=>{ let d=''; req.on('data',c=>{d+=c; if(d.length>2e6){reject(new Error('too large'));req.destroy()}}); req.on('end',()=>{ try{resolve(d?JSON.parse(d):{})}catch(e){resolve({})} }); req.on('error',reject); }); }
 const MIME={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.json':'application/json; charset=utf-8','.csv':'text/csv; charset=utf-8'};
 const MAP=_IS_KIT
-  ? {'/':'promo.html','/promo':'promo.html','/live':'live.html','/live.html':'live.html','/course':'course/course.html','/course.html':'course/course.html','/grader':'course/grader.html','/grader.html':'course/grader.html','/admin':'course/admin.html','/admin.html':'course/admin.html','/ops':'course/admin.html','/join':'live.html','/screen':'screen.html','/remote':'remote.html','/login':'login.html','/shell':'course-shell.html','/rooms':'rooms.html'}
-  : {'/':'宣传页/课程大纲-宣传版.html','/promo':'宣传页/课程大纲-宣传版.html','/live':'宣传页/live.html','/live.html':'宣传页/live.html','/course':'课件/course.html','/course.html':'课件/course.html','/grader':'课件/grader.html','/grader.html':'课件/grader.html','/admin':'课件/admin.html','/admin.html':'课件/admin.html','/ops':'课件/admin.html','/join':'宣传页/live.html','/screen':'screen.html','/remote':'remote.html','/login':'login.html','/shell':'course-shell.html','/rooms':'rooms.html'};
+  ? {'/':'promo.html','/promo':'promo.html','/live':'live.html','/live.html':'live.html','/course':'course/course.html','/course.html':'course/course.html','/grader':'course/grader.html','/grader.html':'course/grader.html','/admin':'course/admin.html','/admin.html':'course/admin.html','/ops':'course/admin.html','/join':'live.html','/screen':'screen.html','/remote':'remote.html','/login':'login.html','/shell':'course-shell.html','/rooms':'rooms.html','/teachers':'teachers.html','/packages':'packages.html'}
+  : {'/':'宣传页/课程大纲-宣传版.html','/promo':'宣传页/课程大纲-宣传版.html','/live':'宣传页/live.html','/live.html':'宣传页/live.html','/course':'课件/course.html','/course.html':'课件/course.html','/grader':'课件/grader.html','/grader.html':'课件/grader.html','/admin':'课件/admin.html','/admin.html':'课件/admin.html','/ops':'课件/admin.html','/join':'宣传页/live.html','/screen':'screen.html','/remote':'remote.html','/login':'login.html','/shell':'course-shell.html','/rooms':'rooms.html','/teachers':'teachers.html','/packages':'packages.html'};
 function serveStatic(res,pathname){
   let rel=MAP[pathname] || decodeURIComponent(pathname).replace(/^\/+/,'');
   const abs=path.resolve(ROOT,rel);
@@ -293,6 +293,18 @@ const server=http.createServer(async (req,res)=>{
     }catch(e){ return send(res,500,'钉钉登录失败：'+String(e.message||e),'text/html; charset=utf-8'); }
   }
   if(p==='/api/me') return send(res,200,{ok:true,teacher:getTeacher(req)});
+  if(p==='/api/teachers' && req.method==='GET') return send(res,200,{ok:true,teachers:loadTeachers()});
+  if(p==='/api/teachers' && req.method==='POST'){
+    const b=await readBody(req);
+    const name=String(b.name||'').trim(); if(!name) return send(res,400,{ok:false,error:'缺少姓名'});
+    const list=loadTeachers();
+    const t={id:'t-'+Date.now().toString(36),name,role:['admin','teacher','assistant','viewer'].indexOf(b.role)>=0?b.role:'teacher',dept:String(b.dept||''),dingUnionId:String(b.dingUnionId||''),dingOpenId:String(b.dingOpenId||''),createdAt:new Date().toISOString()};
+    list.push(t); saveTeachers(list); return send(res,200,{ok:true,teacher:t});
+  }
+  if(p==='/api/teachers/delete' && req.method==='POST'){
+    const b=await readBody(req); const list=loadTeachers().filter(x=>x.id!==b.id); saveTeachers(list);
+    return send(res,200,{ok:true});
+  }
   if(p==='/api/packages' && req.method==='GET') return send(res,200,{ok:true,packages:listPackages()});
   if(p==='/api/packages' && req.method==='POST'){
     const title=String(u.searchParams.get('title')||'课程包');
@@ -300,6 +312,13 @@ const server=http.createServer(async (req,res)=>{
     if(!buf.length) return send(res,400,{ok:false,error:'空文件'});
     const id=savePackage(title, buf.toString('utf8'));
     return send(res,200,{ok:true,id,url:'/pkg/'+id+'/index.html'});
+  }
+  if(p==='/api/packages/delete' && req.method==='POST'){
+    const b=await readBody(req); const id=String(b.id||'');
+    if(!/^pkg-[a-z0-9]+$/.test(id)) return send(res,400,{ok:false,error:'bad id'});
+    const dir=path.join(PACKAGES_DIR,id);
+    if(fs.existsSync(dir)) fs.rmSync(dir,{recursive:true,force:true});
+    return send(res,200,{ok:true});
   }
   if(p==='/api/packages/ai' && req.method==='POST'){
     const b=await readBody(req);
@@ -337,7 +356,7 @@ const server=http.createServer(async (req,res)=>{
   if(AUTH_REQUIRED){
     const teacher=getTeacher(req);
     const htmlGuarded=(p==='/ops'||p==='/admin'||p==='/grader'||p==='/shell');
-    const apiGuarded=(p.indexOf('/api/admin')===0)||(p==='/api/packages'&&req.method==='POST')||(p==='/api/packages/ai');
+    const apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p==='/api/packages'&&req.method==='POST')||(p==='/api/packages/ai')||(p==='/api/packages/delete');
     if(htmlGuarded&&!teacher){ res.writeHead(302,{Location:'/login'}); return res.end(); }
     if(apiGuarded&&!teacher) return send(res,401,{ok:false,error:'login required'});
   }

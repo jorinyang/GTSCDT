@@ -1,0 +1,57 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>课程包 · GTSCDT</title><style>
+:root{--bg:#081813;--line:rgba(244,239,226,.13);--text:#F4EFE2;--muted:#9DB3A6;--amber:#D98A2B;--amber-l:#E9B45C;--jade:#2F8F73}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;padding:22px}
+a{color:var(--amber-l);text-decoration:none}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap}
+.brand{font-size:12px;letter-spacing:.12em;color:#7E978A}
+h1{font-size:22px;margin:4px 0 14px}
+.card{background:linear-gradient(180deg,#0C2A21,#081813);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.k{font-size:12px;letter-spacing:.12em;color:var(--muted);margin-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{color:var(--muted);font-size:12px}
+.btn{border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);border-radius:9px;padding:8px 14px;font-size:13px;cursor:pointer;display:inline-block}
+.btn.primary{background:rgba(217,138,43,.18);border-color:rgba(233,180,92,.55);color:#F6E4C6}
+.btn.danger{border-color:rgba(200,80,60,.5);color:#F0A08E}
+input,select,textarea{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:9px;color:var(--text);padding:8px 10px;font-size:14px;font-family:inherit}
+textarea{width:100%}
+.muted{color:var(--muted)} .small{font-size:12px}
+.pill{border:1px solid rgba(233,180,92,.35);color:var(--amber-l);border-radius:999px;padding:1px 8px;font-size:11px}
+</style></head><body>
+<div class="top"><div class="brand">GTSCDT · 课程包</div><div><a href="/shell">播放框架</a> · <a href="/rooms">房间</a> · <a href="/teachers">讲师</a></div></div>
+<h1>课程包管理</h1>
+<div class="card"><div class="k">上传 HTML 课程包</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <input id="title" placeholder="课程名" style="width:220px" />
+    <input id="file" type="file" accept=".html,.htm" />
+    <button class="btn primary" id="upload">上传</button>
+    <span class="muted small" id="msg"></span>
+  </div>
+</div>
+<div class="card"><div class="k">AI 生成课程包</div>
+  <textarea id="content" rows="6" placeholder="粘贴课程素材：主题、要点、时间安排、案例……"></textarea>
+  <div style="margin-top:8px"><button class="btn primary" id="ai">生成</button> <span class="muted small" id="aimsg"></span></div>
+</div>
+<div class="card"><div class="k">已有课程包</div><div style="overflow:auto"><table id="tbl"></table></div></div>
+<script>
+function load(){fetch('/api/packages').then(function(r){return r.json()}).then(function(d){
+  var rows=(d.packages||[]).map(function(p){
+    return '<tr><td><b>'+p.title+'</b></td><td class="small muted">'+p.id+'</td><td><a href="/pkg/'+p.id+'/index.html" target="_blank">预览</a> · <a href="/shell?pkg='+p.id+'" target="_blank">框架打开</a></td><td><button class="btn sm danger" data-del="'+p.id+'">删除</button></td></tr>';
+  }).join('');
+  document.getElementById('tbl').innerHTML='<tr><th>课程名</th><th>ID</th><th>打开</th><th></th></tr>'+rows;
+  document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){ if(!confirm('删除该课程包？'))return; fetch('/api/packages/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:b.getAttribute('data-del')})}).then(load) }});
+})}
+document.getElementById('upload').onclick=function(){
+  var f=document.getElementById('file').files[0]; if(!f){document.getElementById('msg').textContent='先选文件';return}
+  f.text().then(function(txt){
+    fetch('/api/packages?title='+encodeURIComponent(document.getElementById('title').value||f.name),{method:'POST',headers:{'Content-Type':'text/html'},body:txt}).then(function(r){return r.json()}).then(function(d){ document.getElementById('msg').textContent=d.ok?'已上传':(d.error||'失败'); load(); });
+  });
+};
+document.getElementById('ai').onclick=function(){
+  var c=document.getElementById('content').value.trim(); if(!c){document.getElementById('aimsg').textContent='先填素材';return}
+  document.getElementById('aimsg').textContent='生成中…（约 10–30 秒）';
+  fetch('/api/packages/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:c})}).then(function(r){return r.json()}).then(function(d){ document.getElementById('aimsg').textContent=d.ok?('已生成：'+(d.title||d.id)):(d.error||'失败'); load(); });
+};
+load();
+</script></body></html>

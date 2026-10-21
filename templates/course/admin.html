@@ -45,8 +45,8 @@ body{animation:pageIn .32s ease both}
 .tabbtn.on{background:rgba(217,138,43,.16);border-color:rgba(233,180,92,.55);color:#F6E4C6}
 #hwFrame{width:100%;height:calc(100vh - 215px);border:0;border-radius:14px;background:#081813}
 </style></head><body>
-<div class="top"><div class="brand">示例文旅集团 × 弈策智询 · 课堂后台</div>
-<div class="links"><a data-nav="course" href="course.html">← 课件</a><a data-nav="grader" href="grader.html">作业中心后台</a><a data-nav="live" href="../live.html" target="_blank">学员页</a><a data-nav="promo" href="../index.html" target="_blank">宣传页</a></div></div>
+<div class="top"><div class="brand">贵州峰林文旅体 × 弈策AI研究院 · 课堂后台</div>
+<div class="links"><span class="pill" id="roomPill">ROOM0</span><a href="#" id="lnkScreen" target="_blank">大屏</a><a href="#" id="lnkRemote" target="_blank">遥控器</a><a href="#" id="lnkJoin" target="_blank">学员入口</a><a data-nav="course" href="course.html">← 课件</a><a data-nav="grader" href="grader.html">作业中心后台</a><a data-nav="promo" href="../index.html" target="_blank">宣传页</a></div></div>
 <div class="wrap">
   <h1>课堂页后台</h1>
   <p class="sub">投票发起与结果、抽签与分组管理、课堂表现加减分。学员手机页会自动刷新。<span id="svc" class="pill">连接中…</span></p>
@@ -157,7 +157,7 @@ body{animation:pageIn .32s ease both}
   <div id="pane-hw" class="hidden"><iframe id="hwFrame" title="作业评分"></iframe></div></div>
 <script src="../xlsx.full.min.js"></script>
 <script>
-var FC_API='https://YOUR-FC-DOMAIN';
+var FC_API='https://camp-api-fenglin-camp-thrqegyaob.cn-hangzhou.fcapp.run';
 var API=(location.port==='8899'||location.protocol==='file:')?'':FC_API;
 function fmt(n){return n==null?'—':n}
 async function api(p,opt){
@@ -167,6 +167,12 @@ async function api(p,opt){
 }
 async function post(p,body){return api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})}
 var state=null,editingKey=null;
+var ROOM=(new URLSearchParams(location.search).get('room')||'').toUpperCase();
+if(ROOM){
+  var rp=document.getElementById('roomPill'); if(rp)rp.textContent='房间 '+ROOM;
+  var lk=function(id,path){var el=document.getElementById(id); if(el)el.href=path+'?room='+ROOM};
+  lk('lnkScreen','/screen'); lk('lnkRemote','/remote'); lk('lnkJoin','/join');
+}
 function render(){
   if(!state) return;
   var p=state.poll||{};

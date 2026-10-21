@@ -1,0 +1,48 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>讲师管理 · GTSCDT</title><style>
+:root{--bg:#081813;--line:rgba(244,239,226,.13);--text:#F4EFE2;--muted:#9DB3A6;--amber:#D98A2B;--amber-l:#E9B45C;--jade:#2F8F73}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;padding:22px}
+a{color:var(--amber-l);text-decoration:none}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap}
+.brand{font-size:12px;letter-spacing:.12em;color:#7E978A}
+h1{font-size:22px;margin:4px 0 14px}
+.card{background:linear-gradient(180deg,#0C2A21,#081813);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.k{font-size:12px;letter-spacing:.12em;color:var(--muted);margin-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{color:var(--muted);font-size:12px}
+.btn{border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);border-radius:9px;padding:8px 14px;font-size:13px;cursor:pointer;display:inline-block}
+.btn.primary{background:rgba(217,138,43,.18);border-color:rgba(233,180,92,.55);color:#F6E4C6}
+.btn.danger{border-color:rgba(200,80,60,.5);color:#F0A08E}
+input,select,textarea{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:9px;color:var(--text);padding:8px 10px;font-size:14px;font-family:inherit}
+textarea{width:100%}
+.muted{color:var(--muted)} .small{font-size:12px}
+.pill{border:1px solid rgba(233,180,92,.35);color:var(--amber-l);border-radius:999px;padding:1px 8px;font-size:11px}
+</style></head><body>
+<div class="top"><div class="brand">GTSCDT · 讲师管理</div><div><a href="/rooms">房间</a> · <a href="/packages">课程包</a> · <a href="/login">登录</a></div></div>
+<h1>讲师与权限</h1>
+<div class="card"><div class="k">添加讲师</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <input id="name" placeholder="姓名" style="width:150px" />
+    <select id="role"><option value="teacher">讲师</option><option value="admin">超管</option><option value="assistant">助教</option><option value="viewer">观察</option></select>
+    <input id="dept" placeholder="部门（可选）" style="width:160px" />
+    <input id="union" placeholder="钉钉 unionId（可选）" style="width:240px" />
+    <button class="btn primary" id="add">添加</button>
+    <span class="muted small" id="msg"></span>
+  </div>
+  <p class="muted small" style="margin-top:8px">钉钉登录会按 unionId 匹配讲师；未填写 unionId 的账号只能本地口令登录。</p>
+</div>
+<div class="card"><div class="k">讲师列表</div><div style="overflow:auto"><table id="tbl"></table></div></div>
+<script>
+function load(){fetch('/api/teachers').then(function(r){return r.json()}).then(function(d){
+  var rows=(d.teachers||[]).map(function(t){
+    return '<tr><td><b>'+t.name+'</b></td><td>'+(t.role||'teacher')+'</td><td class="muted">'+(t.dept||'—')+'</td><td class="small muted">'+(t.dingUnionId||'—')+'</td><td><button class="btn danger" data-del="'+t.id+'">删除</button></td></tr>';
+  }).join('');
+  document.getElementById('tbl').innerHTML='<tr><th>姓名</th><th>角色</th><th>部门</th><th>钉钉 unionId</th><th></th></tr>'+rows;
+  document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){ if(!confirm('删除该讲师？'))return; fetch('/api/teachers/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:b.getAttribute('data-del')})}).then(load) }});
+})}
+document.getElementById('add').onclick=function(){
+  fetch('/api/teachers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:document.getElementById('name').value,role:document.getElementById('role').value,dept:document.getElementById('dept').value,dingUnionId:document.getElementById('union').value})}).then(function(r){return r.json()}).then(function(d){ if(d.ok){document.getElementById('msg').textContent='已添加';load()}else{document.getElementById('msg').textContent=d.error||'失败'} });
+};
+load();
+</script></body></html>
