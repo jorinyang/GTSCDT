@@ -37,7 +37,7 @@ def _oss(method, key, body=None, ctype='application/json'):
 def blank():
     return {'students': {}, 'groups': {g: {'name': g + '组', 'perf': 0} for g in GROUPS},
             'poll': {'active': False, 'question': '', 'options': [], 'votes': {}, 'startedAt': ''},
-            'submissions': {}, 'config': {'hwOpen': False, 'workshopOpen': False, 'groupMax': 3}, 'buzz': {'enabled': False, 'running': False, 'winner': '', 'round': 0, 'at': ''}, 'updatedAt': ''}
+            'submissions': {}, 'config': {'hwOpen': False, 'workshopOpen': False, 'groupMax': 3}, 'buzz': {'enabled': False, 'running': False, 'winner': '', 'round': 0, 'at': ''}, 'quiz': {'bank': {'choice': [], 'judge': [], 'blank': [], 'short': []}, 'config': {'mode': 'random', 'counts': {'choice': 5, 'judge': 3, 'blank': 2, 'short': 1}, 'scores': {'choice': 2, 'judge': 2, 'blank': 3, 'short': 10}}, 'paper': None, 'answers': {}}, 'updatedAt': ''}
 
 def load():
     st, b = _oss('GET', STATE_KEY)
@@ -69,6 +69,58 @@ def counts(s):
             c[st['group']] += 1
     return c
 
+
+def _q_tok(x):
+    return [ch for ch in str(x or '').lower() if ch.isalnum() or '一' <= ch <= '鿿']
+
+def _q_sim(a, b):
+    A = _q_tok(a); B = _q_tok(b)
+    if not A or not B:
+        return 0.0
+    from collections import Counter
+    ca, cb = Counter(A), Counter(B)
+    return sum(min(ca[c], cb[c]) for c in cb) / max(len(A), len(B))
+
+def _q_grade(q, ans):
+    t = q.get('type')
+    if t == 'choice':
+        return 1 if str(ans or '').upper() == str(q.get('answer', '')).upper() else 0
+    if t in ('judge', 'blank'):
+        return 1 if str(ans or '').strip() == str(q.get('answer', '')).strip() else 0
+    return round(_q_sim(ans, q.get('ref', '')), 2)
+
+def _q_model(q, ans):
+    key = os.environ.get('DEEPSEEK_API_KEY', '')
+    if not key:
+        return None
+    base = os.environ.get('DEEPSEEK_BASE', 'https://api.deepseek.com').rstrip('/')
+    model = os.environ.get('DEEPSEEK_MODEL', 'deepseek-flash')
+    prompt = ('你是课堂评分助教。判断学员答案与参考答案的匹配程度，只输出 0-100 的整数，不要解释。'
+              + '题目：' + str(q.get('q', '')) + '；参考答案：' + str(q.get('ref', '')) + '；学员答案：' + str(ans or '（未作答）'))
+    body = json.dumps({'model': model, 'messages': [{'role': 'user', 'content': prompt}], 'temperature': 0}).encode('utf-8')
+    req = urllib.request.Request(base + '/chat/completions', data=body,
+                                 headers={'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            j = json.loads(r.read().decode('utf-8'))
+        import re
+        txt = j['choices'][0]['message']['content']
+        m = re.search(r'[0-9]+', txt)
+        return max(0, min(100, int(m.group(0)))) if m else None
+    except Exception:
+        return None
+
+def _student_quiz(s, k):
+    q = s.get('quiz') or {}
+    p = q.get('paper')
+    if not p or not p.get('active'):
+        return {'active': False}
+    a = (q.get('answers') or {}).get(k)
+    return {'active': True, 'submitted': a is not None, 'myScore': (a or {}).get('score'),
+            'total': sum((x.get('score') or 0) for x in p['questions']),
+            'questions': [{'id': x['id'], 'type': x.get('type'), 'q': x['q'],
+                           'options': x.get('options') or [], 'score': x.get('score', 0)} for x in p['questions']]}
+
 def student_view(s, k):
     me = s['students'].get(k); p = s['poll']; voted = p.get('votes', {}).get(k) is not None
     group_perf = 0; group_score = 0
@@ -89,10 +141,20 @@ def student_view(s, k):
             'hwOpen': bool((s.get('config') or {}).get('hwOpen')),
             'workshopOpen': bool((s.get('config') or {}).get('workshopOpen')),
             'buzz': {'enabled': bool((s.get('buzz') or {}).get('enabled')), 'running': bool((s.get('buzz') or {}).get('running')), 'winner': (s.get('buzz') or {}).get('winner', ''), 'round': (s.get('buzz') or {}).get('round', 0)},
+            'quiz': _student_quiz(s, k),
             'groupCounts': counts(s), 'groups': [{'id': g, 'name': s['groups'][g]['name']} for g in s['groups']],
             'submissions': subs}
 
 def admin_view(s):
+    _qz = s.get('quiz') or {}
+    _qbank = {t: len((_qz.get('bank') or {}).get(t) or []) for t in ['choice', 'judge', 'blank', 'short']}
+    _qans = list((_qz.get('answers') or {}).values())
+    quiz_info = {'bank': _qbank, 'config': _qz.get('config') or {},
+                 'paper': ({'active': bool((_qz.get('paper') or {}).get('active')), 'at': (_qz.get('paper') or {}).get('at'),
+                            'count': len((_qz.get('paper') or {}).get('questions') or []),
+                            'points': sum((x.get('score') or 0) for x in ((_qz.get('paper') or {}).get('questions') or []))}
+                           if _qz.get('paper') else None),
+                 'answered': len(_qans), 'avg': (round(sum((x.get('score') or 0) for x in _qans) / len(_qans), 1) if _qans else 0)}
     results = {i: 0 for i in range(len(s['poll'].get('options') or []))}
     for v in (s['poll'].get('votes') or {}).values():
         if v in results:
@@ -108,6 +170,7 @@ def admin_view(s):
             'groups': [{'id': g, 'name': s['groups'][g]['name'], 'perf': s['groups'][g].get('perf', 0),
                         'count': counts(s)[g]} for g in s['groups']],
             'counts': counts(s),
+            'quiz': quiz_info,
             'config': s.get('config') or {}, 'buzz': s.get('buzz') or {},
             'poll': {'active': s['poll'].get('active'), 'question': s['poll'].get('question', ''),
                      'options': s['poll'].get('options', []), 'votes': s['poll'].get('votes', {}),
@@ -180,6 +243,29 @@ def dispatch(method, path, q, raw):
             if st_v: st_v['votes'] = st_v.get('votes', 0) + 1
             save(s)
             return 200, {}, json.dumps({'ok': True}).encode()
+        if path == '/api/quiz/submit':
+            k = key_of(b.get('name', ''), b.get('tail', '')); ensure_student(s, b.get('name', ''), b.get('tail', ''))
+            pz = (s.get('quiz') or {}).get('paper')
+            if not pz or not pz.get('active'):
+                return 400, {}, json.dumps({'ok': False, 'error': '答题未开始'}, ensure_ascii=False).encode()
+            if k in ((s.get('quiz') or {}).get('answers') or {}):
+                return 400, {}, json.dumps({'ok': False, 'error': '已经提交过'}, ensure_ascii=False).encode()
+            ans = b.get('answers') or {}
+            score = 0.0; total = 0; detail = []
+            for q in pz['questions']:
+                total += q.get('score') or 0
+                ratio = _q_grade(q, ans.get(q.get('id')))
+                via = 'rule'
+                if q.get('type') == 'short':
+                    m = _q_model(q, ans.get(q.get('id')))
+                    if m is not None:
+                        ratio = m / 100.0; via = 'model'
+                sc = round(ratio * (q.get('score') or 0), 1)
+                score += sc; detail.append({'id': q.get('id'), 'type': q.get('type'), 'score': sc, 'ratio': ratio, 'via': via})
+            s.setdefault('quiz', {}).setdefault('answers', {})[k] = {
+                'at': time.strftime('%Y/%m/%d %H:%M:%S'), 'score': round(score, 1), 'total': total, 'answers': ans, 'detail': detail}
+            save(s)
+            return 200, {}, json.dumps({'ok': True, 'score': round(score, 1), 'total': total}, ensure_ascii=False).encode()
         if path == '/api/homework':
             k = key_of(b.get('name', ''), b.get('tail', '')); ensure_student(s, b.get('name', ''), b.get('tail', ''))
             key = k + '||' + b.get('task', 'T1')
@@ -236,6 +322,52 @@ def dispatch(method, path, q, raw):
             for stx in s['students'].values():
                 if stx.get('group') == gid: stx['group'] = ''
             save(s); return 200, {}, json.dumps({'ok': True}).encode()
+        if path == '/api/admin/quizbank':
+            mode = b.get('action') or 'replace'
+            incoming = b.get('bank') or {}
+            s.setdefault('quiz', {})
+            s['quiz'].setdefault('bank', {'choice': [], 'judge': [], 'blank': [], 'short': []})
+            if mode == 'replace':
+                s['quiz']['bank'] = {'choice': [], 'judge': [], 'blank': [], 'short': []}
+            for t in ['choice', 'judge', 'blank', 'short']:
+                for i, q in enumerate(incoming.get(t) or []):
+                    item = dict(q); item['type'] = t; item['id'] = t + '-' + str(int(time.time() * 1000)) + '-' + str(i)
+                    s['quiz']['bank'].setdefault(t, []).append(item)
+            save(s)
+            return 200, {}, json.dumps({'ok': True, 'counts': {t: len((s['quiz']['bank'] or {}).get(t) or []) for t in ['choice', 'judge', 'blank', 'short']}}, ensure_ascii=False).encode()
+        if path == '/api/admin/quiz':
+            s.setdefault('quiz', {})
+            if b.get('action') == 'publish':
+                cfg = {'mode': 'seq' if b.get('mode') == 'seq' else 'random', 'counts': b.get('counts') or {}, 'scores': b.get('scores') or {}}
+                s['quiz']['config'] = cfg
+                qs = []
+                for t in ['choice', 'judge', 'blank', 'short']:
+                    arr = list((s['quiz'].get('bank') or {}).get(t) or [])
+                    if cfg['mode'] == 'random':
+                        import random
+                        random.shuffle(arr)
+                    n = int((cfg['counts'] or {}).get(t) or 0)
+                    for q in arr[:max(0, min(n, len(arr)))]:
+                        item = dict(q); item['type'] = t; item['score'] = int((cfg['scores'] or {}).get(t) or 0)
+                        qs.append(item)
+                if not qs:
+                    return 400, {}, json.dumps({'ok': False, 'error': '题库为空或各类数量为 0'}, ensure_ascii=False).encode()
+                s['quiz']['paper'] = {'active': True, 'at': time.strftime('%Y/%m/%d %H:%M:%S'), 'questions': qs}
+                s['quiz']['answers'] = {}
+                save(s)
+                return 200, {}, json.dumps({'ok': True, 'count': len(qs), 'points': sum((q.get('score') or 0) for q in qs)}, ensure_ascii=False).encode()
+            if b.get('action') == 'close':
+                if s['quiz'].get('paper'):
+                    s['quiz']['paper']['active'] = False
+                save(s); return 200, {}, json.dumps({'ok': True}).encode()
+            if b.get('action') == 'clear':
+                s['quiz']['paper'] = None; s['quiz']['answers'] = {}
+                save(s); return 200, {}, json.dumps({'ok': True}).encode()
+            if b.get('action') == 'resetbank':
+                s['quiz']['bank'] = {'choice': [], 'judge': [], 'blank': [], 'short': []}
+                s['quiz']['paper'] = None; s['quiz']['answers'] = {}
+                save(s); return 200, {}, json.dumps({'ok': True}).encode()
+            return 400, {}, json.dumps({'ok': False, 'error': 'bad action'}).encode()
         if path == '/api/admin/student':
             act = b.get('action')
             if act == 'clear':

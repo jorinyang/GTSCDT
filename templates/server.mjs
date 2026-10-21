@@ -9,6 +9,9 @@ const ROOT = path.resolve(__dirname, '..');
 const DATA_DIR = path.join(__dirname, 'data');
 const STATE_FILE = path.join(DATA_DIR, 'state.json');
 const PORT = Number(process.env.PORT || 8899);
+const DS_KEY = process.env.DEEPSEEK_API_KEY || '';
+const DS_BASE = process.env.DEEPSEEK_BASE || 'https://api.deepseek.com';
+const DS_MODEL = process.env.DEEPSEEK_MODEL || 'deepseek-flash';
 const GROUPS = ['A','B','C','D','E','F','G'];
 
 function ensureDir(){ if(!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR,{recursive:true}); }
@@ -27,6 +30,19 @@ function ensureStudent(name,tail){ const k=keyOf(name,tail); if(!state.students[
 function qTok(s){return String(s||'').replace(/[\s，。；、,.!?！？:：;；"'“”‘’（）()]/g,'').toLowerCase().split('');}
 function qSim(a,b){var A=qTok(a),B=qTok(b);if(!A.length||!B.length)return 0;var m={};A.forEach(function(c){m[c]=(m[c]||0)+1});var hit=0;B.forEach(function(c){if(m[c]){hit++;m[c]--}});return hit/Math.max(A.length,B.length);}
 function qGrade(q,ans){ if(q.type==='choice')return String(ans||'').toUpperCase()===String(q.answer||'').toUpperCase()?1:0; if(q.type==='judge'||q.type==='blank')return String(ans||'').trim()===String(q.answer||'').trim()?1:0; return Math.round(qSim(ans,q.ref)*100)/100; }
+async function qModelGrade(q,ans){
+  if(!DS_KEY) return null;
+  try{
+    const prompt='你是课堂评分助教。请判断学员答案与参考答案的匹配程度，只输出 0-100 的整数，不要解释。\n题目：'+q.q+'\n参考答案：'+q.ref+'\n学员答案：'+(ans||'（未作答）');
+    const r=await fetch(DS_BASE.replace(/\/$/,'')+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+DS_KEY},body:JSON.stringify({model:DS_MODEL,messages:[{role:'user',content:prompt}],temperature:0})});
+    if(!r.ok) return null;
+    const j=await r.json();
+    const txt=(((j.choices||[])[0]||{}).message||{}).content||'';
+    const n=parseInt(String(txt).replace(/[^0-9]/g,''),10);
+    if(isNaN(n)) return null;
+    return Math.max(0,Math.min(100,n));
+  }catch(e){ return null; }
+}
 function studentView(k){
   const s=state.students[k];
   const poll=state.poll;
@@ -116,7 +132,13 @@ const server=http.createServer(async (req,res)=>{
           if(!pz||!pz.active) return send(res,400,{ok:false,error:'答题未开始'});
           if(state.quiz.answers[k]) return send(res,400,{ok:false,error:'已经提交过'});
           const ans=b.answers||{}; let score=0,total=0; const detail=[];
-          pz.questions.forEach(function(q){ total+=q.score||0; const r=qGrade(q,ans[q.id]); const s=Math.round(r*(q.score||0)*10)/10; score+=s; detail.push({id:q.id,type:q.type,score:s,ratio:r}); });
+          for(const q of pz.questions){
+            total+=q.score||0;
+            let ratio=qGrade(q,ans[q.id]); let via='rule';
+            if(q.type==='short'){ const m=await qModelGrade(q,ans[q.id]); if(m!==null){ ratio=m/100; via='model'; } }
+            const s=Math.round(ratio*(q.score||0)*10)/10; score+=s;
+            detail.push({id:q.id,type:q.type,score:s,ratio:ratio,via:via});
+          }
           state.quiz.answers[k]={at:new Date().toLocaleString('zh-CN'),score:Math.round(score*10)/10,total:total,answers:ans,detail:detail};
           save();
           return send(res,200,{ok:true,score:Math.round(score*10)/10,total:total});
