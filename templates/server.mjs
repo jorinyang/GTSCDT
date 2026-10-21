@@ -807,9 +807,14 @@ const server=http.createServer(async (req,res)=>{
     const oldAuto=oldDate+' '+(oldCity||'未设城市');
     const nextCity=b.city!==undefined?String(b.city||'').trim():oldCity;
     const nextDate=b.date!==undefined?String(b.date||'').trim():oldDate;
+    const currentAuto=(!meta.title || meta.title===oldAuto);
     let nextTitle=meta.title||oldAuto;
-    if(b.title!==undefined){ const incoming=String(b.title||'').trim(); if(incoming && incoming!==meta.title && incoming!==oldAuto) nextTitle=incoming; else nextTitle=nextDate+' '+(nextCity||'未设城市'); }
-    else if(!meta.title || meta.title===oldAuto) nextTitle=nextDate+' '+(nextCity||'未设城市');
+    if(b.title!==undefined){
+      const incoming=String(b.title||'').trim();
+      if(!incoming) nextTitle=nextDate+' '+(nextCity||'未设城市');
+      else if(incoming!==meta.title && incoming!==oldAuto) nextTitle=incoming;
+      else nextTitle=currentAuto?(nextDate+' '+(nextCity||'未设城市')):meta.title;
+    }else if(currentAuto){ nextTitle=nextDate+' '+(nextCity||'未设城市'); }
     meta.title=nextTitle; meta.city=nextCity; meta.date=nextDate;
     fs.writeFileSync(roomMetaFile(code), JSON.stringify(meta,null,1));
     return send(res,200,{ok:true,meta});
