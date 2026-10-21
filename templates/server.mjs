@@ -375,8 +375,8 @@ const server=http.createServer(async (req,res)=>{
   }
   if(AUTH_REQUIRED){
     const teacher=getTeacher(req);
-    const htmlGuarded=(p==='/ops'||p==='/admin'||p==='/grader'||p==='/shell');
-    const apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p==='/api/packages'&&req.method==='POST')||(p==='/api/packages/ai')||(p==='/api/packages/delete');
+    const htmlGuarded=(p==='/ops'||p==='/admin'||p==='/grader'||p==='/shell'||p==='/rooms'||p==='/teachers'||p==='/packages'||p==='/report'||p==='/remote');
+    const apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p.indexOf('/api/rooms')===0)||(p==='/api/report')||(p==='/api/report.csv')||(p.indexOf('/api/packages')===0);
     if(htmlGuarded&&!teacher){ res.writeHead(302,{Location:'/login'}); return res.end(); }
     if(apiGuarded&&!teacher) return send(res,401,{ok:false,error:'login required'});
   }
