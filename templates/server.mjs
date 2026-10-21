@@ -545,7 +545,8 @@ const server=http.createServer(async (req,res)=>{
   if(p==='/auth/logout'){ res.setHeader('Set-Cookie','gtsc_teacher=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax'); res.writeHead(302,{Location:'/'}); return res.end(); }
   if(p==='/api/dingtalk/diag' && req.method==='GET'){
     const now=Date.now();
-    if(global.__dingDiag && now-global.__dingDiag.at<300000) return send(res,200,global.__dingDiag.data);
+    const fresh=u.searchParams.get('fresh')==='1';
+    if(!fresh && global.__dingDiag && now-global.__dingDiag.at<60000) return send(res,200,global.__dingDiag.data);
     const out={ok:false,configured:!!(DING_ID&&DING_SECRET)};
     try{
       const tr=await fetch('https://oapi.dingtalk.com/gettoken?appkey='+encodeURIComponent(DING_ID)+'&appsecret='+encodeURIComponent(DING_SECRET));
@@ -553,8 +554,10 @@ const server=http.createServer(async (req,res)=>{
       if(tj.access_token){
         const u1=await fetch('https://oapi.dingtalk.com/topapi/user/getbyunionid?access_token='+tj.access_token,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({unionid:'gtscdt-diagnostic'})});
         const j1=await u1.json(); out.errcode=j1.errcode; out.errmsg=j1.errmsg||'';
-        out.ok=j1.errcode===0;
-        fromErrMsg(j1.errmsg);
+        const missing=/60011|qyapi_get_member/.test(out.errmsg)||j1.errcode===88;
+        out.permission=!missing;
+        out.ok=!!tj.access_token && !missing;
+        if(missing) fromErrMsg(j1.errmsg);
       }
     }catch(e){ out.error=String(e.message||e); }
     function fromErrMsg(msg){ const m=String(msg||'').match(/https:\/\/open-dev\.dingtalk\.com\/appscope\/apply\?[^\s,]+/); if(m) out.applyUrl=m[0]; }
@@ -605,7 +608,9 @@ const server=http.createServer(async (req,res)=>{
     if(!fs.existsSync(f)) return send(res,404,'not found','text/plain');
     const ext=(name.split('.').pop()||'').toLowerCase();
     const ct=ext==='pdf'?'application/pdf':ext==='pptx'?'application/vnd.openxmlformats-officedocument.presentationml.presentation':ext==='docx'?'application/vnd.openxmlformats-officedocument.wordprocessingml.document':(ext==='html'||ext==='htm')?'text/html; charset=utf-8':'application/octet-stream';
-    res.writeHead(200,{'Content-Type':ct,'Content-Disposition':'inline','Cache-Control':'no-store'});
+    const hdr={'Content-Type':ct,'Content-Disposition':'inline','Cache-Control':'no-store'};
+    if(ext==='html'||ext==='htm') hdr['Content-Security-Policy']='sandbox';
+    res.writeHead(200,hdr);
     return res.end(fs.readFileSync(f));
   }
   if(p==='/api/room/markdown' && req.method==='POST'){
@@ -798,9 +803,14 @@ const server=http.createServer(async (req,res)=>{
     if(code===DEFAULT_ROOM) return send(res,400,{ok:false,error:'默认房间不可修改'});
     if(!validRoom(code)) return send(res,400,{ok:false,error:'房间码不对'});
     let meta={}; try{ meta=JSON.parse(fs.readFileSync(roomMetaFile(code),'utf8')); }catch(e){ return send(res,404,{ok:false,error:'房间不存在'}); }
-    if(b.title!==undefined) meta.title=String(b.title||'').trim()||meta.title;
-    if(b.city!==undefined) meta.city=String(b.city||'').trim();
-    if(b.date!==undefined) meta.date=String(b.date||'').trim();
+    const oldCity=meta.city||''; const oldDate=meta.date||'';
+    const oldAuto=oldDate+' '+(oldCity||'未设城市');
+    const nextCity=b.city!==undefined?String(b.city||'').trim():oldCity;
+    const nextDate=b.date!==undefined?String(b.date||'').trim():oldDate;
+    let nextTitle=meta.title||oldAuto;
+    if(b.title!==undefined){ const incoming=String(b.title||'').trim(); if(incoming && incoming!==meta.title && incoming!==oldAuto) nextTitle=incoming; else nextTitle=nextDate+' '+(nextCity||'未设城市'); }
+    else if(!meta.title || meta.title===oldAuto) nextTitle=nextDate+' '+(nextCity||'未设城市');
+    meta.title=nextTitle; meta.city=nextCity; meta.date=nextDate;
     fs.writeFileSync(roomMetaFile(code), JSON.stringify(meta,null,1));
     return send(res,200,{ok:true,meta});
   }

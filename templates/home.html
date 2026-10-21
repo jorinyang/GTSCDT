@@ -104,7 +104,7 @@ function loadRooms(){
     ROOMS=d.rooms||[];
     $('roomTbl').innerHTML='<tr><th>房间码</th><th>名称</th><th>日期</th><th>城市</th><th>人数</th><th>操作</th></tr>'+ROOMS.map(function(x){
       return '<tr><td><b>'+x.code+'</b></td><td>'+esc(x.title)+'</td><td>'+esc(x.date||'—')+'</td><td>'+esc(x.city||'—')+'</td><td>'+x.students+'</td><td class="small">'
-        +'<a href="/room?code='+x.code+'">进入</a> · <a href="/room-setup?code='+x.code+'">课程生成</a> · <button class="btn" data-edit="'+x.code+'" style="padding:2px 8px;font-size:12px">编辑</button> <button class="btn danger" data-del="'+x.code+'" style="padding:2px 8px;font-size:12px">删除</button></td></tr>';
+        +'<a href="/room?code='+x.code+'">进入</a> · <a href="/room-setup?code='+x.code+'">课程内容</a> · <button class="btn" data-edit="'+x.code+'" style="padding:2px 8px;font-size:12px">编辑</button> <button class="btn danger" data-del="'+x.code+'" style="padding:2px 8px;font-size:12px">删除</button></td></tr>';
     }).join('');
     document.querySelectorAll('[data-edit]').forEach(function(b){b.onclick=function(){editRoom(b.getAttribute('data-edit'))}});
     document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){delRoom(b.getAttribute('data-del'))}});
