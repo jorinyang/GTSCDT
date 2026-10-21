@@ -5,7 +5,7 @@ import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = __dirname;
+const ROOT = path.resolve(__dirname, '..');
 const DATA_DIR = path.join(__dirname, 'data');
 const STATE_FILE = path.join(DATA_DIR, 'state.json');
 const PORT = Number(process.env.PORT || 8899);
@@ -14,7 +14,7 @@ const GROUPS = ['A','B','C','D','E','F','G'];
 function ensureDir(){ if(!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR,{recursive:true}); }
 function blank(){
   const groups={}; GROUPS.forEach(g=>groups[g]={name:g+'组',perf:0});
-  return {students:{},groups,poll:{active:false,question:'',options:[],votes:{},startedAt:''},submissions:{},config:{hwOpen:false,workshopOpen:false,groupMax:3},buzz:{enabled:false,running:false,winner:'',round:0,at:''},updatedAt:new Date().toISOString()};
+  return {students:{},groups,poll:{active:false,question:'',options:[],votes:{},startedAt:''},submissions:{},config:{hwOpen:false,workshopOpen:false,groupMax:3},buzz:{enabled:false,running:false,winner:'',round:0,at:''},quiz:{bank:{choice:[],judge:[],blank:[],short:[]},config:{mode:'random',counts:{choice:5,judge:3,blank:2,short:1},scores:{choice:2,judge:2,blank:3,short:10}},paper:null,answers:{}},updatedAt:new Date().toISOString()};
 }
 function load(){ ensureDir(); if(!fs.existsSync(STATE_FILE)) return blank();
   try{ const s=JSON.parse(fs.readFileSync(STATE_FILE,'utf8')); return Object.assign(blank(),s); }catch(e){ return blank(); } }
@@ -24,6 +24,9 @@ function save(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>{ try{ fs.wri
 function keyOf(name,tail){ return String(name||'').trim()+'|'+String(tail||'').trim(); }
 function groupCounts(){ const c={}; Object.keys(state.groups).forEach(g=>c[g]=0); Object.values(state.students).forEach(s=>{ if(s.group&&c[s.group]!==undefined) c[s.group]++ }); return c; }
 function ensureStudent(name,tail){ const k=keyOf(name,tail); if(!state.students[k]){ state.students[k]={name:String(name).trim(),tail:String(tail).trim(),group:'',score:0,votes:0,buzzes:0,joinedAt:new Date().toISOString()}; save(); } return state.students[k]; }
+function qTok(s){return String(s||'').replace(/[\s，。；、,.!?！？:：;；"'“”‘’（）()]/g,'').toLowerCase().split('');}
+function qSim(a,b){var A=qTok(a),B=qTok(b);if(!A.length||!B.length)return 0;var m={};A.forEach(function(c){m[c]=(m[c]||0)+1});var hit=0;B.forEach(function(c){if(m[c]){hit++;m[c]--}});return hit/Math.max(A.length,B.length);}
+function qGrade(q,ans){ if(q.type==='choice')return String(ans||'').toUpperCase()===String(q.answer||'').toUpperCase()?1:0; if(q.type==='judge'||q.type==='blank')return String(ans||'').trim()===String(q.answer||'').trim()?1:0; return Math.round(qSim(ans,q.ref)*100)/100; }
 function studentView(k){
   const s=state.students[k];
   const poll=state.poll;
@@ -41,6 +44,7 @@ function studentView(k){
     hwOpen: !!(state.config&&state.config.hwOpen),
     workshopOpen: !!(state.config&&state.config.workshopOpen),
     buzz:{enabled:!!(state.buzz&&state.buzz.enabled),running:!!(state.buzz&&state.buzz.running),winner:(state.buzz&&state.buzz.winner)||'',round:(state.buzz&&state.buzz.round)||0},
+    quiz:(function(){var q=state.quiz||{};var p=q.paper;if(!p||!p.active)return {active:false};var a=(q.answers||{})[k];return {active:true,submitted:!!a,myScore:a?a.score:null,total:p.questions.reduce(function(x,y){return x+(y.score||0)},0),questions:p.questions.map(function(x){return {id:x.id,type:x.type,q:x.q,options:x.options||[],score:x.score}})};})(),
     groupCounts: groupCounts(),
     groups: Object.keys(state.groups).map(g=>({id:g,name:state.groups[g].name})),
     submissions: s? Object.keys(state.submissions).filter(k2=>k2.indexOf(k+'||')===0).map(k2=>{const p=k2.split('||');return {task:p[1],at:state.submissions[k2].at,total:(state.submissions[k2].score||{}).total||0,files:(state.submissions[k2].files||[]).length}}):[]
@@ -48,15 +52,19 @@ function studentView(k){
 }
 function adminView(){
   const counts=groupCounts();
+  const qz=state.quiz||{bank:{},config:{},paper:null,answers:{}};
+  const qbank={choice:(qz.bank.choice||[]).length,judge:(qz.bank.judge||[]).length,blank:(qz.bank.blank||[]).length,short:(qz.bank.short||[]).length};
+  const qans=Object.keys(qz.answers||{}).map(function(k){return qz.answers[k]});
+  const quizInfo={bank:qbank,config:qz.config||{},paper:qz.paper?{active:!!qz.paper.active,at:qz.paper.at,count:qz.paper.questions.length,points:qz.paper.questions.reduce(function(a,b){return a+(b.score||0)},0)}:null,answered:qans.length,avg:qans.length?Math.round(qans.reduce(function(a,b){return a+(b.score||0)},0)/qans.length*10)/10:0};
   const results={};
   if(state.poll.options&&state.poll.options.length){ state.poll.options.forEach((o,i)=>{results[i]=0}); Object.values(state.poll.votes||{}).forEach(v=>{ if(results[v]!==undefined) results[v]++ }); }
   const subs=Object.keys(state.submissions).map(k=>{ const p=k.split('||'); const st=state.students[p[0]]||{}; const sub=state.submissions[k]; return {key:k,studentKey:p[0],name:st.name||p[0],tail:st.tail||'',task:p[1],text:sub.text||'',fileName:sub.fileName||'',q1:sub.q1||'',q2:sub.q2||'',q3:sub.q3||'',files:sub.files||[],at:sub.at,manual:sub.manual||[],score:sub.score||null}; });
-  return {ok:true,config:state.config||{},buzz:state.buzz||{enabled:false,running:false,winner:''},students:Object.keys(state.students).map(k=>Object.assign({key:k},state.students[k])),groups:Object.keys(state.groups).map(g=>({id:g,name:state.groups[g].name,perf:state.groups[g].perf||0,count:counts[g]})),counts,poll:{active:state.poll.active,question:state.poll.question,options:state.poll.options,votes:state.poll.votes,results,startedAt:state.poll.startedAt},submissions:subs,updatedAt:state.updatedAt};
+  return {ok:true,quiz:quizInfo,config:state.config||{},buzz:state.buzz||{enabled:false,running:false,winner:''},students:Object.keys(state.students).map(k=>Object.assign({key:k},state.students[k])),groups:Object.keys(state.groups).map(g=>({id:g,name:state.groups[g].name,perf:state.groups[g].perf||0,count:counts[g]})),counts,poll:{active:state.poll.active,question:state.poll.question,options:state.poll.options,votes:state.poll.votes,results,startedAt:state.poll.startedAt},submissions:subs,updatedAt:state.updatedAt};
 }
 function send(res,code,obj,type='application/json; charset=utf-8'){ const body=Buffer.isBuffer(obj)||typeof obj==='string'?obj:JSON.stringify(obj); res.writeHead(code,{'Content-Type':type,'Cache-Control':'no-store','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Content-Type','Access-Control-Allow-Methods':'GET,POST,OPTIONS'}); res.end(body); }
 function readBody(req){ return new Promise((resolve,reject)=>{ let d=''; req.on('data',c=>{d+=c; if(d.length>2e6){reject(new Error('too large'));req.destroy()}}); req.on('end',()=>{ try{resolve(d?JSON.parse(d):{})}catch(e){resolve({})} }); req.on('error',reject); }); }
 const MIME={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.json':'application/json; charset=utf-8','.csv':'text/csv; charset=utf-8'};
-const MAP={'/':'promo.html','/promo':'promo.html','/live':'live.html','/live.html':'live.html','/course':'course/course.html','/course.html':'course/course.html','/grader':'course/grader.html','/grader.html':'course/grader.html','/admin':'course/admin.html','/admin.html':'course/admin.html'};
+const MAP={'/':'宣传页/课程大纲-宣传版.html','/promo':'宣传页/课程大纲-宣传版.html','/live':'宣传页/live.html','/live.html':'宣传页/live.html','/course':'课件/course.html','/course.html':'课件/course.html','/grader':'课件/grader.html','/grader.html':'课件/grader.html','/admin':'课件/admin.html','/admin.html':'课件/admin.html'};
 function serveStatic(res,pathname){
   let rel=MAP[pathname] || decodeURIComponent(pathname).replace(/^\/+/,'');
   const abs=path.resolve(ROOT,rel);
@@ -102,6 +110,17 @@ const server=http.createServer(async (req,res)=>{
           const idx=Number(b.choice); if(!(idx>=0&&idx<state.poll.options.length)) return send(res,400,{ok:false,error:'bad choice'});
           state.poll.votes[k]=idx; const _st=state.students[k]; if(_st)_st.votes=(_st.votes||0)+1; state.updatedAt=new Date().toISOString(); save(); return send(res,200,{ok:true});
         }
+        if(p==='/api/quiz/submit'){
+          const k=keyOf(b.name,b.tail); ensureStudent(b.name,b.tail);
+          const pz=state.quiz&&state.quiz.paper;
+          if(!pz||!pz.active) return send(res,400,{ok:false,error:'答题未开始'});
+          if(state.quiz.answers[k]) return send(res,400,{ok:false,error:'已经提交过'});
+          const ans=b.answers||{}; let score=0,total=0; const detail=[];
+          pz.questions.forEach(function(q){ total+=q.score||0; const r=qGrade(q,ans[q.id]); const s=Math.round(r*(q.score||0)*10)/10; score+=s; detail.push({id:q.id,type:q.type,score:s,ratio:r}); });
+          state.quiz.answers[k]={at:new Date().toLocaleString('zh-CN'),score:Math.round(score*10)/10,total:total,answers:ans,detail:detail};
+          save();
+          return send(res,200,{ok:true,score:Math.round(score*10)/10,total:total});
+        }
         if(p==='/api/homework'){
           const k=keyOf(b.name,b.tail); ensureStudent(b.name,b.tail);
           state.submissions[k+'||'+b.task]={text:b.text||'',fileName:b.fileName||'',q1:b.q1||'',q2:b.q2||'',q3:b.q3||'',at:new Date().toLocaleString('zh-CN'),manual:[],score:null};
@@ -128,6 +147,39 @@ const server=http.createServer(async (req,res)=>{
           const sub=state.submissions[k+'||'+task];if(!sub||!sub.files||!sub.files[idx])return send(res,404,'not found','text/plain');
           const safeK2=k.replace(/[^a-zA-Z0-9_.\-\u4e00-\u9fa5]/g,'_');const fp=path.join(DATA_DIR,'uploads',safeK2,sub.files[idx].path);
           return fs.readFile(fp,(e,b)=>e?send(res,404,'not found','text/plain'):send(res,200,b,'application/octet-stream'));
+        }
+        if(p==='/api/admin/quizbank'){
+          state.quiz=state.quiz||{bank:{choice:[],judge:[],blank:[],short:[]}};
+          state.quiz.bank=state.quiz.bank||{choice:[],judge:[],blank:[],short:[]};
+          const mode=b.action==='append'?'append':'replace';
+          const incoming=b.bank||{};
+          if(mode==='replace') state.quiz.bank={choice:[],judge:[],blank:[],short:[]};
+          ['choice','judge','blank','short'].forEach(function(t){
+            (incoming[t]||[]).forEach(function(q,i){ const item=Object.assign({},q); item.type=t; item.id=t+'-'+Date.now()+'-'+i; state.quiz.bank[t].push(item); });
+          });
+          state.updatedAt=new Date().toISOString();save();
+          return send(res,200,{ok:true,counts:{choice:state.quiz.bank.choice.length,judge:state.quiz.bank.judge.length,blank:state.quiz.bank.blank.length,short:state.quiz.bank.short.length}});
+        }
+        if(p==='/api/admin/quiz'){
+          state.quiz=state.quiz||{bank:{choice:[],judge:[],blank:[],short:[]},answers:{}};
+          if(b.action==='publish'){
+            const cfg={mode:b.mode==='seq'?'seq':'random',counts:b.counts||{},scores:b.scores||{}};
+            state.quiz.config=cfg;
+            const pick=function(t,n){
+              let arr=(state.quiz.bank[t]||[]).slice();
+              if(cfg.mode==='random') arr.sort(function(){return Math.random()-0.5});
+              return arr.slice(0,Math.max(0,Math.min(Number(n)||0,arr.length))).map(function(q){ const c=Object.assign({},q); c.type=t; c.score=Number(cfg.scores[t]||0)||0; return c; });
+            };
+            const qs=[].concat(pick('choice',cfg.counts.choice),pick('judge',cfg.counts.judge),pick('blank',cfg.counts.blank),pick('short',cfg.counts.short));
+            if(!qs.length) return send(res,400,{ok:false,error:'题库为空或各类数量为 0'});
+            state.quiz.paper={active:true,at:new Date().toLocaleString('zh-CN'),questions:qs};
+            state.quiz.answers={}; save();
+            return send(res,200,{ok:true,count:qs.length,points:qs.reduce(function(a,q){return a+(q.score||0)},0)});
+          }
+          if(b.action==='close'){ if(state.quiz.paper) state.quiz.paper.active=false; save(); return send(res,200,{ok:true}); }
+          if(b.action==='clear'){ state.quiz.paper=null; state.quiz.answers={}; save(); return send(res,200,{ok:true}); }
+          if(b.action==='resetbank'){ state.quiz.bank={choice:[],judge:[],blank:[],short:[]}; state.quiz.paper=null; state.quiz.answers={}; save(); return send(res,200,{ok:true}); }
+          return send(res,400,{ok:false,error:'bad action'});
         }
         if(p==='/api/admin/groupcfg'){ state.config=state.config||{}; state.config.groupMax=Math.max(1,Math.min(10,Number(b.max)||3)); save(); return send(res,200,{ok:true,groupMax:state.config.groupMax}); }
         if(p==='/api/admin/groupadd'){

@@ -88,6 +88,35 @@ body{animation:pageIn .32s ease both}
   </div>
 
   <div class="card" style="margin-top:14px">
+    <div class="k">在线答题</div>
+    <div class="rowflex" style="gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn sm ghost" id="quizTpl">下载导入模板</button>
+      <label class="btn sm" style="cursor:pointer">导入题库（.xlsx）<input type="file" id="quizFile" accept=".xlsx,.xls" style="display:none" /></label>
+      <span class="muted small" id="quizBank">题库：0 / 0 / 0 / 0</span>
+      <button class="btn sm danger" id="quizResetBank">清空题库</button>
+    </div>
+    <div class="rowflex" style="gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center">
+      <span class="muted small">出题方式</span>
+      <select id="quizMode" style="padding:4px 8px"><option value="random">随机</option><option value="seq">顺序</option></select>
+      <span class="muted small">选择题</span><input id="qc-choice" type="number" min="0" value="5" style="width:56px;padding:4px 6px" />
+      <span class="muted small">判断题</span><input id="qc-judge" type="number" min="0" value="3" style="width:56px;padding:4px 6px" />
+      <span class="muted small">填空题</span><input id="qc-blank" type="number" min="0" value="2" style="width:56px;padding:4px 6px" />
+      <span class="muted small">简答题</span><input id="qc-short" type="number" min="0" value="1" style="width:56px;padding:4px 6px" />
+    </div>
+    <div class="rowflex" style="gap:10px;flex-wrap:wrap;margin-top:8px;align-items:center">
+      <span class="muted small">每题分值</span>
+      <span class="muted small">选</span><input id="qs-choice" type="number" min="0" value="2" style="width:56px;padding:4px 6px" />
+      <span class="muted small">判</span><input id="qs-judge" type="number" min="0" value="2" style="width:56px;padding:4px 6px" />
+      <span class="muted small">填</span><input id="qs-blank" type="number" min="0" value="3" style="width:56px;padding:4px 6px" />
+      <span class="muted small">简</span><input id="qs-short" type="number" min="0" value="10" style="width:56px;padding:4px 6px" />
+      <button class="btn" id="quizPublish">发布答题</button>
+      <button class="btn ghost" id="quizClose">结束答题</button>
+      <button class="btn ghost" id="quizClear">清空本次结果</button>
+      <span class="muted small" id="quizStat">未发布</span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
     <div class="k">课堂表现分</div>
     <div id="perfBox"></div>
   </div>
@@ -97,6 +126,7 @@ body{animation:pageIn .32s ease both}
     <div id="studentsBox"></div>
   </div>
 </div>
+<script src="../xlsx.full.min.js"></script>
 <script>
 var FC_API='https://YOUR-FC-DOMAIN';
 var API=(location.port==='8899'||location.protocol==='file:')?'':FC_API;
@@ -144,6 +174,17 @@ function render(){
   gs.forEach(function(g){pb+='<div style="border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;gap:8px;align-items:center"><b>'+g.id+'</b><span class="muted small">'+fmt(g.perf)+'</span><button class="btn sm ghost" data-perf="-1" data-g="'+g.id+'">−</button><button class="btn sm" data-perf="1" data-g="'+g.id+'">＋</button></div>'});
   pb+='</div>';
   document.getElementById('perfBox').innerHTML=pb;
+  /* 在线答题 */
+  var qz=state.quiz||{bank:{},config:{},paper:null,answered:0,avg:0};
+  document.getElementById('quizBank').textContent='题库：'+(qz.bank.choice||0)+' / '+(qz.bank.judge||0)+' / '+(qz.bank.blank||0)+' / '+(qz.bank.short||0);
+  document.getElementById('quizStat').textContent=qz.paper&&qz.paper.active?('进行中 · '+qz.paper.count+' 题 / '+qz.paper.points+' 分 · 已答 '+qz.answered+' 人 · 均分 '+qz.avg):(qz.paper?('已结束 · 参与 '+qz.answered+' 人 · 均分 '+qz.avg):'未发布');
+  var qcfg=qz.config||{};
+  if(document.activeElement!==document.getElementById('quizMode')) document.getElementById('quizMode').value=qcfg.mode||'random';
+  ['choice','judge','blank','short'].forEach(function(t){
+    var c=document.getElementById('qc-'+t), sc=document.getElementById('qs-'+t);
+    if(c&&document.activeElement!==c)c.value=(qcfg.counts&&qcfg.counts[t]!==undefined)?qcfg.counts[t]:c.value;
+    if(sc&&document.activeElement!==sc)sc.value=(qcfg.scores&&qcfg.scores[t]!==undefined)?qcfg.scores[t]:sc.value;
+  });
   /* 抢答 */
   var bz=state.buzz||{};
   document.getElementById('buzzStat').textContent=(bz.round?('第 '+bz.round+' 轮 · '):'')+(bz.winner?('已抢到：'+bz.winner):(bz.running?'抢答中':(bz.enabled?'已开启':'未开启')));
@@ -190,6 +231,57 @@ function bind(){
     if(!confirm('删除分组 '+id+'？该组学员会变为未分组。'))return;
     await post('/api/admin/groupdel',{id:id}); refresh();
   })});
+  var tf=document.getElementById('quizTpl');
+  if(tf)tf.addEventListener('click',function(){
+    var wb=XLSX.utils.book_new();
+    function add(name,header,sample){XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([header,sample]),name)}
+    add('选择题',['题目','答案A','答案B','答案C','答案D','正确答案'],['示例：中华人民共和国成立于哪一年？','1949 年','1950 年','1948 年','1951 年','A']);
+    add('判断题',['题目','正确答案（对/错）'],['示例：AI 可以直接替代公司做对外的承诺。','错']);
+    add('填空题',['题目','答案'],['示例：RAG 的中文全称是____增强生成。','检索']);
+    add('简答题',['题目','参考答案'],['示例：说说你会把哪类工作先交给 AI，为什么？','先交重复、可校验的活，比如整理表格、起草初稿；保留需要担责与判断的部分。']);
+    XLSX.writeFile(wb,'答题题库模板.xlsx');
+  });
+  var qf=document.getElementById('quizFile');
+  if(qf)qf.addEventListener('change',async function(){
+    var f=qf.files&&qf.files[0]; if(!f)return;
+    try{
+      var buf=await f.arrayBuffer();
+      var wb=XLSX.read(buf,{type:'array'});
+      function rows(name){
+        var sh=wb.Sheets[name]||wb.Sheets[(wb.SheetNames||[]).filter(function(n){return n.indexOf(name)===0})[0]];
+        if(!sh)return [];
+        var a=XLSX.utils.sheet_to_json(sh,{header:1,blankrows:false});
+        return a.slice(1).filter(function(r){return r&&String(r[0]||'').trim()});
+      }
+      function letter(v){return String(v||'').trim().toUpperCase().replace(/^答案/,'').replace(/[^A-D]/g,'')}
+      function yn(v){var s=String(v||'').trim();return (s==='对'||s==='正确'||s==='true'||s==='TRUE'||s==='√'||s==='是')?'对':'错'}
+      var bank={choice:[],judge:[],blank:[],short:[]};
+      rows('选择题').forEach(function(r){var o=[r[1],r[2],r[3],r[4]].map(function(x){return String(x==null?'':x).trim()}).filter(Boolean); if(o.length>=2)bank.choice.push({q:String(r[0]).trim(),options:o,answer:letter(r[5])||'A'})});
+      rows('判断题').forEach(function(r){if(r[0])bank.judge.push({q:String(r[0]).trim(),answer:yn(r[1])})});
+      rows('填空题').forEach(function(r){if(r[0])bank.blank.push({q:String(r[0]).trim(),answer:String(r[1]==null?'':r[1]).trim()})});
+      rows('简答题').forEach(function(r){if(r[0])bank.short.push({q:String(r[0]).trim(),ref:String(r[1]==null?'':r[1]).trim()})});
+      var total=bank.choice.length+bank.judge.length+bank.blank.length+bank.short.length;
+      if(!total){alert('没有读到题目，请确认 sheet 名为 选择题/判断题/填空题/简答题');return}
+      await post('/api/admin/quizbank',{action:'replace',bank:bank});
+      alert('已导入 '+total+' 题（选 '+bank.choice.length+' / 判 '+bank.judge.length+' / 填 '+bank.blank.length+' / 简 '+bank.short.length+'）');
+      refresh();
+    }catch(e){alert('导入失败：'+(e.message||e))}
+    qf.value='';
+  });
+  var qp=document.getElementById('quizPublish');
+  if(qp)qp.addEventListener('click',async function(){
+    var counts={},scores={};
+    ['choice','judge','blank','short'].forEach(function(t){counts[t]=Number(document.getElementById('qc-'+t).value)||0;scores[t]=Number(document.getElementById('qs-'+t).value)||0});
+    if(!counts.choice&&!counts.judge&&!counts.blank&&!counts.short){alert('至少设置一类题数量');return}
+    await post('/api/admin/quiz',{action:'publish',mode:document.getElementById('quizMode').value,counts:counts,scores:scores});
+    refresh();
+  });
+  var qc=document.getElementById('quizClose');
+  if(qc)qc.addEventListener('click',async function(){await post('/api/admin/quiz',{action:'close'});refresh()});
+  var qcl=document.getElementById('quizClear');
+  if(qcl)qcl.addEventListener('click',async function(){if(!confirm('清空本次答题结果？'))return;await post('/api/admin/quiz',{action:'clear'});refresh()});
+  var qrb=document.getElementById('quizResetBank');
+  if(qrb)qrb.addEventListener('click',async function(){if(!confirm('清空整个题库？'))return;await post('/api/admin/quiz',{action:'resetbank'});refresh()});
   var btnClear=document.getElementById('clearStudents');
   if(btnClear)btnClear.addEventListener('click',async function(){
     if(!confirm('清空全部学员？姓名、投票、抢答记录与提交都会删除，用于下一场培训。'))return;

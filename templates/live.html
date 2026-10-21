@@ -63,6 +63,14 @@ h1 span{display:block;font-size:13px;color:var(--amber-l);letter-spacing:.2em;ma
 .buzzbtn:active{transform:scale(.97)}
 .buzzbtn.run{background:#C0392B;color:#fff;box-shadow:0 0 0 10px rgba(192,57,43,.15)}
 .buzzbtn.done{background:#2E3A34;color:#7C8B81}
+.q-item{border-top:1px solid var(--line);padding:10px 0}
+.q-item:first-child{border-top:0}
+.q-item .qt{font-size:13.5px;line-height:1.6;color:#E9E4D6;margin-bottom:7px}
+.q-item .qn{color:var(--muted);font-size:11px;margin-right:6px}
+.q-opt{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:#CFDCD2;padding:5px 0;cursor:pointer}
+.q-opt input{accent-color:var(--amber);margin-top:3px}
+.q-item input[type=text],.q-item textarea{width:100%;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.04);color:#F4EFE2;padding:8px;font-size:13px;font-family:inherit}
+.q-item textarea{min-height:64px;resize:vertical}
 .ws-files{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
 .ws-files a{font-size:11.5px;color:#F0D9AC;border:1px solid rgba(233,180,92,.35);border-radius:8px;padding:5px 9px;text-decoration:none;background:rgba(217,138,43,.08)}
 body{animation:pageIn .32s ease both}
@@ -104,6 +112,13 @@ body{animation:pageIn .32s ease both}
       <p class="small" style="margin-top:8px">投票后卡片会消失，结果由讲师在大屏公布。</p>
     </div>
 
+    <div class="card hidden" id="quizCard">
+      <div class="hw-head"><b id="quizTitle">在线答题</b><span class="small" id="quizMeta"></span></div>
+      <div id="quizList"></div>
+      <button class="btn" id="quizSubmit" style="margin-top:10px">提交答卷</button>
+      <p class="small" id="quizMsg" style="margin-top:6px"></p>
+    </div>
+
     <div class="card hidden" id="buzzCard">
       <div class="k">抢答</div>
       <button id="buzzBtn" class="buzzbtn">抢答</button>
@@ -134,12 +149,12 @@ var KEY='camp_live_v3';
 var me={name:'',tail:''};
 var stateData=null,pollChoice=-1,lastPollId='',pending=[];
 var WS=[
- {t:'T1 活动策划方案',p:'20 分',inp:'需求要点 + 往期方案',act:'框架生成 / 内容填充 / 风险审查',out:'可送审方案',ok:'六要素齐全、可执行',files:[['T1 需求简报','t1-brief.md']]},
- {t:'T2 表格协作',p:'20 分',inp:'报名表 / 对账表等原始表',act:'清洗 / 校验 / 统计 / 透视',out:'干净数据 + 汇总表',ok:'数值可复核',files:[['T2 示例报名表','t2-sample.csv'],['T2 规则卡','t2-rules.md']]},
- {t:'T3 汇报与推介 PPT',p:'15 分',inp:'素材包（《示例剧目》等）',act:'结构生成 / 文案精炼 / 排版',out:'成稿 PPT',ok:'叙事线清晰、可直接讲',files:[['T3 素材包','t3-pack.md']]},
- {t:'T4 对外宣传',p:'10 分 + 加分',inp:'活动素材 + 参考片',act:'选题 / 脚本 / 分镜 /（成片）',out:'宣传物料包',ok:'符合传播逻辑',files:[['T4 视频任务卡','t4-brief.md'],['T4 参考素材','t4-reference.md']]},
- {t:'T5 项目协作',p:'15 分',inp:'项目信息、人员、资料',act:'建项目 / 拆任务 / 排期 / 归档',out:'项目工作台',ok:'责任到人、进度可视',files:[['T5 项目协作任务卡','t5-brief.md'],['T5 初始信息','t5-info.md']]},
- {t:'T6 对外核对',p:'20 分',inp:'多方账目与资料',act:'交叉比对 / 差异定位',out:'对账差异报告',ok:'差异全找到、口径清楚',files:[['T6 结算规则','t6-rules.md'],['T6 结算单 A','t6-settlement-a.csv'],['T6 结算单 B','t6-settlement-b.csv']]}
+ {t:'T1 活动策划方案',p:'20 分',inp:'需求要点 + 往期方案',act:'框架生成 / 内容填充 / 风险审查',out:'可送审方案',ok:'六要素齐全、可执行',files:[['T1 主题卡','t1-主题卡.md'],['T1 需求简报','t1-需求简报.md']]},
+ {t:'T2 表格协作',p:'20 分',inp:'报名表 / 对账表等原始表',act:'清洗 / 校验 / 统计 / 透视',out:'干净数据 + 汇总表',ok:'数值可复核',files:[['T2 报名表（1080 行）','t2-报名表-1080行.csv'],['T2 住宿分配规则卡','t2-住宿分配规则卡.md']]},
+ {t:'T3 汇报与推介 PPT',p:'15 分',inp:'素材包（《示例剧目》等）',act:'结构生成 / 文案精炼 / 排版',out:'成稿 PPT',ok:'叙事线清晰、可直接讲',files:[['T3《示例剧目》素材包','t3-锦蓝素材包.md']]},
+ {t:'T4 对外宣传',p:'10 分 + 加分',inp:'活动素材 + 参考片',act:'选题 / 脚本 / 分镜 /（成片）',out:'宣传物料包',ok:'符合传播逻辑',files:[['T4 视频任务卡','t4-视频任务卡.md'],['T4 参考素材','t4-参考素材.md']]},
+ {t:'T5 项目协作',p:'15 分',inp:'项目信息、人员、资料',act:'建项目 / 拆任务 / 排期 / 归档',out:'项目工作台',ok:'责任到人、进度可视',files:[['T5 项目协作任务卡','t5-项目协作任务卡.md'],['T5 初始信息','t5-初始信息.md']]},
+ {t:'T6 对外核对',p:'20 分',inp:'多方账目与资料',act:'交叉比对 / 差异定位',out:'对账差异报告',ok:'差异全找到、口径清楚',files:[['T6 结算规则与背景','t6-结算规则与背景.md'],['T6 执行方总账','t6-执行方总账.csv'],['T6 演出方','t6-演出方.csv'],['T6 场地方','t6-场地方.csv'],['T6 服务提供方','t6-服务提供方.csv'],['T6 渠道合作方','t6-渠道合作方.csv'],['T6 设施提供方','t6-设施提供方.csv']]}
 ];
 var HWS=[
  {id:'T1',no:1,title:'1 号作业：方案文档',hint:'方案 md 文件',accept:'.md'},
@@ -195,6 +210,31 @@ function stageFiles(inp){
   for(var i=0;i<files.length;i++)pending.push({task:task,file:files[i]});
   renderHw();
 }
+$('quizSubmit').addEventListener('click',async function(){
+  var qz=stateData&&stateData.quiz; if(!qz||!qz.active||qz.submitted)return;
+  var answers={};
+  qz.questions.forEach(function(q){
+    if(q.type==='choice'||q.type==='judge'){
+      var el=document.querySelector('input[name="r-'+q.id+'"]:checked');
+      answers[q.id]=el?el.value:'';
+    }else if(q.type==='blank'){
+      var b=document.querySelector('[data-blank="'+q.id+'"]');
+      answers[q.id]=b?b.value.trim():'';
+    }else{
+      var s=document.querySelector('[data-short="'+q.id+'"]');
+      answers[q.id]=s?s.value.trim():'';
+    }
+  });
+  var empty=qz.questions.filter(function(q){return !answers[q.id]});
+  if(empty.length&&!confirm('还有 '+empty.length+' 题未作答，确定提交？'))return;
+  try{
+    var r=await fetch(API+'/api/quiz/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:me.name,tail:me.tail,answers:answers})});
+    var d=await r.json();
+    if(!d.ok){alert(d.error||'提交失败');return}
+    alert('交卷成功：'+d.score+' / '+d.total+' 分');
+    await refresh();
+  }catch(e){alert('没连上课堂服务')}
+});
 $('buzzBtn').addEventListener('click',async function(){
   if(!stateData||!stateData.buzz||!stateData.buzz.running)return;
   try{
@@ -242,6 +282,32 @@ function render(){
     $('gLetter').textContent=m.group;
     $('gText').innerHTML='你是 <b>'+m.group+' 组</b><br />三人一组，成果一起算分';
   }else{$('groupNone').classList.remove('hidden');$('groupGot').classList.add('hidden')}
+  var qz=stateData.quiz||{active:false};
+  $('quizCard').classList.toggle('hidden',!qz.active);
+  if(qz.active){
+    $('quizMeta').textContent=qz.submitted?('已提交 · 得分 '+qz.myScore+' / '+qz.total):('共 '+qz.questions.length+' 题 · 满分 '+qz.total);
+    var qh='';
+    qz.questions.forEach(function(q,i){
+      qh+='<div class="q-item" data-q="'+q.id+'"><div class="qt"><span class="qn">'+(i+1)+'</span>'+q.q+'（'+q.score+' 分）</div>';
+      if(q.type==='choice'){
+        (q.options||[]).forEach(function(o,j){
+          var L=String.fromCharCode(65+j);
+          qh+='<label class="q-opt"><input type="radio" name="r-'+q.id+'" value="'+L+'" '+(qz.submitted?'disabled':'')+' /><span>'+L+'. '+o+'</span></label>';
+        });
+      }else if(q.type==='judge'){
+        qh+='<label class="q-opt"><input type="radio" name="r-'+q.id+'" value="对" '+(qz.submitted?'disabled':'')+' /><span>对</span></label>'
+          +'<label class="q-opt"><input type="radio" name="r-'+q.id+'" value="错" '+(qz.submitted?'disabled':'')+' /><span>错</span></label>';
+      }else if(q.type==='blank'){
+        qh+='<input type="text" data-blank="'+q.id+'" '+(qz.submitted?'disabled':'')+' placeholder="填写答案" />';
+      }else{
+        qh+='<textarea data-short="'+q.id+'" '+(qz.submitted?'disabled':'')+' placeholder="用自己的话回答，尽量覆盖参考答案的要点"></textarea>';
+      }
+      qh+='</div>';
+    });
+    $('quizList').innerHTML=qh;
+    $('quizSubmit').style.display=qz.submitted?'none':'block';
+    $('quizMsg').textContent=qz.submitted?'答卷已提交，等待讲师汇总。':'提交后不可修改；客观题自动判分，简答题按与参考答案的匹配度评分。';
+  }
   var bz=stateData.buzz||{};
   $('buzzCard').classList.toggle('hidden',!bz.enabled);
   if(bz.enabled){
