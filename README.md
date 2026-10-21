@@ -37,6 +37,7 @@ node server.mjs
 # 遥控器    http://127.0.0.1:8899/remote?room=ROOM0
 # 学员页    http://127.0.0.1:8899/join?room=ROOM0
 # 课程包    http://127.0.0.1:8899/shell
+# 房间      http://127.0.0.1:8899/rooms
 # 讲师登录  http://127.0.0.1:8899/login
 # 课件      http://127.0.0.1:8899/course
 # 宣传页    http://127.0.0.1:8899/promo
