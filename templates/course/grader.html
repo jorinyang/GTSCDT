@@ -178,6 +178,7 @@ function openSubmission(key){
     var s=subOf(key,t.id); if(!s) return;
     var r=totalOf(t,s);
     body+='<div class="card" style="background:rgba(255,255,255,.03);margin-bottom:10px"><div class="rowflex" style="justify-content:space-between"><b>'+t.id+' '+t.name+'</b><span class="pill">'+r.total+' / '+t.pts+' 分'+(r.override!=null?' · 人工定分':'')+'</span></div>';
+    body+='<div class="rowflex" style="margin:6px 0"><button class="btn sm ai" data-ai="'+t.id+'" style="padding:3px 10px;font-size:12px">AI 评分</button><span class="muted small">模型按评分标准打分，可再人工改</span></div>';
     body+='<div class="small muted" style="margin:6px 0">自动 '+r.auto+' · 人工 '+r.manual+' · 拆解 '+r.break+'（三问达标 '+r.breakN+'/3）</div>';
     if((s.files||[]).length){
       body+='<div style="margin:6px 0">产物文件：'+s.files.map(function(f,i){return '<a href="'+API+'/api/file?key='+encodeURIComponent(s.key)+'&task='+s.task+'&i='+i+'" target="_blank">'+f.name+'（'+Math.round((f.size||0)/1024)+'KB）</a>'}).join('、')+'</div>';
@@ -192,7 +193,21 @@ function openSubmission(key){
     }
     body+='<div class="rowflex" style="margin-top:10px"><input type="number" id="ovr-'+s.key.replace(/\|/g,'-')+'" placeholder="人工总分" value="'+(r.override!=null?r.override:'')+'" style="width:100px;padding:5px 8px;font-size:12px" /><button class="btn sm" data-ovr="'+s.key+'">存人工分</button><button class="btn sm danger" data-del="'+s.key+'">删除此提交</button></div></div>';
   });
-  $('detailBody').innerHTML=body; $('detailCard').style.display='block';
+  $('detailBody').innerHTML=body;
+  [].slice.call($('detailBody').querySelectorAll('[data-ai]')).forEach(function(b){
+    b.addEventListener('click',async function(){
+      var id=b.getAttribute('data-ai'); var tt=taskOf(id);
+      if(!tt)return;
+      b.disabled=true; b.textContent='评分中…';
+      var rubric=(tt.crit||[]).map(function(c){return {t:c[0],pts:c[1],desc:c[2]}});
+      try{
+        var r=await fetch(API+'/api/admin/scoreai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:curKey,rubric:rubric})});
+        var d=await r.json();
+        if(!d.ok){alert('AI 评分失败：'+(d.error||''));b.disabled=false;b.textContent='AI 评分';return}
+        await refresh(); openSubmission(curKey);
+      }catch(e){alert('AI 评分失败：'+e.message);b.disabled=false;b.textContent='AI 评分'}
+    });
+  }); $('detailCard').style.display='block';
   [].slice.call(document.querySelectorAll('[data-man]')).forEach(function(cb){
     cb.addEventListener('change',async function(){
       var key=cb.getAttribute('data-man'), item=cb.getAttribute('data-item');

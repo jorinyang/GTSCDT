@@ -12,6 +12,7 @@ PREFIX = 'web-spa/course-kit/data/'
 STATE_KEY = PREFIX + 'state.json'
 GROUPS = list('ABCDEFG')
 LAST_ERR = ''
+_CURRENT_STATE = None
 
 def _oss(method, key, body=None, ctype='application/json'):
     date = time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime())
@@ -37,16 +38,17 @@ def _oss(method, key, body=None, ctype='application/json'):
 def blank():
     return {'students': {}, 'groups': {g: {'name': g + '组', 'perf': 0} for g in GROUPS},
             'poll': {'active': False, 'question': '', 'options': [], 'votes': {}, 'startedAt': ''},
-            'submissions': {}, 'config': {'hwOpen': False, 'workshopOpen': False, 'groupMax': 3}, 'buzz': {'enabled': False, 'running': False, 'winner': '', 'round': 0, 'at': ''}, 'quiz': {'bank': {'choice': [], 'judge': [], 'blank': [], 'short': []}, 'config': {'mode': 'random', 'counts': {'choice': 5, 'judge': 3, 'blank': 2, 'short': 1}, 'scores': {'choice': 2, 'judge': 2, 'blank': 3, 'short': 10}}, 'paper': None, 'answers': {}}, 'updatedAt': ''}
+            'submissions': {}, 'config': {'hwOpen': False, 'workshopOpen': False, 'groupMax': 3, 'model': {'baseUrl': 'https://api.deepseek.com', 'model': 'deepseek-flash', 'apiKey': ''}}, 'buzz': {'enabled': False, 'running': False, 'winner': '', 'round': 0, 'at': ''}, 'quiz': {'bank': {'choice': [], 'judge': [], 'blank': [], 'short': []}, 'config': {'mode': 'random', 'counts': {'choice': 5, 'judge': 3, 'blank': 2, 'short': 1}, 'scores': {'choice': 2, 'judge': 2, 'blank': 3, 'short': 10}}, 'paper': None, 'answers': {}}, 'updatedAt': ''}
 
 def load():
+    global _CURRENT_STATE
     st, b = _oss('GET', STATE_KEY)
     if st != 200:
-        return blank()
+        _CURRENT_STATE = blank(); return _CURRENT_STATE
     try:
-        s = json.loads(b.decode('utf-8')); base = blank(); base.update(s); return base
+        s = json.loads(b.decode('utf-8')); base = blank(); base.update(s); _CURRENT_STATE = base; return base
     except Exception:
-        return blank()
+        _CURRENT_STATE = blank(); return _CURRENT_STATE
 
 def save(s):
     s['updatedAt'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
@@ -89,7 +91,39 @@ def _q_grade(q, ans):
         return 1 if str(ans or '').strip() == str(q.get('answer', '')).strip() else 0
     return round(_q_sim(ans, q.get('ref', '')), 2)
 
+
+def _model_cfg(s):
+    c = ((s.get('config') or {}).get('model') or {})
+    return {'base': (c.get('baseUrl') or os.environ.get('DEEPSEEK_BASE') or 'https://api.deepseek.com').rstrip('/'),
+            'model': c.get('model') or os.environ.get('DEEPSEEK_MODEL') or 'deepseek-flash',
+            'key': c.get('apiKey') or os.environ.get('DEEPSEEK_API_KEY') or ''}
+
+def _model_chat(s, messages, max_tokens=600):
+    cfg = _model_cfg(s)
+    if not cfg['key']:
+        return {'ok': False, 'error': '未配置 API Key'}
+    body = json.dumps({'model': cfg['model'], 'messages': messages, 'temperature': 0, 'max_tokens': max_tokens}).encode('utf-8')
+    req = urllib.request.Request(cfg['base'] + '/chat/completions', data=body,
+                                 headers={'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg['key']})
+    t0 = time.time()
+    try:
+        with urllib.request.urlopen(req, timeout=25) as r:
+            j = json.loads(r.read().decode('utf-8'))
+        return {'ok': True, 'content': j['choices'][0]['message']['content'], 'model': cfg['model'], 'ms': int((time.time() - t0) * 1000)}
+    except Exception as e:
+        return {'ok': False, 'error': str(e)[:160]}
+
 def _q_model(q, ans):
+    prompt = ('你是课堂评分助教。判断学员答案与参考答案的匹配程度，只输出 0-100 的整数，不要解释。'
+              + '题目：' + str(q.get('q', '')) + '；参考答案：' + str(q.get('ref', '')) + '；学员答案：' + str(ans or '（未作答）'))
+    r = _model_chat(_CURRENT_STATE, [{'role': 'user', 'content': prompt}], 600)
+    if not r.get('ok'):
+        return None
+    import re
+    m = re.search(r'[0-9]+', str(r.get('content', '')))
+    return max(0, min(100, int(m.group(0)))) if m else None
+
+def _q_model_OLD(q, ans):
     key = os.environ.get('DEEPSEEK_API_KEY', '')
     if not key:
         return None
@@ -171,6 +205,7 @@ def admin_view(s):
                         'count': counts(s)[g]} for g in s['groups']],
             'counts': counts(s),
             'quiz': quiz_info,
+            'model': {'baseUrl': _model_cfg(s)['base'], 'model': _model_cfg(s)['model'], 'hasKey': bool(_model_cfg(s)['key'])},
             'config': s.get('config') or {}, 'buzz': s.get('buzz') or {},
             'poll': {'active': s['poll'].get('active'), 'question': s['poll'].get('question', ''),
                      'options': s['poll'].get('options', []), 'votes': s['poll'].get('votes', {}),
@@ -447,6 +482,63 @@ def dispatch(method, path, q, raw):
             if g in s['groups']:
                 s['groups'][g]['perf'] = s['groups'][g].get('perf', 0) + int(b.get('delta', 0) or 0)
             save(s); return 200, {}, json.dumps({'ok': True, 'perf': s['groups'].get(g, {}).get('perf', 0)}).encode()
+        if path == '/api/admin/model':
+            act = b.get('action') or 'save'
+            cfg = ((s.get('config') or {}).get('model') or {})
+            if act == 'test':
+                key = (b.get('apiKey') or '').strip() or cfg.get('apiKey') or os.environ.get('DEEPSEEK_API_KEY', '')
+                if not key:
+                    return 400, {}, json.dumps({'ok': False, 'error': '请先填写 API Key'}, ensure_ascii=False).encode()
+                old = json.dumps(cfg)
+                s.setdefault('config', {})['model'] = {'baseUrl': b.get('baseUrl') or cfg.get('baseUrl') or 'https://api.deepseek.com',
+                                                        'model': b.get('model') or cfg.get('model') or 'deepseek-flash', 'apiKey': key}
+                r = _model_chat(s, [{'role': 'user', 'content': '只回复两个字母：OK'}], 60)
+                s['config']['model'] = json.loads(old) if old else cfg
+                if not r.get('ok'):
+                    return 502, {}, json.dumps({'ok': False, 'error': r.get('error')}, ensure_ascii=False).encode()
+                return 200, {}, json.dumps({'ok': True, 'reply': str(r.get('content'))[:40], 'ms': r.get('ms'), 'model': r.get('model')}, ensure_ascii=False).encode()
+            cfg['baseUrl'] = b.get('baseUrl') if b.get('baseUrl') is not None else cfg.get('baseUrl')
+            cfg['model'] = b.get('model') if b.get('model') is not None else cfg.get('model')
+            if b.get('apiKey'):
+                cfg['apiKey'] = b['apiKey']
+            s.setdefault('config', {})['model'] = cfg
+            save(s)
+            return 200, {}, json.dumps({'ok': True}).encode()
+        if path == '/api/admin/scoreai':
+            sub = s['submissions'].get(b.get('key'))
+            rubric = b.get('rubric') or []
+            if not sub:
+                return 404, {}, json.dumps({'ok': False, 'error': 'submission not found'}).encode()
+            if not rubric:
+                return 400, {}, json.dumps({'ok': False, 'error': '缺少评分标准'}, ensure_ascii=False).encode()
+            answer = '【正文】' + str(sub.get('text') or '（空）')[:2500] + '【三问】' + str(sub.get('q1') or '') + ' / ' + str(sub.get('q2') or '') + ' / ' + str(sub.get('q3') or '')
+            nl = chr(10)
+            prompt = ('你是企业 AI 培训的作业评分助教。按评分标准逐项打分。评分标准（编号|标准|满分）：' + nl
+                      + nl.join([str(i + 1) + '|' + str(c.get('t')) + '|' + str(c.get('pts')) for i, c in enumerate(rubric)])
+                      + nl + nl + '学员作业：' + nl + answer + nl + nl
+                      + '严格按每行“编号|分数|一句依据”的格式输出，不要标题、不要解释，分数不超过该项满分。')
+            r = _model_chat(s, [{'role': 'user', 'content': prompt}], 1600)
+            if not r.get('ok'):
+                return 502, {}, json.dumps({'ok': False, 'error': r.get('error')}, ensure_ascii=False).encode()
+            items = []; total = 0
+            import re as _re
+            for line in str(r.get('content', '')).splitlines():
+                m = _re.match(r'^\s*(\d+)\s*[|｜]\s*([0-9.]+)\s*[|｜]?\s*(.*)$', line)
+                if not m:
+                    continue
+                idx = int(m.group(1)) - 1
+                if idx < 0 or idx >= len(rubric):
+                    continue
+                mx = float(rubric[idx].get('pts') or 0)
+                sc = max(0.0, min(mx, float(m.group(2) or 0)))
+                items.append({'t': rubric[idx].get('t'), 'score': sc, 'max': mx, 'why': m.group(3)[:80]})
+                total += sc
+            if not items:
+                return 502, {}, json.dumps({'ok': False, 'error': '模型返回无法解析'}, ensure_ascii=False).encode()
+            sub['score'] = {'ai': True, 'total': round(total, 1), 'override': round(total, 1), 'items': items,
+                            'model': r.get('model'), 'at': time.strftime('%Y/%m/%d %H:%M:%S')}
+            save(s)
+            return 200, {}, json.dumps({'ok': True, 'score': sub['score']}, ensure_ascii=False).encode()
         if path == '/api/admin/score':
             sub = s['submissions'].get(b.get('key', ''))
             if sub:
@@ -464,7 +556,10 @@ def dispatch(method, path, q, raw):
                 for st in s['students'].values():
                     st['group'] = ''
             else:
+                _m = ((s.get('config') or {}).get('model')) or None
                 s = blank()
+                if _m:
+                    s['config']['model'] = _m
             save(s); return 200, {}, json.dumps({'ok': True}).encode()
         return 404, {}, json.dumps({'ok': False, 'error': 'no api'}).encode()
     return 404, {}, json.dumps({'ok': False, 'error': 'not found'}).encode()

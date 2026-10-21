@@ -55,6 +55,7 @@ body{animation:pageIn .32s ease both}
     <button class="tabbtn on" data-tab="class">课堂管理</button>
     <button class="tabbtn" data-tab="hw">作业评分</button>
     <button class="tabbtn" data-tab="quiz">在线答题</button>
+    <button class="tabbtn" data-tab="model">模型管理</button>
   </div>
   <div id="pane-class"><div class="grid2">
     <div class="card">
@@ -136,7 +137,24 @@ body{animation:pageIn .32s ease both}
     </div>
   </div>
 
-  </div><div id="pane-hw" class="hidden"><iframe id="hwFrame" title="作业评分"></iframe></div></div>
+  </div><div id="pane-model" class="hidden">
+    <div class="card">
+      <div class="k">模型管理</div>
+      <p class="muted small" style="margin:4px 0 12px">课后作业评价与在线答题主观题都由这里的模型评分。Key 只存在服务端，不回传浏览器。</p>
+      <label class="small muted">API Key</label>
+      <input id="mdKey" type="password" placeholder="留空表示不修改已保存的 Key" style="margin-bottom:8px" />
+      <label class="small muted">Base URL</label>
+      <input id="mdBase" placeholder="https://api.deepseek.com" style="margin-bottom:8px" />
+      <label class="small muted">Model</label>
+      <input id="mdModel" placeholder="deepseek-flash" style="margin-bottom:12px" />
+      <div class="rowflex">
+        <button class="btn" id="mdTest">测试连通性</button>
+        <button class="btn ghost" id="mdSave">保存</button>
+        <span class="muted small" id="mdStat">未配置</span>
+      </div>
+    </div>
+  </div>
+  <div id="pane-hw" class="hidden"><iframe id="hwFrame" title="作业评分"></iframe></div></div>
 <script src="../xlsx.full.min.js"></script>
 <script>
 var FC_API='https://YOUR-FC-DOMAIN';
@@ -185,6 +203,12 @@ function render(){
   gs.forEach(function(g){pb+='<div style="border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;gap:8px;align-items:center"><b>'+g.id+'</b><span class="muted small">'+fmt(g.perf)+'</span><button class="btn sm ghost" data-perf="-1" data-g="'+g.id+'">−</button><button class="btn sm" data-perf="1" data-g="'+g.id+'">＋</button></div>'});
   pb+='</div>';
   document.getElementById('perfBox').innerHTML=pb;
+  /* 模型管理 */
+  var md=(state&&state.model)||{};
+  var mk=document.getElementById('mdKey'),mb=document.getElementById('mdBase'),mm=document.getElementById('mdModel'),ms=document.getElementById('mdStat');
+  if(mb&&document.activeElement!==mb)mb.value=md.baseUrl||'';
+  if(mm&&document.activeElement!==mm)mm.value=md.model||'';
+  if(ms)ms.textContent=md.hasKey?('已配置 · '+(md.model||'')+' · '+(md.baseUrl||'')):'未配置（作业与主观题将回落到规则评分）';
   /* 在线答题 */
   var qz=state.quiz||{bank:{},config:{},paper:null,answered:0,avg:0};
   document.getElementById('quizBank').textContent='题库：'+(qz.bank.choice||0)+' / '+(qz.bank.judge||0)+' / '+(qz.bank.blank||0)+' / '+(qz.bank.short||0);
@@ -293,6 +317,23 @@ function bind(){
   if(qcl)qcl.addEventListener('click',async function(){if(!confirm('清空本次答题结果？'))return;await post('/api/admin/quiz',{action:'clear'});refresh()});
   var qrb=document.getElementById('quizResetBank');
   if(qrb)qrb.addEventListener('click',async function(){if(!confirm('清空整个题库？'))return;await post('/api/admin/quiz',{action:'resetbank'});refresh()});
+  var mt=document.getElementById('mdTest'), msave=document.getElementById('mdSave');
+  function mdBody(action){return {action:action,baseUrl:document.getElementById('mdBase').value.trim(),model:document.getElementById('mdModel').value.trim(),apiKey:document.getElementById('mdKey').value.trim()}}
+  if(mt)mt.addEventListener('click',async function(){
+    document.getElementById('mdStat').textContent='测试中…';
+    try{
+      var r=await fetch(API+'/api/admin/model',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(mdBody('test'))});
+      var d=await r.json();
+      document.getElementById('mdStat').textContent=d.ok?('连通正常 · '+d.model+' · '+d.ms+'ms · 回复 '+d.reply):('失败：'+(d.error||''));
+    }catch(e){document.getElementById('mdStat').textContent='失败：'+e.message}
+  });
+  if(msave)msave.addEventListener('click',async function(){
+    var r=await fetch(API+'/api/admin/model',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(mdBody('save'))});
+    var d=await r.json();
+    document.getElementById('mdKey').value='';
+    document.getElementById('mdStat').textContent=d.ok?'已保存':'保存失败';
+    refresh();
+  });
   var btnClear=document.getElementById('clearStudents');
   if(btnClear)btnClear.addEventListener('click',async function(){
     if(!confirm('清空全部学员？姓名、投票、抢答记录与提交都会删除，用于下一场培训。'))return;
@@ -347,13 +388,14 @@ refresh();setInterval(refresh,2500);
     document.getElementById('pane-class').classList.toggle('hidden',t!=='class');
     document.getElementById('pane-hw').classList.toggle('hidden',t!=='hw');
     document.getElementById('pane-quiz').classList.toggle('hidden',t!=='quiz');
+    document.getElementById('pane-model').classList.toggle('hidden',t!=='model');
     tabs.forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===t)});
     if(t==='hw'){var f=document.getElementById('hwFrame');if(f&&!f.src)f.src=local?'grader?embed=1':'grader.html?embed=1'}
     try{history.replaceState(null,'','#'+t)}catch(e){}
   }
   tabs.forEach(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-tab'))})});
   var h=(location.hash||'').replace('#','');
-  show(['class','hw','quiz'].indexOf(h)>=0?h:'class');
+  show(['class','hw','quiz','model'].indexOf(h)>=0?h:'class');
 })();
 
 </script>

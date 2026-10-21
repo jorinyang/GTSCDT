@@ -17,11 +17,16 @@ const GROUPS = ['A','B','C','D','E','F','G'];
 function ensureDir(){ if(!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR,{recursive:true}); }
 function blank(){
   const groups={}; GROUPS.forEach(g=>groups[g]={name:g+'组',perf:0});
-  return {students:{},groups,poll:{active:false,question:'',options:[],votes:{},startedAt:''},submissions:{},config:{hwOpen:false,workshopOpen:false,groupMax:3},buzz:{enabled:false,running:false,winner:'',round:0,at:''},quiz:{bank:{choice:[],judge:[],blank:[],short:[]},config:{mode:'random',counts:{choice:5,judge:3,blank:2,short:1},scores:{choice:2,judge:2,blank:3,short:10}},paper:null,answers:{}},updatedAt:new Date().toISOString()};
+  return {students:{},groups,poll:{active:false,question:'',options:[],votes:{},startedAt:''},submissions:{},config:{hwOpen:false,workshopOpen:false,groupMax:3,model:{baseUrl:'https://api.deepseek.com',model:'deepseek-flash',apiKey:''}},buzz:{enabled:false,running:false,winner:'',round:0,at:''},quiz:{bank:{choice:[],judge:[],blank:[],short:[]},config:{mode:'random',counts:{choice:5,judge:3,blank:2,short:1},scores:{choice:2,judge:2,blank:3,short:10}},paper:null,answers:{}},updatedAt:new Date().toISOString()};
 }
 function load(){ ensureDir(); if(!fs.existsSync(STATE_FILE)) return blank();
   try{ const s=JSON.parse(fs.readFileSync(STATE_FILE,'utf8')); return Object.assign(blank(),s); }catch(e){ return blank(); } }
 let state = load();
+try{
+  state.config=state.config||{};
+  if(!state.config.model) state.config.model={baseUrl:'https://api.deepseek.com',model:'deepseek-flash',apiKey:''};
+  if(!state.config.model.apiKey && process.env.DEEPSEEK_API_KEY){ state.config.model.baseUrl=process.env.DEEPSEEK_BASE||'https://api.deepseek.com'; state.config.model.model=process.env.DEEPSEEK_MODEL||'deepseek-flash'; state.config.model.apiKey=process.env.DEEPSEEK_API_KEY; }
+}catch(e){}
 let saveTimer=null;
 function save(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>{ try{ fs.writeFileSync(STATE_FILE, JSON.stringify(state,null,1)); }catch(e){ console.error('save fail',e.message); } },50); }
 function keyOf(name,tail){ return String(name||'').trim()+'|'+String(tail||'').trim(); }
@@ -30,18 +35,29 @@ function ensureStudent(name,tail){ const k=keyOf(name,tail); if(!state.students[
 function qTok(s){return String(s||'').replace(/[\s，。；、,.!?！？:：;；"'“”‘’（）()]/g,'').toLowerCase().split('');}
 function qSim(a,b){var A=qTok(a),B=qTok(b);if(!A.length||!B.length)return 0;var m={};A.forEach(function(c){m[c]=(m[c]||0)+1});var hit=0;B.forEach(function(c){if(m[c]){hit++;m[c]--}});return hit/Math.max(A.length,B.length);}
 function qGrade(q,ans){ if(q.type==='choice')return String(ans||'').toUpperCase()===String(q.answer||'').toUpperCase()?1:0; if(q.type==='judge'||q.type==='blank')return String(ans||'').trim()===String(q.answer||'').trim()?1:0; return Math.round(qSim(ans,q.ref)*100)/100; }
-async function qModelGrade(q,ans){
-  if(!DS_KEY) return null;
+function modelCfg(){
+  const c=(state.config&&state.config.model)||{};
+  return {base:(c.baseUrl||process.env.DEEPSEEK_BASE||'https://api.deepseek.com').replace(/\/$/,''),model:c.model||process.env.DEEPSEEK_MODEL||'deepseek-flash',key:c.apiKey||process.env.DEEPSEEK_API_KEY||''};
+}
+async function modelChat(messages,maxTokens){
+  const cfg=modelCfg(); if(!cfg.key) return {ok:false,error:'未配置 API Key'};
+  const t0=Date.now();
   try{
-    const prompt='你是课堂评分助教。请判断学员答案与参考答案的匹配程度，只输出 0-100 的整数，不要解释。\n题目：'+q.q+'\n参考答案：'+q.ref+'\n学员答案：'+(ans||'（未作答）');
-    const r=await fetch(DS_BASE.replace(/\/$/,'')+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+DS_KEY},body:JSON.stringify({model:DS_MODEL,messages:[{role:'user',content:prompt}],temperature:0})});
-    if(!r.ok) return null;
-    const j=await r.json();
-    const txt=(((j.choices||[])[0]||{}).message||{}).content||'';
-    const n=parseInt(String(txt).replace(/[^0-9]/g,''),10);
-    if(isNaN(n)) return null;
-    return Math.max(0,Math.min(100,n));
-  }catch(e){ return null; }
+    const r=await fetch(cfg.base+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key},body:JSON.stringify({model:cfg.model,messages:messages,temperature:0,max_tokens:maxTokens||600})});
+    const txt=await r.text();
+    if(!r.ok) return {ok:false,error:'HTTP '+r.status+' '+txt.slice(0,160)};
+    const j=JSON.parse(txt);
+    const content=(((j.choices||[])[0]||{}).message||{}).content||'';
+    return {ok:true,content,ms:Date.now()-t0,model:cfg.model};
+  }catch(e){ return {ok:false,error:String(e.message||e)}; }
+}
+async function qModelGrade(q,ans){
+  const prompt='你是课堂评分助教。请判断学员答案与参考答案的匹配程度，只输出 0-100 的整数，不要解释。\n题目：'+q.q+'\n参考答案：'+q.ref+'\n学员答案：'+(ans||'（未作答）');
+  const r=await modelChat([{role:'user',content:prompt}],600);
+  if(!r.ok){ console.error('[qmodel] fail:',r.error); return null; }
+  const n=parseInt(String(r.content).replace(/[^0-9]/g,''),10);
+  if(isNaN(n)) return null;
+  return Math.max(0,Math.min(100,n));
 }
 function studentView(k){
   const s=state.students[k];
@@ -75,7 +91,8 @@ function adminView(){
   const results={};
   if(state.poll.options&&state.poll.options.length){ state.poll.options.forEach((o,i)=>{results[i]=0}); Object.values(state.poll.votes||{}).forEach(v=>{ if(results[v]!==undefined) results[v]++ }); }
   const subs=Object.keys(state.submissions).map(k=>{ const p=k.split('||'); const st=state.students[p[0]]||{}; const sub=state.submissions[k]; return {key:k,studentKey:p[0],name:st.name||p[0],tail:st.tail||'',task:p[1],text:sub.text||'',fileName:sub.fileName||'',q1:sub.q1||'',q2:sub.q2||'',q3:sub.q3||'',files:sub.files||[],at:sub.at,manual:sub.manual||[],score:sub.score||null}; });
-  return {ok:true,quiz:quizInfo,config:state.config||{},buzz:state.buzz||{enabled:false,running:false,winner:''},students:Object.keys(state.students).map(k=>Object.assign({key:k},state.students[k])),groups:Object.keys(state.groups).map(g=>({id:g,name:state.groups[g].name,perf:state.groups[g].perf||0,count:counts[g]})),counts,poll:{active:state.poll.active,question:state.poll.question,options:state.poll.options,votes:state.poll.votes,results,startedAt:state.poll.startedAt},submissions:subs,updatedAt:state.updatedAt};
+  const _mc=modelCfg();
+  return {ok:true,quiz:quizInfo,model:{baseUrl:_mc.base,model:_mc.model,hasKey:!!_mc.key},config:state.config||{},buzz:state.buzz||{enabled:false,running:false,winner:''},students:Object.keys(state.students).map(k=>Object.assign({key:k},state.students[k])),groups:Object.keys(state.groups).map(g=>({id:g,name:state.groups[g].name,perf:state.groups[g].perf||0,count:counts[g]})),counts,poll:{active:state.poll.active,question:state.poll.question,options:state.poll.options,votes:state.poll.votes,results,startedAt:state.poll.startedAt},submissions:subs,updatedAt:state.updatedAt};
 }
 function send(res,code,obj,type='application/json; charset=utf-8'){ const body=Buffer.isBuffer(obj)||typeof obj==='string'?obj:JSON.stringify(obj); res.writeHead(code,{'Content-Type':type,'Cache-Control':'no-store','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Content-Type','Access-Control-Allow-Methods':'GET,POST,OPTIONS'}); res.end(body); }
 function readBody(req){ return new Promise((resolve,reject)=>{ let d=''; req.on('data',c=>{d+=c; if(d.length>2e6){reject(new Error('too large'));req.destroy()}}); req.on('end',()=>{ try{resolve(d?JSON.parse(d):{})}catch(e){resolve({})} }); req.on('error',reject); }); }
@@ -284,9 +301,49 @@ const server=http.createServer(async (req,res)=>{
         }
         if(p==='/api/admin/group'){ const k=keyOf(b.name,b.tail); const s=state.students[k]; if(!s) return send(res,404,{ok:false,error:'student not found'}); s.group=b.group||''; state.updatedAt=new Date().toISOString(); save(); return send(res,200,{ok:true}); }
         if(p==='/api/admin/perf'){ if(!state.groups[b.group]) return send(res,400,{ok:false,error:'bad group'}); state.groups[b.group].perf=(state.groups[b.group].perf||0)+Number(b.delta||0); state.updatedAt=new Date().toISOString(); save(); return send(res,200,{ok:true,perf:state.groups[b.group].perf}); }
+        if(p==='/api/admin/model'){
+          const act=b.action||'save';
+          if(act==='test'){
+            const cfg={baseUrl:(b.baseUrl||'').trim(),model:(b.model||'').trim(),apiKey:(b.apiKey||'').trim()||(state.config.model&&state.config.model.apiKey)||''};
+            if(!cfg.apiKey) return send(res,400,{ok:false,error:'请先填写 API Key'});
+            const old=state.config.model; state.config.model=cfg;
+            const r=await modelChat([{role:'user',content:'只回复两个字母：OK'}],20);
+            state.config.model=old;
+            if(!r.ok) return send(res,502,{ok:false,error:r.error});
+            return send(res,200,{ok:true,reply:String(r.content).slice(0,40),ms:r.ms,model:r.model});
+          }
+          state.config.model=state.config.model||{};
+          if(b.baseUrl!==undefined) state.config.model.baseUrl=String(b.baseUrl||'').trim();
+          if(b.model!==undefined) state.config.model.model=String(b.model||'').trim();
+          if(b.apiKey) state.config.model.apiKey=String(b.apiKey).trim();
+          save(); return send(res,200,{ok:true});
+        }
+        if(p==='/api/admin/scoreai'){
+          const sub=state.submissions[b.key]; if(!sub) return send(res,404,{ok:false,error:'submission not found'});
+          const rubric=b.rubric||[];
+          if(!rubric.length) return send(res,400,{ok:false,error:'缺少评分标准'});
+          const answer=['【正文】',String(sub.text||'（空）').slice(0,2500),'【三问】',(sub.q1||''),' / ',(sub.q2||''),' / ',(sub.q3||'')].join('\n');
+          const prompt='你是企业 AI 培训的作业评分助教。按下面的评分标准逐项打分。\n评分标准（编号|标准|满分）：\n'+rubric.map(function(c,i){return (i+1)+'|'+c.t+'|'+c.pts}).join('\n')+'\n\n学员作业：\n'+answer+'\n\n严格按每行“编号|分数|一句依据”的格式输出，不要标题、不要解释、不要多余文字，分数不超过该项满分。';
+          const r=await modelChat([{role:'user',content:prompt}],1600);
+          if(!r.ok) return send(res,502,{ok:false,error:r.error});
+          const items=[]; let total=0;
+          String(r.content).split(/\n+/).forEach(function(line){
+            const m=line.match(/^\s*(\d+)\s*[|｜]\s*([0-9.]+)\s*[|｜]?\s*(.*)$/);
+            if(!m) return;
+            const idx=Number(m[1])-1; const rb=rubric[idx]; if(!rb) return;
+            const mx=Number(rb.pts)||0; const sc=Math.max(0,Math.min(mx,Number(m[2])||0));
+            items.push({t:rb.t,score:sc,max:mx,why:(m[3]||'').slice(0,80)}); total+=sc;
+          });
+          if(!items.length) return send(res,502,{ok:false,error:'模型返回无法解析：'+String(r.content).slice(0,200)});
+          const obj={items:items};
+          const cap=rubric.reduce(function(a,c){return a+(Number(c.pts)||0)},0);
+          total=Math.round(Math.min(total,cap)*10)/10;
+          sub.score={ai:true,total:total,override:total,items:obj.items,model:r.model,at:new Date().toLocaleString('zh-CN')};
+          save(); return send(res,200,{ok:true,score:sub.score});
+        }
         if(p==='/api/admin/score'){ const sub=state.submissions[b.key]; if(!sub) return send(res,404,{ok:false,error:'submission not found'}); if(b.manual) sub.manual=b.manual; if(b.score) sub.score=b.score; save(); return send(res,200,{ok:true}); }
         /* score 可含 override 字段：人工直接定总分 */
-        if(p==='/api/admin/reset'){ if(b.scope==='poll'){ state.poll={active:false,question:'',options:[],votes:{},startedAt:''}; } else if(b.scope==='groups'){ Object.values(state.students).forEach(s=>s.group=''); } else { state=blank(); } save(); return send(res,200,{ok:true}); }
+        if(p==='/api/admin/reset'){ if(b.scope==='poll'){ state.poll={active:false,question:'',options:[],votes:{},startedAt:''}; } else if(b.scope==='groups'){ Object.values(state.students).forEach(s=>s.group=''); } else { const _m=state.config&&state.config.model; state=blank(); if(_m)state.config.model=_m; } save(); return send(res,200,{ok:true}); }
       }
       return send(res,404,{ok:false,error:'no api'});
     }catch(e){ return send(res,500,{ok:false,error:String(e.message||e)}); }
