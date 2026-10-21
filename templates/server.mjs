@@ -300,8 +300,10 @@ const server=http.createServer(async (req,res)=>{
       if(!tj.accessToken) return send(res,401,'钉钉授权失败','text/html; charset=utf-8');
       const ur=await fetch('https://api.dingtalk.com/v1.0/contact/users/me',{headers:{'x-acs-dingtalk-access-token':tj.accessToken}});
       const me=await ur.json();
+      const uid=me.unionId||me.openId||'';
       const teachers=loadTeachers();
-      let t=teachers.filter(x=>x.dingUnionId===me.unionId||x.dingOpenId===me.openId)[0];
+      let t=teachers.filter(x=>(uid&&(x.dingUnionId===uid||x.dingOpenId===uid))||(!uid&&x.id==='t-bootstrap'))[0];
+      if(t && uid && !t.dingUnionId && !t.dingOpenId){ t.dingUnionId=me.unionId||''; t.dingOpenId=me.openId||''; if(!t.name||t.name==='首位讲师')t.name=me.nick||t.name; saveTeachers(teachers); }
       if(!t && teachers.length===0){
         t={id:'t-bootstrap',name:me.nick||'首位讲师',role:'admin',dept:'',dingUnionId:me.unionId||'',dingOpenId:me.openId||'',createdAt:new Date().toISOString()};
         teachers.push(t); saveTeachers(teachers);
