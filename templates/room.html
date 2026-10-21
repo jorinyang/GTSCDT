@@ -1,0 +1,66 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>房间入口 · GTSCDT</title>
+<style>
+:root{--bg:#081813;--line:rgba(244,239,226,.13);--text:#F4EFE2;--muted:#9DB3A6;--amber:#D98A2B;--amber-l:#E9B45C}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;padding:22px}
+a{color:var(--amber-l);text-decoration:none}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap}
+.brand{font-size:12px;letter-spacing:.12em;color:#7E978A}
+h1{font-size:24px;margin:4px 0}
+.code{font-size:42px;font-weight:800;color:#F6E4C6;letter-spacing:.18em}
+.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;margin-top:16px}
+.card{background:linear-gradient(180deg,#0C2A21,#081813);border:1px solid var(--line);border-radius:16px;padding:18px}
+.k{font-size:12px;letter-spacing:.12em;color:var(--muted);margin-bottom:10px}
+.linkrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.linkrow:last-child{border-bottom:0}
+.linkrow .l{font-size:15px;color:#E9E4D6}
+.linkrow .u{font-size:12px;color:var(--muted);word-break:break-all;margin-top:3px}
+.btn{border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);border-radius:9px;padding:7px 12px;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.btn.primary{background:rgba(217,138,43,.18);border-color:rgba(233,180,92,.55);color:#F6E4C6}
+.qr{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+#qrcode{background:#F4EFE2;padding:12px;border-radius:12px}
+.muted{color:var(--muted)} .small{font-size:12px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+</style></head><body>
+<div class="top"><div class="brand">GTSCDT · 房间入口</div><div><a href="/rooms">← 房间列表</a> · <a href="/ops" id="lnkOps">课堂后台</a></div></div>
+<h1 id="title">课堂房间</h1>
+<div class="code" id="code">ROOM0</div>
+<p class="muted small" style="margin-top:6px">把这个页面投屏或发给助教，所有入口和学员二维码都在这里。</p>
+<div class="grid">
+  <div class="card">
+    <div class="k">全部入口</div>
+    <div id="links"></div>
+  </div>
+  <div class="card">
+    <div class="k">学员端二维码</div>
+    <div class="qr"><div id="qrcode"></div><div class="small muted" id="joinurl"></div></div>
+  </div>
+</div>
+<script src="/qrcode.min.js"></script>
+<script>
+var q=new URLSearchParams(location.search);
+var CODE=(q.get('code')||q.get('room')||'ROOM0').toUpperCase();
+document.getElementById('code').textContent=CODE;
+fetch('/api/rooms',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+  var room=(d.rooms||[]).filter(function(x){return x.code===CODE})[0];
+  if(room)document.getElementById('title').textContent=room.title;
+}).catch(function(){});
+var base=location.origin;
+var items=[
+ ['学员入口（扫码加入）', base+'/join?room='+CODE],
+ ['大屏（投影用）', base+'/screen?room='+CODE],
+ ['遥控器（讲师手机）', base+'/remote?room='+CODE],
+ ['课堂后台（四标签）', base+'/ops?room='+CODE],
+ ['课堂报告', base+'/report?room='+CODE],
+ ['课程包播放', base+'/shell?room='+CODE]
+];
+document.getElementById('links').innerHTML=items.map(function(x,i){
+  return '<div class="linkrow"><div><div class="l">'+x[0]+'</div><div class="u">'+x[1]+'</div></div>'
+    +'<div><a class="btn" href="'+x[1]+'" target="_blank">打开</a> <button class="btn" data-copy="'+i+'">复制</button></div></div>';
+}).join('');
+document.querySelectorAll('[data-copy]').forEach(function(b){b.onclick=function(){var u=items[+b.getAttribute('data-copy')][1];navigator.clipboard&&navigator.clipboard.writeText(u);b.textContent='已复制';setTimeout(function(){b.textContent='复制'},1200)}});
+document.getElementById('lnkOps').href='/ops?room='+CODE;
+var join=base+'/join?room='+CODE;
+document.getElementById('joinurl').textContent=join;
+new QRCode(document.getElementById('qrcode'),{text:join,width:220,height:220,colorDark:'#0A1F1A',colorLight:'#F4EFE2',correctLevel:QRCode.CorrectLevel.M});
+</script></body></html>

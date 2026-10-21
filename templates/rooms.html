@@ -32,14 +32,14 @@ function load(){
   fetch('/api/rooms').then(function(r){return r.json()}).then(function(d){
     var rows=(d.rooms||[]).map(function(x){
       return '<tr><td><b>'+x.code+'</b></td><td>'+x.title+'</td><td>'+x.students+'</td><td class="small">'
-        +'<a href="/ops?room='+x.code+'">操作台</a> · <a href="/screen?room='+x.code+'" target="_blank">大屏</a> · <a href="/remote?room='+x.code+'" target="_blank">遥控器</a> · <a href="/join?room='+x.code+'" target="_blank">学员</a></td></tr>';
+        +'<a href="/room?code='+x.code+'">入口页</a> · <a href="/ops?room='+x.code+'">操作台</a> · <a href="/screen?room='+x.code+'" target="_blank">大屏</a> · <a href="/remote?room='+x.code+'" target="_blank">遥控器</a> · <a href="/join?room='+x.code+'" target="_blank">学员</a></td></tr>';
     }).join('');
     document.getElementById('tbl').innerHTML='<tr><th>房间码</th><th>名称</th><th>人数</th><th>入口</th></tr>'+rows;
   });
 }
 document.getElementById('create').onclick=function(){
   fetch('/api/rooms/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:document.getElementById('title').value})}).then(function(r){return r.json()}).then(function(d){
-    if(d.ok){location.href='/ops?room='+d.code}else{document.getElementById('msg').textContent=d.error||'创建失败'}
+    if(d.ok){location.href='/room?code='+d.code}else{document.getElementById('msg').textContent=d.error||'创建失败'}
   });
 };
 load();
