@@ -33,6 +33,8 @@ textarea{width:100%}
   <textarea id="content" rows="6" placeholder="粘贴课程素材：主题、要点、时间安排、案例……"></textarea>
   <div style="margin-top:8px"><button class="btn primary" id="ai">生成</button> <span class="muted small" id="aimsg"></span></div>
 </div>
+<div class="card"><div class="k">AI 生成整套课程（宣传页 / 课程页 / 题库 / 素材 / 作业题）</div><p class="muted small" style="margin-bottom:8px">使用「模型管理」里保存的模型；生成时间约 30–90 秒。</p><input id="genTitle" placeholder="课程名称" style="width:min(420px,100%);margin-bottom:8px" /><textarea id="genOutline" rows="5" placeholder="粘贴课程大纲（模块、时间、目标、案例）"></textarea><textarea id="genCourseware" rows="5" placeholder="粘贴课件内容/要点（可选）" style="margin-top:8px"></textarea><div style="margin-top:8px"><button class="btn primary" id="genBtn">生成整套课程</button> <span class="muted small" id="genMsg"></span></div><div id="genResult" class="small" style="margin-top:10px"></div></div>
+
 <div class="card"><div class="k">已有课程包</div><div style="overflow:auto"><table id="tbl"></table></div></div>
 <script>
 function load(){fetch('/api/packages').then(function(r){return r.json()}).then(function(d){
@@ -47,6 +49,30 @@ document.getElementById('upload').onclick=function(){
   f.text().then(function(txt){
     fetch('/api/packages?title='+encodeURIComponent(document.getElementById('title').value||f.name),{method:'POST',headers:{'Content-Type':'text/html'},body:txt}).then(function(r){return r.json()}).then(function(d){ document.getElementById('msg').textContent=d.ok?'已上传':(d.error||'失败'); load(); });
   });
+};
+document.getElementById('genBtn').onclick=function(){
+  var title=document.getElementById('genTitle').value.trim()||'课程';
+  var outline=document.getElementById('genOutline').value.trim();
+  var courseware=document.getElementById('genCourseware').value.trim();
+  if(!outline&&!courseware){document.getElementById('genMsg').textContent='先给大纲或课件';return}
+  document.getElementById('genMsg').textContent='生成中，约 30–90 秒…';
+  fetch('/api/generate/course',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:title,outline:outline,courseware:courseware})}).then(function(r){return r.json()}).then(function(d){
+    if(!d.ok){document.getElementById('genMsg').textContent='失败：'+(d.error||'');return}
+    document.getElementById('genMsg').textContent='已生成（模型 '+d.model+'）';
+    var c=d.counts||{}, q=c.quiz||{};
+    var h='<div>课程页：<a href="'+d.urls.course+'" target="_blank">预览</a> · 宣传页：<a href="'+d.urls.promo+'" target="_blank">预览</a></div>'
+      +'<div>题库：选择 '+(q.choice||0)+' / 判断 '+(q.judge||0)+' / 填空 '+(q.blank||0)+' / 简答 '+(q.short||0)+' · 素材 '+(c.materials||0)+' 份 · 作业 '+(c.homework||0)+' 道</div>'
+      +'<div>题库文件：<a href="'+d.urls.quiz+'" target="_blank">quiz.json</a> · 作业：<a href="'+d.urls.homework+'" target="_blank">homework.json</a></div>'
+      +'<div style="margin-top:6px"><button class="btn" id="applyQuiz">把题库应用到当前房间</button> <span class="muted small" id="applyMsg"></span></div>';
+    if(d.errors&&d.errors.length)h+='<div class="muted">部分失败：'+d.errors.join('；')+'</div>';
+    document.getElementById('genResult').innerHTML=h;
+    document.getElementById('applyQuiz').onclick=function(){
+      fetch('/api/generate/apply-quiz',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pkg:d.id})}).then(function(r){return r.json()}).then(function(x){
+        document.getElementById('applyMsg').textContent=x.ok?('已应用：选 '+x.counts.choice+' / 判 '+x.counts.judge+' / 填 '+x.counts.blank+' / 简 '+x.counts.short):('失败：'+(x.error||''));
+      });
+    };
+    load();
+  }).catch(function(e){document.getElementById('genMsg').textContent='失败：'+e.message});
 };
 document.getElementById('ai').onclick=function(){
   var c=document.getElementById('content').value.trim(); if(!c){document.getElementById('aimsg').textContent='先填素材';return}

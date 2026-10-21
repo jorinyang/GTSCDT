@@ -207,6 +207,58 @@ async function mcpHandle(msg){
   }
   return {jsonrpc:'2.0',id,error:{code:-32601,message:'method not found'}};
 }
+async function dingCorpUser(unionId){
+  if(!(DING_ID&&DING_SECRET&&unionId)) return null;
+  try{
+    const tr=await fetch('https://oapi.dingtalk.com/gettoken?appkey='+encodeURIComponent(DING_ID)+'&appsecret='+encodeURIComponent(DING_SECRET));
+    const tj=await tr.json(); if(!tj.access_token) return {ok:false,reason:'token'};
+    const u1=await fetch('https://oapi.dingtalk.com/topapi/user/getbyunionid?access_token='+tj.access_token,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({unionid:unionId})});
+    const j1=await u1.json(); const userid=j1.result&&j1.result.userid;
+    if(!userid) return {ok:false,reason:'not_in_org'};
+    const u2=await fetch('https://oapi.dingtalk.com/topapi/v2/user/get?access_token='+tj.access_token,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userid:userid})});
+    const j2=await u2.json(); const r2=j2.result||{};
+    return {ok:true,userid:userid,name:r2.name||'',dept:(r2.dept_id_list||[]).join('/')};
+  }catch(e){ return {ok:false,reason:String(e.message||e)}; }
+}
+async function genJSON(prompt,maxTokens){
+  const r=await modelChat([{role:'user',content:prompt}],maxTokens||2600);
+  if(!r.ok) return {err:r.error};
+  let s=String(r.content||'').replace(/^[\s\S]*?\{/,'{').replace(/\}[\s\S]*$/,'}');
+  try{ return {data:JSON.parse(s)}; }catch(e){ return {err:'模型返回无法解析'}; }
+}
+function normalizeQuiz(q){
+  const out={choice:[],judge:[],blank:[],short:[]};
+  (q.choice||[]).forEach(function(x,i){ const o=(x.options||[]).map(String).filter(Boolean).slice(0,4); if(o.length>=2&&x.q) out.choice.push({id:'choice-gen-'+i,type:'choice',q:String(x.q),options:o,answer:String(x.answer||'A').toUpperCase().replace(/[^A-D]/g,'')||'A'}); });
+  (q.judge||[]).forEach(function(x,i){ if(x.q) out.judge.push({id:'judge-gen-'+i,type:'judge',q:String(x.q),answer:(String(x.answer).indexOf('错')>=0?'错':'对')}); });
+  (q.blank||[]).forEach(function(x,i){ if(x.q) out.blank.push({id:'blank-gen-'+i,type:'blank',q:String(x.q),answer:String(x.answer||'')}); });
+  (q.short||[]).forEach(function(x,i){ if(x.q) out.short.push({id:'short-gen-'+i,type:'short',q:String(x.q),ref:String(x.ref||'')}); });
+  return out;
+}
+function newPackageDir(title){
+  fs.mkdirSync(PACKAGES_DIR,{recursive:true});
+  const id='pkg-'+Date.now().toString(36);
+  const dir=path.join(PACKAGES_DIR,id);
+  fs.mkdirSync(path.join(dir,'materials'),{recursive:true});
+  fs.writeFileSync(path.join(dir,'meta.json'), JSON.stringify({id,title:title||'课程包',createdAt:new Date().toISOString()},null,1));
+  return {id,dir};
+}
+function renderPromo(meta,p){
+  const esc=function(x){return String(x==null?'':x).replace(/[&<>"]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]})};
+  const m=meta||{}, d=p||{};
+  const mods=(d.modules||[]).map(function(x){return '<div class="mod"><b>'+esc(x.title)+'</b><ul>'+(x.points||[]).map(function(y){return '<li>'+esc(y)+'</li>'}).join('')+'</ul></div>'}).join('');
+  const outs=(d.outcomes||[]).map(function(x){return '<li>'+esc(x)+'</li>'}).join('');
+  const sch=(d.schedule||[]).map(function(x){return '<div class="row"><span>'+esc(x.time)+'</span><span>'+esc(x.text)+'</span></div>'}).join('');
+  return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(m.title||d.headline||'课程')+'</title>'
+  +'<style>:root{--bg:#081813;--text:#F4EFE2;--muted:#9DB3A6;--amber:#D98A2B;--jade:#2F8F73}*{box-sizing:border-box;margin:0;padding:0}body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}'
+  +'.wrap{max-width:980px;margin:0 auto;padding:64px 24px}h1{font-size:48px;line-height:1.2;margin-bottom:14px}.sub{font-size:20px;color:#F6E4C6;margin-bottom:24px}.intro{font-size:16px;line-height:1.9;color:#DDE6DE;max-width:720px}'
+  +'.k{font-size:12px;letter-spacing:.18em;color:var(--muted);margin:42px 0 14px}.mods{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.mod{border:1px solid rgba(244,239,226,.13);border-radius:14px;padding:16px;background:rgba(255,255,255,.03)}'
+  +'.mod ul{margin:8px 0 0 18px;color:#CFDCD2;line-height:1.8;font-size:14px}ul.clean{list-style:none;line-height:2}.row{display:flex;justify-content:space-between;border-bottom:1px solid rgba(244,239,226,.12);padding:9px 0;font-size:15px}.cta{display:inline-block;margin-top:34px;background:var(--amber);color:#20150A;padding:12px 22px;border-radius:12px;font-weight:700;text-decoration:none}</style></head><body><div class="wrap">'
+  +'<h1>'+esc(d.headline||m.title||'课程')+'</h1><div class="sub">'+esc(d.subline||m.subtitle||'')+'</div><p class="intro">'+esc(d.intro||'')+'</p>'
+  +'<div class="k">课程模块</div><div class="mods">'+mods+'</div>'
+  +'<div class="k">你会得到</div><ul class="clean">'+outs+'</ul>'
+  +'<div class="k">时间安排</div>'+sch
+  +'<a class="cta" href="#">'+esc(d.cta||'报名/咨询')+'</a></div></body></html>';
+}
 function savePackage(title, html){
   fs.mkdirSync(PACKAGES_DIR,{recursive:true});
   const id='pkg-'+Date.now().toString(36);
@@ -300,7 +352,14 @@ const server=http.createServer(async (req,res)=>{
       if(!tj.accessToken) return send(res,401,'钉钉授权失败','text/html; charset=utf-8');
       const ur=await fetch('https://api.dingtalk.com/v1.0/contact/users/me',{headers:{'x-acs-dingtalk-access-token':tj.accessToken}});
       const me=await ur.json();
+      let corpInfo=null;
+      if(process.env.DINGTALK_CORP_ID){
+        corpInfo=await dingCorpUser(me.unionId);
+        if((!corpInfo||!corpInfo.ok) && process.env.ALLOW_NON_ORG!=='1') return send(res,403,'仅限育钉组织成员登录','text/html; charset=utf-8');
+      }
+      if(corpInfo&&corpInfo.name&&!me.nick) me.nick=corpInfo.name;
       const uid=me.unionId||me.openId||'';
+      if(corpInfo&&corpInfo.dept) me._dept=corpInfo.dept;
       const teachers=loadTeachers();
       let t=teachers.filter(x=>(uid&&(x.dingUnionId===uid||x.dingOpenId===uid))||(!uid&&x.id==='t-bootstrap'))[0];
       if(t && uid && !t.dingUnionId && !t.dingOpenId){ t.dingUnionId=me.unionId||''; t.dingOpenId=me.openId||''; if(!t.name||t.name==='首位讲师')t.name=me.nick||t.name; saveTeachers(teachers); }
@@ -308,7 +367,7 @@ const server=http.createServer(async (req,res)=>{
         t={id:'t-bootstrap',name:me.nick||'首位讲师',role:'admin',dept:'',dingUnionId:me.unionId||'',dingOpenId:me.openId||'',createdAt:new Date().toISOString()};
         teachers.push(t); saveTeachers(teachers);
       }
-      if(t&&!t.dept){ const dept=await dingDept(me.unionId); if(dept){ t.dept=dept; saveTeachers(teachers); } }
+      if(t&&!t.dept){ const dept=(corpInfo&&corpInfo.dept)||await dingDept(me.unionId); if(dept){ t.dept=dept; saveTeachers(teachers); } }
       if(!t) return send(res,403,'该钉钉账号未加入讲师名单，请联系管理员','text/html; charset=utf-8');
       setTeacherCookie(res,t);
       res.writeHead(302,{Location:'/ops'}); return res.end();
@@ -326,6 +385,40 @@ const server=http.createServer(async (req,res)=>{
   if(p==='/api/teachers/delete' && req.method==='POST'){
     const b=await readBody(req); const list=loadTeachers().filter(x=>x.id!==b.id); saveTeachers(list);
     return send(res,200,{ok:true});
+  }
+  if(p==='/api/generate/course' && req.method==='POST'){
+    const b=await readBody(req);
+    const title=String(b.title||'').slice(0,80)||'课程';
+    const outline=String(b.outline||'').slice(0,8000);
+    const courseware=String(b.courseware||'').slice(0,8000);
+    if(!outline.trim()&&!courseware.trim()) return send(res,400,{ok:false,error:'请提供课程大纲或课件内容'});
+    const mc=modelCfg(); if(!mc.key) return send(res,400,{ok:false,error:'请先在「模型管理」里配置模型与 API Key'});
+    const base='课程名称：'+title+'\n大纲：\n'+outline+'\n课件/素材：\n'+courseware+'\n';
+    const r1=await genJSON('你是企业 AI 培训课程设计助手。根据素材生成课程页的分页内容，只输出 JSON。格式：{"title":"","subtitle":"","sections":[{"type":"cover","title":"","text":"","meta":""},{"type":"bullets","title":"","items":[""]},{"type":"timeline","title":"","items":[{"time":"","text":""}]},{"type":"quote","title":"","text":""}]}\n'+base,3000);
+    const r2=await genJSON('生成课程宣传页文案，只输出 JSON：{"headline":"","subline":"","intro":"","modules":[{"title":"","points":[""]}],"outcomes":[""],"schedule":[{"time":"","text":""}],"cta":""}\n'+base,2200);
+    const r3=await genJSON('生成随堂题库，只输出 JSON：{"choice":[{"q":"","options":["","","",""],"answer":"A"}],"judge":[{"q":"","answer":"对"}],"blank":[{"q":"","answer":""}],"short":[{"q":"","ref":""}]}。选择题 6 道、判断 4 道、填空 4 道、简答 2 道。\n'+base,2600);
+    const r4=await genJSON('生成课程过程素材与作业场景题。只输出 JSON：{"materials":[{"title":"","content":""}],"homework":[{"title":"","scenario":"","requirements":[""],"deliverable":"","acceptance":""}]}。素材至少 4 份（任务卡/案例/检查表），作业 6 道。\n'+base,3000);
+    const pk=newPackageDir(title); const id=pk.id, dir=pk.dir;
+    const course=(r1.data&&r1.data.sections)?r1.data:{title:title,subtitle:'',sections:[{type:'cover',title:title,text:outline.slice(0,120)}].concat(String(outline).split(/\n{2,}/).slice(0,8).map(function(x,i){return {type:'bullets',title:'要点 '+(i+1),items:[x.slice(0,80)]}}))};
+    fs.writeFileSync(path.join(dir,'index.html'), renderCoursePackage({title:course.title||title,subtitle:course.subtitle||'',date:''}, course));
+    fs.writeFileSync(path.join(dir,'promo.html'), renderPromo({title:title}, r2.data||{}));
+    const quiz=normalizeQuiz(r3.data||{});
+    fs.writeFileSync(path.join(dir,'quiz.json'), JSON.stringify(quiz,null,2));
+    const hw=(r4.data&&r4.data.homework)||[]; const mats=(r4.data&&r4.data.materials)||[];
+    fs.writeFileSync(path.join(dir,'homework.json'), JSON.stringify(hw,null,2));
+    mats.forEach(function(m,i){ const name=String(i+1).padStart(2,'0')+'-'+String(m.title||'素材').replace(/[\\/:*?"<>|]/g,'_')+'.md'; fs.writeFileSync(path.join(dir,'materials',name), '# '+(m.title||'素材')+'\n\n'+(m.content||'')); });
+    fs.writeFileSync(path.join(dir,'meta.json'), JSON.stringify({id,title,createdAt:new Date().toISOString(),model:mc.model,quiz:{choice:quiz.choice.length,judge:quiz.judge.length,blank:quiz.blank.length,short:quiz.short.length},homework:hw.length,materials:mats.length},null,1));
+    return send(res,200,{ok:true,id,title,model:mc.model,urls:{course:'/pkg/'+id+'/index.html',promo:'/pkg/'+id+'/promo.html',quiz:'/pkg/'+id+'/quiz.json',homework:'/pkg/'+id+'/homework.json'},counts:{quiz:{choice:quiz.choice.length,judge:quiz.judge.length,blank:quiz.blank.length,short:quiz.short.length},homework:hw.length,materials:mats.length},errors:[r1.err,r2.err,r3.err,r4.err].filter(Boolean)});
+  }
+  if(p==='/api/generate/apply-quiz' && req.method==='POST'){
+    const b=await readBody(req); const id=String(b.pkg||'');
+    if(!/^pkg-[a-z0-9]+$/.test(id)) return send(res,400,{ok:false,error:'bad package'});
+    let q={}; try{ q=JSON.parse(fs.readFileSync(path.join(PACKAGES_DIR,id,'quiz.json'),'utf8')); }catch(e){ return send(res,404,{ok:false,error:'no quiz'}); }
+    state.quiz=state.quiz||{};
+    state.quiz.bank=normalizeQuiz(q);
+    state.quiz.config={mode:'random',counts:{choice:5,judge:3,blank:2,short:1},scores:{choice:2,judge:2,blank:3,short:10}};
+    save();
+    return send(res,200,{ok:true,counts:{choice:state.quiz.bank.choice.length,judge:state.quiz.bank.judge.length,blank:state.quiz.bank.blank.length,short:state.quiz.bank.short.length}});
   }
   if(p==='/api/packages' && req.method==='GET') return send(res,200,{ok:true,packages:listPackages()});
   if(p==='/api/packages' && req.method==='POST'){
@@ -378,7 +471,7 @@ const server=http.createServer(async (req,res)=>{
   if(AUTH_REQUIRED){
     const teacher=getTeacher(req);
     const htmlGuarded=(p==='/ops'||p==='/admin'||p==='/grader'||p==='/shell'||p==='/rooms'||p==='/teachers'||p==='/packages'||p==='/report'||p==='/remote');
-    const apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p.indexOf('/api/rooms')===0)||(p==='/api/report')||(p==='/api/report.csv')||(p.indexOf('/api/packages')===0);
+    const apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p.indexOf('/api/rooms')===0)||(p==='/api/report')||(p==='/api/report.csv')||(p.indexOf('/api/packages')===0)||(p.indexOf('/api/generate')===0);
     if(htmlGuarded&&!teacher){ res.writeHead(302,{Location:'/login'}); return res.end(); }
     if(apiGuarded&&!teacher) return send(res,401,{ok:false,error:'login required'});
   }
