@@ -687,6 +687,15 @@ const server=http.createServer(async (req,res)=>{
     const code=createRoom(b.title);
     return send(res,200,{ok:true,code,urls:{room:'/room?code='+code,ops:'/ops?room='+code,join:'/join?room='+code,screen:'/screen?room='+code,remote:'/remote?room='+code}});
   }
+  if(p==='/api/rooms/delete' && req.method==='POST'){
+    const b=await readBody(req); const code=String(b.code||'').toUpperCase();
+    if(!validRoom(code)) return send(res,400,{ok:false,error:'房间码不对'});
+    if(code===DEFAULT_ROOM) return send(res,400,{ok:false,error:'默认房间不可删除'});
+    const dir=path.join(ROOMS_DIR,code);
+    if(!fs.existsSync(dir)) return send(res,404,{ok:false,error:'房间不存在'});
+    fs.rmSync(dir,{recursive:true,force:true});
+    return send(res,200,{ok:true,code});
+  }
   if(p==='/api/screen') return send(res,200,screenView());
   if(p==='/api/stream'){
     res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache','Connection':'keep-alive','Access-Control-Allow-Origin':'*'});

@@ -22,7 +22,7 @@ h1{font-size:24px;margin:4px 0}
 .muted{color:var(--muted)} .small{font-size:12px}
 @media(max-width:900px){.grid{grid-template-columns:1fr}}
 </style></head><body>
-<div class="top"><div class="brand">GTSCDT · 房间入口</div><div><a href="/rooms">← 房间列表</a> · <a href="/ops" id="lnkOps">课堂后台</a></div></div>
+<div class="top"><div class="brand">GTSCDT · 房间入口</div><div><a href="/rooms">← 房间列表</a> · <a href="/ops" id="lnkOps">课堂后台</a> · <button class="btn" id="delRoom" style="display:none">删除房间</button></div></div>
 <h1 id="title">课堂房间</h1>
 <div class="code" id="code">ROOM0</div>
 <p class="muted small" style="margin-top:6px">把这个页面投屏或发给助教，所有入口和学员二维码都在这里。</p>
@@ -60,6 +60,7 @@ document.getElementById('links').innerHTML=items.map(function(x,i){
 }).join('');
 document.querySelectorAll('[data-copy]').forEach(function(b){b.onclick=function(){var u=items[+b.getAttribute('data-copy')][1];navigator.clipboard&&navigator.clipboard.writeText(u);b.textContent='已复制';setTimeout(function(){b.textContent='复制'},1200)}});
 document.getElementById('lnkOps').href='/ops?room='+CODE;
+if(CODE!=='ROOM0'){ var db=document.getElementById('delRoom'); db.style.display='inline-block'; db.onclick=function(){ if(!confirm('删除房间 '+CODE+'？该房间全部数据将不可恢复。'))return; fetch('/api/rooms/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:CODE})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)location.href='/rooms'; else alert(d.error||'删除失败'); }); }; }
 var join=base+'/join?room='+CODE;
 document.getElementById('joinurl').textContent=join;
 new QRCode(document.getElementById('qrcode'),{text:join,width:220,height:220,colorDark:'#0A1F1A',colorLight:'#F4EFE2',correctLevel:QRCode.CorrectLevel.M});
