@@ -32,9 +32,9 @@ input,select{background:rgba(255,255,255,.05);border:1px solid var(--line);borde
 <div class="wrap">
   <h1>工作台</h1>
   <div class="tabs">
-    <button class="tab on" data-t="me">个人</button>
+    <button class="tab on" data-t="rooms">房间管理</button>
     <button class="tab" data-t="model">模型配置</button>
-    <button class="tab" data-t="rooms">房间管理</button>
+    <button class="tab" data-t="me">个人信息</button>
     <button class="tab hidden" data-t="teachers" id="tabTeachers">讲师管理</button>
   </div>
 
@@ -78,7 +78,7 @@ document.querySelectorAll('.tab').forEach(function(b){b.onclick=function(){show(
 function loadMe(){
   return fetch('/api/me',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
     if(!d.ok||!d.teacher){location.href='/';return}
-    ME=d.teacher; $('ava').textContent=(ME.name||'?').slice(0,1); $('uname').textContent=ME.name||'讲师'; $('urole').textContent=ME.role==='admin'?'超级管理员':(ME.role||'讲师');
+    ME=d.teacher; if(ME.avatar){$('ava').innerHTML='<img src="'+ME.avatar+'" style="width:100%;height:100%;border-radius:50%;object-fit:cover" />'}else{$('ava').textContent=(ME.name||'?').slice(0,1)}; $('uname').textContent=ME.name||'讲师'; $('urole').textContent=ME.role==='admin'?'超级管理员':(ME.role||'讲师');
     $('meInfo').innerHTML='姓名：'+esc(ME.name)+'<br>角色：'+esc(ME.role==='admin'?'超级管理员':ME.role)+'<br>部门：'+esc(ME.dept||'—')+'<br>钉钉 unionId：'+esc(ME.dingUnionId||'—');
     if(ME.role==='admin')$('tabTeachers').classList.remove('hidden');
   });
@@ -127,5 +127,5 @@ function delTeacher(id){ if(!confirm('删除该讲师账号？'))return; fetch('
 $('tAdd').onclick=function(){ fetch('/api/teachers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:$('tName').value,role:$('tRole').value,dept:$('tDept').value,dingUnionId:$('tUnion').value})}).then(function(r){return r.json()}).then(function(d){ if(d.ok){loadTeachers();$('tMsg').textContent='已添加'} else $('tMsg').textContent=d.error||'失败'; }); };
 $('mTest').onclick=function(){ $('mMsg').textContent='测试中…'; fetch('/api/admin/model',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'test',baseUrl:$('mBase').value,model:$('mModel').value,apiKey:$('mKey').value})}).then(function(r){return r.json()}).then(function(d){ $('mMsg').textContent=d.ok?('连通正常 · '+d.model+' · '+d.ms+'ms'):('失败：'+(d.error||'')); }); };
 $('mSave').onclick=function(){ fetch('/api/admin/model',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save',baseUrl:$('mBase').value,model:$('mModel').value,apiKey:$('mKey').value})}).then(function(r){return r.json()}).then(function(d){ $('mKey').value=''; $('mMsg').textContent=d.ok?'已保存':'保存失败'; loadModel(); }); };
-loadMe().then(function(){ loadModel(); loadRooms(); if(ME&&ME.role==='admin')loadTeachers(); var h=(location.hash||'').replace('#',''); if(['me','model','rooms','teachers'].indexOf(h)>=0)show(h); });
+loadMe().then(function(){ loadModel(); loadRooms(); if(ME&&ME.role==='admin')loadTeachers(); var h=(location.hash||'').replace('#',''); if(['me','model','rooms','teachers'].indexOf(h)>=0)show(h); else show('rooms'); });
 </script></body></html>

@@ -40,6 +40,12 @@ a.lnk{display:inline-block;margin:6px 12px 0 0}
   </div>
 </div>
 
+<div class="card"><div class="k">原始大纲文件（pptx / pdf / html 保留原文件展示；md 生成框架页）</div>
+  <div class="row"><input id="origFile" type="file" accept=".pptx,.ppt,.pdf,.html,.htm" /><span class="small muted" id="origMsg"></span></div>
+  <div class="row"><input id="mdFile" type="file" accept=".md,.markdown,.txt" /><span class="small muted" id="mdMsg"></span></div>
+  <div id="fileList" class="small" style="margin-top:8px"></div>
+</div>
+
 <div class="card"><div class="k">生成</div>
   <button class="btn primary" id="gen">开始生成（约 60–90 秒）</button>
   <span class="small muted" id="gmsg"></span>
@@ -77,6 +83,36 @@ function bindFile(inputId, taId, msgId){
 }
 bindFile('outlineFile','outline','outlineMsg');
 bindFile('coursewareFile','courseware','coursewareMsg');
+document.getElementById('origFile').onchange=function(){
+  var f=this.files&&this.files[0]; if(!f)return; var msg=document.getElementById('origMsg'); msg.textContent='上传中…';
+  var fr=new FileReader();
+  fr.onload=function(){ var b64=String(fr.result).split(',')[1]||'';
+    fetch('/api/room/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:f.name,data:b64})}).then(function(r){return r.json()}).then(function(d){
+      if(!d.ok){msg.textContent='上传失败：'+(d.error||'');return}
+      msg.textContent='已保留原文件'; loadFiles();
+    });
+  };
+  fr.readAsDataURL(f);
+};
+document.getElementById('mdFile').onchange=function(){
+  var f=this.files&&this.files[0]; if(!f)return; var msg=document.getElementById('mdMsg'); msg.textContent='生成框架页…';
+  var fr=new FileReader();
+  fr.onload=function(){
+    fetch('/api/room/markdown',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:String(fr.result||'')})}).then(function(r){return r.json()}).then(function(d){
+      if(!d.ok){msg.textContent='失败：'+(d.error||'');return}
+      msg.textContent='已生成框架页'; loadFiles();
+    });
+  };
+  fr.readAsText(f);
+};
+function loadFiles(){
+  fetch('/api/rooms').then(function(r){return r.json()}).then(function(d){
+    var room=(d.rooms||[]).filter(function(x){return x.code===CODE})[0]||{};
+    var fs=room.files||[];
+    document.getElementById('fileList').innerHTML=fs.map(function(f){return '<div><a href="/api/room/file?name='+encodeURIComponent(f.stored)+'" target="_blank">'+f.name+'</a> <span class="muted">('+(f.size/1024).toFixed(0)+' KB)</span></div>'}).join('');
+  });
+}
+loadFiles();
 var timer=null;
 document.getElementById('gen').onclick=function(){
   var outline=document.getElementById('outline').value.trim();

@@ -57,24 +57,25 @@ function loadRoom(code){
   try{ return Object.assign(blank(), JSON.parse(fs.readFileSync(f,'utf8'))); }catch(e){ return blank(); }
 }
 function saveRoom(code, st){ const f=roomStateFile(code); fs.mkdirSync(path.dirname(f),{recursive:true}); fs.writeFileSync(f, JSON.stringify(st,null,1)); }
-function listRooms(){
+function listRooms(teacher){
   const out=[];
   const one=function(code){
     let meta={}; try{ meta=JSON.parse(fs.readFileSync(roomMetaFile(code),'utf8')); }catch(e){}
     const st=loadRoom(code);
-    out.push({code,title:meta.title||('课堂 '+code),city:meta.city||'',date:meta.date||'',createdAt:meta.createdAt||'',students:Object.keys(st.students||{}).length,active:!!(st.poll&&st.poll.active)||!!(st.quiz&&st.quiz.paper&&st.quiz.paper.active)});
+    const _t=teacher||{}; if(_t.role!=='admin' && meta.owner && meta.owner!==_t.id) return;
+    out.push({code,title:meta.title||('课堂 '+code),city:meta.city||'',date:meta.date||'',owner:meta.owner||'',files:meta.files||[],createdAt:meta.createdAt||'',students:Object.keys(st.students||{}).length,active:!!(st.poll&&st.poll.active)||!!(st.quiz&&st.quiz.paper&&st.quiz.paper.active)});
   };
   one(DEFAULT_ROOM);
   if(fs.existsSync(ROOMS_DIR)) fs.readdirSync(ROOMS_DIR).forEach(function(d){ if(validRoom(d)&&d!==DEFAULT_ROOM) one(d); });
   return out;
 }
-function createRoom(title, city, date){
+function createRoom(title, city, date, owner){
   let code='';
   for(let i=0;i<50;i++){ code=Array.from({length:4},()=>ROOM_ALPHABET[Math.floor(Math.random()*ROOM_ALPHABET.length)]).join(''); if(!fs.existsSync(roomStateFile(code))) break; }
   const d=String(date||new Date().toISOString().slice(0,10)); const c=String(city||'').trim();
   const t=String(title||'').trim()||(d+' '+(c||'未设城市'));
   fs.mkdirSync(path.join(ROOMS_DIR,code),{recursive:true});
-  fs.writeFileSync(roomMetaFile(code), JSON.stringify({title:t,city:c,date:d,createdAt:new Date().toISOString()},null,1));
+  fs.writeFileSync(roomMetaFile(code), JSON.stringify({title:t,city:c,date:d,owner:owner||'',createdAt:new Date().toISOString()},null,1));
   saveRoom(code, blank());
   return code;
 }
@@ -391,6 +392,22 @@ function extractText(filename,buf){
 }
 function renderQuestsPage(tasks){ return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><style>body{background:#081813;color:#F4EFE2;font-family:-apple-system,"PingFang SC",sans-serif;padding:16px}.qcard{border:1px solid rgba(244,239,226,.13);border-radius:12px;padding:14px;margin-bottom:10px}.qcard b{color:#F6E4C6}.qcard p,.qcard li{font-size:14px;color:#DDE6DE;line-height:1.7}.qcard ul{margin:6px 0 0 18px}.m{font-size:12px;color:#9DB3A6;margin-top:6px}</style></head><body>'+renderQuests(tasks)+'</body></html>'; }
 function ensureRoomAssets(code){ const d=path.join(roomDir(code),'assets'); fs.mkdirSync(d,{recursive:true}); return d; }
+function mdToHtml(md){
+  const esc=function(x){return String(x).replace(/[&<>]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]})};
+  const lines=String(md||'').split(/\r?\n/); let out=[]; let inList=false;
+  lines.forEach(function(line){
+    let s=line;
+    if(/^\s*[-*]\s+/.test(s)){ if(!inList){out.push('<ul>');inList=true;} out.push('<li>'+esc(s.replace(/^\s*[-*]\s+/,''))+'</li>'); return; }
+    if(inList){ out.push('</ul>'); inList=false; }
+    const h=s.match(/^(#{1,3})\s+(.*)$/);
+    if(h){ out.push('<h'+h[1].length+'>'+esc(h[2])+'</h'+h[1].length+'>'); return; }
+    if(!s.trim()){ out.push(''); return; }
+    out.push('<p>'+esc(s).replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')+'</p>');
+  });
+  if(inList) out.push('</ul>');
+  return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>课程大纲</title><style>body{background:#081813;color:#F4EFE2;font-family:-apple-system,"PingFang SC",sans-serif;max-width:860px;margin:0 auto;padding:40px 24px;line-height:1.9}h1,h2,h3{color:#F6E4C6;margin:1.2em 0 .5em}p,li{color:#DDE6DE}</style></head><body>'+out.join('\n')+'</body></html>';
+}
+function roomUploadDir(code){ const d=path.join(roomDir(code),'uploads'); fs.mkdirSync(d,{recursive:true}); return d; }
 function savePackage(title, html){
   fs.mkdirSync(PACKAGES_DIR,{recursive:true});
   const id='pkg-'+Date.now().toString(36);
@@ -491,14 +508,15 @@ const server=http.createServer(async (req,res)=>{
       if(corpInfo&&corpInfo.dept) me._dept=corpInfo.dept;
       const teachers=loadTeachers();
       let t=teachers.filter(x=>(uid&&(x.dingUnionId===uid||x.dingOpenId===uid))||(!uid&&x.id==='t-bootstrap'))[0];
+      if(t && me.avatarUrl && !t.avatar) t.avatar=me.avatarUrl;
       if(t && uid && !t.dingUnionId && !t.dingOpenId){ t.dingUnionId=me.unionId||''; t.dingOpenId=me.openId||''; if(!t.name||t.name==='首位讲师')t.name=me.nick||t.name; saveTeachers(teachers); }
       if(!t && teachers.length===0){
-        t={id:'t-bootstrap',name:me.nick||'首位讲师',role:'admin',dept:'',dingUnionId:me.unionId||'',dingOpenId:me.openId||'',createdAt:new Date().toISOString()};
+        t={id:'t-bootstrap',name:me.nick||'首位讲师',role:'admin',dept:'',dingUnionId:me.unionId||'',dingOpenId:me.openId||'',avatar:me.avatarUrl||'',createdAt:new Date().toISOString()};
         teachers.push(t); saveTeachers(teachers);
       }
       if(t&&!t.dept){ const dept=(corpInfo&&corpInfo.dept)||await dingDept(me.unionId); if(dept){ t.dept=dept; saveTeachers(teachers); } }
       if(!t){
-        t={id:'t-'+Date.now().toString(36),name:me.nick||'钉钉讲师',role:'teacher',dept:(corpInfo&&corpInfo.dept)||'',dingUnionId:me.unionId||'',dingOpenId:me.openId||'',createdAt:new Date().toISOString()};
+        t={id:'t-'+Date.now().toString(36),name:me.nick||'钉钉讲师',role:'teacher',dept:(corpInfo&&corpInfo.dept)||'',dingUnionId:me.unionId||'',dingOpenId:me.openId||'',avatar:me.avatarUrl||'',createdAt:new Date().toISOString()};
         teachers.push(t); saveTeachers(teachers);
       }
       setTeacherCookie(res,t);
@@ -524,6 +542,42 @@ const server=http.createServer(async (req,res)=>{
   if(p==='/api/teachers/delete' && req.method==='POST'){
     const b=await readBody(req); const list=loadTeachers().filter(x=>x.id!==b.id); saveTeachers(list);
     return send(res,200,{ok:true});
+  }
+  if(p==='/api/room/upload' && req.method==='POST'){
+    const b=await readBody(req);
+    try{
+      const buf=Buffer.from(String(b.data||''),'base64');
+      if(!buf.length) return send(res,400,{ok:false,error:'空文件'});
+      if(buf.length>30*1024*1024) return send(res,413,{ok:false,error:'文件超过 30MB'});
+      const raw=String(b.filename||'file.bin');
+      const ext=(raw.split('.').pop()||'bin').toLowerCase();
+      const safe=raw.replace(/[^\w.\-\u4e00-\u9fa5]/g,'_');
+      const stored=Date.now().toString(36)+'-'+safe;
+      const dir=roomUploadDir(currentRoom);
+      fs.writeFileSync(path.join(dir,stored),buf);
+      let meta={}; try{ meta=JSON.parse(fs.readFileSync(roomMetaFile(currentRoom),'utf8')); }catch(e){}
+      meta.files=meta.files||[]; meta.files.push({name:raw,stored,size:buf.length,type:ext,at:new Date().toISOString()});
+      fs.writeFileSync(roomMetaFile(currentRoom),JSON.stringify(meta,null,1));
+      return send(res,200,{ok:true,name:raw,stored,size:buf.length,url:'/api/room/file?name='+encodeURIComponent(stored)});
+    }catch(e){ return send(res,400,{ok:false,error:String(e.message||e)}); }
+  }
+  if(p==='/api/room/file'){
+    const name=String(u.searchParams.get('name')||'');
+    if(!name||name.indexOf('/')>=0||name.indexOf('..')>=0) return send(res,404,'not found','text/plain');
+    const f=path.join(roomUploadDir(currentRoom),name);
+    if(!fs.existsSync(f)) return send(res,404,'not found','text/plain');
+    const ext=(name.split('.').pop()||'').toLowerCase();
+    const ct=ext==='pdf'?'application/pdf':ext==='pptx'?'application/vnd.openxmlformats-officedocument.presentationml.presentation':ext==='docx'?'application/vnd.openxmlformats-officedocument.wordprocessingml.document':(ext==='html'||ext==='htm')?'text/html; charset=utf-8':'application/octet-stream';
+    res.writeHead(200,{'Content-Type':ct,'Content-Disposition':'inline','Cache-Control':'no-store'});
+    return res.end(fs.readFileSync(f));
+  }
+  if(p==='/api/room/markdown' && req.method==='POST'){
+    const b=await readBody(req); const text=String(b.text||'');
+    if(!text.trim()) return send(res,400,{ok:false,error:'缺少内容'});
+    const dir=ensureRoomAssets(currentRoom);
+    const base='syllabus-'+Date.now().toString(36);
+    fs.writeFileSync(path.join(dir,base+'.html'), mdToHtml(text));
+    return send(res,200,{ok:true,url:'/api/room/asset?name='+base});
   }
   if(p==='/api/extract' && req.method==='POST'){
     const b=await readBody(req);
@@ -689,14 +743,14 @@ const server=http.createServer(async (req,res)=>{
   if(AUTH_REQUIRED){
     const teacher=getTeacher(req);
     const htmlGuarded=(p==='/ops'||p==='/admin'||p==='/grader'||p==='/shell'||p==='/rooms'||p==='/teachers'||p==='/packages'||p==='/report'||p==='/remote'||p==='/package-edit'||p==='/room'||p==='/home'||p==='/room-setup');
-    const apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p.indexOf('/api/rooms')===0)||(p==='/api/report')||(p==='/api/report.csv')||(p.indexOf('/api/packages')===0)||(p.indexOf('/api/generate')===0)||(p.indexOf('/api/package')===0)||(p==='/api/extract');
+    const apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p.indexOf('/api/rooms')===0)||(p==='/api/report')||(p==='/api/report.csv')||(p.indexOf('/api/packages')===0)||(p.indexOf('/api/generate')===0)||(p.indexOf('/api/package')===0)||(p==='/api/extract')||(p==='/api/room/upload')||(p==='/api/room/markdown');
     if(htmlGuarded&&!teacher){ res.writeHead(302,{Location:'/login'}); return res.end(); }
     if(apiGuarded&&!teacher) return send(res,401,{ok:false,error:'login required'});
   }
-  if(p==='/api/rooms' && req.method==='GET') return send(res,200,{ok:true,rooms:listRooms(),current:currentRoom});
+  if(p==='/api/rooms' && req.method==='GET') return send(res,200,{ok:true,rooms:listRooms(getTeacher(req)),current:currentRoom});
   if(p==='/api/rooms/create' && req.method==='POST'){
     const b=await readBody(req);
-    const code=createRoom(b.title,b.city,b.date);
+    const _t=getTeacher(req); const code=createRoom(b.title,b.city,b.date,_t&&_t.id);
     return send(res,200,{ok:true,code,urls:{room:'/room?code='+code,ops:'/ops?room='+code,join:'/join?room='+code,screen:'/screen?room='+code,remote:'/remote?room='+code}});
   }
   if(p==='/api/rooms/update' && req.method==='POST'){
