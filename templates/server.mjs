@@ -302,6 +302,10 @@ const server=http.createServer(async (req,res)=>{
       const me=await ur.json();
       const teachers=loadTeachers();
       let t=teachers.filter(x=>x.dingUnionId===me.unionId||x.dingOpenId===me.openId)[0];
+      if(!t && teachers.length===0){
+        t={id:'t-bootstrap',name:me.nick||'首位讲师',role:'admin',dept:'',dingUnionId:me.unionId||'',dingOpenId:me.openId||'',createdAt:new Date().toISOString()};
+        teachers.push(t); saveTeachers(teachers);
+      }
       if(t&&!t.dept){ const dept=await dingDept(me.unionId); if(dept){ t.dept=dept; saveTeachers(teachers); } }
       if(!t) return send(res,403,'该钉钉账号未加入讲师名单，请联系管理员','text/html; charset=utf-8');
       setTeacherCookie(res,t);
