@@ -52,6 +52,8 @@ ul{margin-left:22px}
   document.addEventListener('keydown',function(e){ if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown') show(i+1); if(e.key==='ArrowLeft'||e.key==='PageUp') show(i-1); });
   document.getElementById('next').onclick=function(){show(i+1)}; document.getElementById('prev').onclick=function(){show(i-1)};
   show(0);
+  var last=-1;
+  setInterval(function(){ try{ fetch('/api/screen',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){ if(typeof d.slide==='number' && d.slide!==last){ last=d.slide; show(d.slide); } }).catch(function(){}); }catch(e){} },2000);
 })();
 `;
   return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
