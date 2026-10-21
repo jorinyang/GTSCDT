@@ -689,8 +689,8 @@ const server=http.createServer(async (req,res)=>{
   }
   if(p==='/api/rooms/delete' && req.method==='POST'){
     const b=await readBody(req); const code=String(b.code||'').toUpperCase();
-    if(!validRoom(code)) return send(res,400,{ok:false,error:'房间码不对'});
     if(code===DEFAULT_ROOM) return send(res,400,{ok:false,error:'默认房间不可删除'});
+    if(!validRoom(code)) return send(res,400,{ok:false,error:'房间码不对'});
     const dir=path.join(ROOMS_DIR,code);
     if(!fs.existsSync(dir)) return send(res,404,{ok:false,error:'房间不存在'});
     fs.rmSync(dir,{recursive:true,force:true});
