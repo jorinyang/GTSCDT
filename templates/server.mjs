@@ -112,7 +112,8 @@ async function modelChat(messages,maxTokens,json){
     const txt=await r.text();
     if(!r.ok) return {ok:false,error:'HTTP '+r.status+' '+txt.slice(0,160)};
     const j=JSON.parse(txt);
-    const content=(((j.choices||[])[0]||{}).message||{}).content||'';
+    const _msg=(((j.choices||[])[0]||{}).message||{});
+    const content=_msg.content||_msg.reasoning_content||'';
     return {ok:true,content,ms:Date.now()-t0,model:cfg.model};
   }catch(e){ return {ok:false,error:String(e.message||e)}; }
 }
@@ -230,7 +231,9 @@ async function genJSON(prompt,maxTokens){
 }
 
 async function genText(prompt,maxTokens){
-  const r=await modelChat([{role:'user',content:prompt}],maxTokens||1800);
+  let r=await modelChat([{role:'user',content:prompt}],maxTokens||3000);
+  if(r.ok && String(r.content||'').trim()) return {text:String(r.content)};
+  r=await modelChat([{role:'user',content:prompt}],(maxTokens||3000)+2500);
   if(!r.ok) return {err:r.error};
   return {text:String(r.content||'')};
 }
@@ -457,8 +460,8 @@ const server=http.createServer(async (req,res)=>{
     if(!outline.trim()&&!courseware.trim()) return send(res,400,{ok:false,error:'请提供课程大纲或课件内容'});
     const mc=modelCfg(); if(!mc.key) return send(res,400,{ok:false,error:'请先在「模型管理」里配置模型与 API Key'});
     const base='课程名称：'+title+'\n大纲：\n'+outline+'\n课件/素材：\n'+courseware+'\n';
-    const r1=await genText('你是企业 AI 培训课程设计助手。根据素材输出讲课大纲，只输出大纲本身，不要解释。格式：第一行“# 课程标题”，每个页用“## 页标题”，页下要点用“- ”开头。\n'+base,2000);
-    const r2=await genText('根据素材输出宣传页文案，逐行输出，不要解释。格式：\n标题：一句话主标题\n副标题：一句话副标题\n介绍：80 字以内介绍\n模块：模块名\n- 该模块要点\n收益：一条学员收益（可多行）\n安排：09:00|开场与分组\n行动：报名或咨询\n'+base,1400);
+    const r1=await genText('你是企业 AI 培训课程设计助手。根据素材输出讲课大纲，只输出大纲本身，不要解释。格式：第一行“# 课程标题”，每个页用“## 页标题”，页下要点用“- ”开头。\n'+base,6000);
+    const r2=await genText('根据素材输出宣传页文案，逐行输出，不要解释。格式：\n标题：一句话主标题\n副标题：一句话副标题\n介绍：80 字以内介绍\n模块：模块名\n- 该模块要点\n收益：一条学员收益（可多行）\n安排：09:00|开场与分组\n行动：报名或咨询\n'+base,4000);
     const r3=await genText('根据素材生成随堂题库，每行一条，用竖线分隔，不要解释。格式：\n选择|题目|选项A|选项B|选项C|选项D|正确答案字母\n判断|题目|对或错\n填空|题目|答案\n简答|题目|参考答案\n要求：选择 6 道、判断 4 道、填空 4 道、简答 2 道。\n'+base,2000);
     const r4=await genText('根据素材生成课程过程素材与作业场景题，每行一条，用竖线分隔，不要解释。格式：\n素材|标题|正文（可含要点，用；分隔）\n作业|标题|场景描述|要求1;要求2|交付物|验收标准\n要求：素材至少 4 条，作业 6 条。\n'+base,2000);
     const pk=newPackageDir(title); const id=pk.id, dir=pk.dir;
