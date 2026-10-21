@@ -46,7 +46,7 @@ body{animation:pageIn .32s ease both}
 #hwFrame{width:100%;height:calc(100vh - 215px);border:0;border-radius:14px;background:#081813}
 </style></head><body>
 <div class="top"><div class="brand">贵州峰林文旅体 × 弈策AI研究院 · 课堂后台</div>
-<div class="links"><span class="pill" id="roomPill">ROOM0</span><a href="#" id="lnkScreen" target="_blank">大屏</a><a href="#" id="lnkRemote" target="_blank">遥控器</a><a href="#" id="lnkJoin" target="_blank">学员入口</a><a data-nav="course" href="course.html">← 课件</a><a href="#hw" id="lnkHw">作业评分</a><a data-nav="promo" href="../index.html" target="_blank">宣传页</a></div></div>
+<div class="links"><a id="homeUser" href="/home" style="display:inline-flex;align-items:center;gap:6px;font-size:12px"></a><span class="pill" id="roomPill">ROOM0</span><a href="#" id="lnkScreen" target="_blank">大屏</a><a href="#" id="lnkRemote" target="_blank">遥控器</a><a href="#" id="lnkJoin" target="_blank">学员入口</a><a data-nav="course" href="course.html">← 课件</a><a href="#hw" id="lnkHw">作业评分</a><a data-nav="promo" href="../index.html" target="_blank">宣传页</a></div></div>
 <div class="wrap">
   <h1>课堂页后台</h1>
   <p class="sub">投票发起与结果、抽签与分组管理、课堂表现加减分。学员手机页会自动刷新。<span id="svc" class="pill">连接中…</span></p>
@@ -477,6 +477,10 @@ refresh();setInterval(refresh,2500);
     })})).then(function(){msg.textContent='已上传';load();});
   };
   setInterval(load,4000); load();
+  fetch('/api/me',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+    var el=document.getElementById('homeUser'); if(!el||!d.teacher)return;
+    var t=d.teacher; el.innerHTML=(t.avatar?'<img src="'+t.avatar+'" style="width:24px;height:24px;border-radius:50%;object-fit:cover" />':'<span style="width:24px;height:24px;border-radius:50%;background:rgba(217,138,43,.25);display:inline-block;text-align:center;line-height:24px">'+(t.name||'?').slice(0,1)+'</span>')+'<span>'+(t.name||'讲师')+'</span>';
+  }).catch(function(){});
 })();
 </script>
 </body></html>
