@@ -73,6 +73,7 @@ function showLocal(on){
   document.getElementById('sub').textContent=on?'使用本地口令进入课堂':'使用钉钉扫码进入课堂';
 }
 document.getElementById('showLocal').onclick=function(){showLocal(true)};
+if(new URLSearchParams(location.search).get('local')==='1')showLocal(true);
 document.getElementById('backDing').onclick=function(){showLocal(false)};
 fetch('/api/auth/config').then(function(r){return r.json()}).then(function(d){
   if(!d.dingtalk)showLocal(true);
