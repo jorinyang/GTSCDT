@@ -27,6 +27,8 @@ input,select{background:rgba(255,255,255,.05);border:1px solid var(--line);borde
 .hidden{display:none!important}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
 .big{font-size:15px;line-height:2}
+.warn{margin-top:12px;padding:10px 12px;border:1px solid rgba(255,122,61,.4);border-radius:10px;background:rgba(255,122,61,.08);color:#FFB08A;font-size:12.5px;line-height:1.7}
+.warn a{color:#FFB08A;text-decoration:underline}
 </style><link rel="stylesheet" href="/ui.css" />
 </head><body>
 <div class="top"><div class="brand">弈策课程运营系统 · GTSCDT</div><div class="user" onclick="location.href='/home'"><div class="avatar" id="ava">?</div><div><div id="uname" style="font-size:14px">加载中</div><div class="small muted" id="urole"></div></div><a href="/auth/logout" onclick="event.stopPropagation()">退出</a></div></div>
@@ -40,7 +42,7 @@ input,select{background:rgba(255,255,255,.05);border:1px solid var(--line);borde
   </div>
 
   <div id="pane-me">
-    <div class="card"><div class="k">个人信息</div><div class="big" id="meInfo"></div></div>
+    <div class="card"><div class="k">个人信息</div><div class="big" id="meInfo"></div><div class="warn hidden" id="dingWarn"></div></div>
   </div>
 
   <div id="pane-model" class="hidden">
@@ -80,7 +82,15 @@ function loadMe(){
   return fetch('/api/me',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
     if(!d.ok||!d.teacher){location.href='/';return}
     ME=d.teacher; if(ME.avatar){$('ava').innerHTML='<img src="'+ME.avatar+'" style="width:100%;height:100%;border-radius:50%;object-fit:cover" />'}else{$('ava').textContent=(ME.name||'?').slice(0,1)}; $('uname').textContent=ME.name||'讲师'; $('urole').textContent=ME.role==='admin'?'超级管理员':(ME.role||'讲师');
-    $('meInfo').innerHTML='姓名：'+esc(ME.name)+'<br>角色：'+esc(ME.role==='admin'?'超级管理员':ME.role)+'<br>部门：'+esc(ME.dept||'—')+'<br>钉钉 unionId：'+esc(ME.dingUnionId||'—');
+    $('meInfo').innerHTML='姓名：'+esc(ME.name)+'<br>角色：'+esc(ME.role==='admin'?'超级管理员':ME.role)+'<br>部门：'+esc(ME.dept||'—')+(ME.title?' · '+esc(ME.title):'')+'<br>钉钉 userid：'+esc(ME.dingUserId||'—')+'<br>钉钉 unionId：'+esc(ME.dingUnionId||'—')+'<br>头像：'+(ME.avatar?'<img src="'+esc(ME.avatar)+'" style="width:40px;height:40px;border-radius:50%;vertical-align:middle" />':'—');
+    if(ME.id!=='local'){
+      fetch('/api/dingtalk/diag',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+        if(d&&d.ok)return;
+        var w=document.getElementById('dingWarn'); if(!w)return;
+        w.classList.remove('hidden');
+        w.innerHTML='钉钉成员信息未取全'+(d&&d.errcode?('（errcode '+d.errcode+'）'):'')+'。需要在钉钉开放平台给应用开通「成员信息读权限 qyapi_get_member」'+(d&&d.applyUrl?'：<a href="'+esc(d.applyUrl)+'" target="_blank">去申请</a>':'')+'。开通后重新用钉钉登录。';
+      }).catch(function(){});
+    }
     if(ME.role==='admin')$('tabTeachers').classList.remove('hidden');
   });
 }

@@ -225,13 +225,13 @@ async function dingCorpUser(unionId){
   if(!(DING_ID&&DING_SECRET&&unionId)) return null;
   try{
     const tr=await fetch('https://oapi.dingtalk.com/gettoken?appkey='+encodeURIComponent(DING_ID)+'&appsecret='+encodeURIComponent(DING_SECRET));
-    const tj=await tr.json(); if(!tj.access_token) return {ok:false,reason:'token'};
+    const tj=await tr.json(); if(!tj.access_token) return {ok:false,reason:'token',error:'gettoken 失败'};
     const u1=await fetch('https://oapi.dingtalk.com/topapi/user/getbyunionid?access_token='+tj.access_token,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({unionid:unionId})});
     const j1=await u1.json(); const userid=j1.result&&j1.result.userid;
-    if(!userid) return {ok:false,reason:'not_in_org'};
+    if(!userid) return {ok:false,reason:'no_permission_or_not_in_org',error:j1.errmsg||('errmsg unavailable, errcode '+(j1.errcode==null?'?':j1.errcode))};
     const u2=await fetch('https://oapi.dingtalk.com/topapi/v2/user/get?access_token='+tj.access_token,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userid:userid})});
     const j2=await u2.json(); const r2=j2.result||{};
-    return {ok:true,userid:userid,name:r2.name||'',dept:(r2.dept_id_list||[]).join('/')};
+    return {ok:true,userid:userid,name:r2.name||'',avatar:r2.avatar||'',title:r2.title||'',mobile:r2.mobile||'',dept:(r2.dept_id_list||[]).join('/')};
   }catch(e){ return {ok:false,reason:String(e.message||e)}; }
 }
 async function genJSON(prompt,maxTokens){
@@ -504,6 +504,7 @@ const server=http.createServer(async (req,res)=>{
       if(!tj.accessToken) return send(res,401,'钉钉授权失败','text/html; charset=utf-8');
       const ur=await fetch('https://api.dingtalk.com/v1.0/contact/users/me',{headers:{'x-acs-dingtalk-access-token':tj.accessToken}});
       const me=await ur.json();
+      if(tj.idToken){ try{ const claims=JSON.parse(Buffer.from(String(tj.idToken).split('.')[1]||'','base64url').toString()); me.unionId=me.unionId||claims.unionId||claims.unionid||''; me.openId=me.openId||claims.openId||claims.openid||''; me.nick=me.nick||claims.nick||claims.name||''; me.avatarUrl=me.avatarUrl||claims.avatarUrl||claims.avatar||''; }catch(e){} }
       let corpInfo=null;
       if(process.env.DINGTALK_CORP_ID){ try{ corpInfo=await dingCorpUser(me.unionId); }catch(e){} }
       if(corpInfo&&corpInfo.name&&!me.nick) me.nick=corpInfo.name;
@@ -511,22 +512,55 @@ const server=http.createServer(async (req,res)=>{
       if(corpInfo&&corpInfo.dept) me._dept=corpInfo.dept;
       const teachers=loadTeachers();
       let t=teachers.filter(x=>(uid&&(x.dingUnionId===uid||x.dingOpenId===uid))||(!uid&&x.id==='t-bootstrap'))[0];
-      if(t && me.avatarUrl && !t.avatar) t.avatar=me.avatarUrl;
-      if(t && uid && !t.dingUnionId && !t.dingOpenId){ t.dingUnionId=me.unionId||''; t.dingOpenId=me.openId||''; if(!t.name||t.name==='首位讲师')t.name=me.nick||t.name; saveTeachers(teachers); }
       if(!t && teachers.length===0){
         t={id:'t-bootstrap',name:me.nick||'首位讲师',role:'admin',dept:'',dingUnionId:me.unionId||'',dingOpenId:me.openId||'',avatar:me.avatarUrl||'',createdAt:new Date().toISOString()};
-        teachers.push(t); saveTeachers(teachers);
+        teachers.push(t);
       }
-      if(t&&!t.dept){ const dept=(corpInfo&&corpInfo.dept)||await dingDept(me.unionId); if(dept){ t.dept=dept; saveTeachers(teachers); } }
       if(!t){
-        t={id:'t-'+Date.now().toString(36),name:me.nick||'钉钉讲师',role:'teacher',dept:(corpInfo&&corpInfo.dept)||'',dingUnionId:me.unionId||'',dingOpenId:me.openId||'',avatar:me.avatarUrl||'',createdAt:new Date().toISOString()};
-        teachers.push(t); saveTeachers(teachers);
+        t={id:'t-'+Date.now().toString(36),name:me.nick||'钉钉讲师',role:'teacher',dept:'',dingUnionId:me.unionId||'',dingOpenId:me.openId||'',avatar:me.avatarUrl||'',createdAt:new Date().toISOString()};
+        teachers.push(t);
       }
+      let changed=false;
+      if(me.unionId && !t.dingUnionId){ t.dingUnionId=me.unionId; changed=true; }
+      if(me.openId && !t.dingOpenId){ t.dingOpenId=me.openId; changed=true; }
+      if(me.avatarUrl && !t.avatar){ t.avatar=me.avatarUrl; changed=true; }
+      if(corpInfo && corpInfo.ok){
+        if(corpInfo.userid && t.dingUserId!==corpInfo.userid){ t.dingUserId=corpInfo.userid; changed=true; }
+        if(corpInfo.name && t.name!==corpInfo.name){ t.name=corpInfo.name; changed=true; }
+        if(corpInfo.avatar && t.avatar!==corpInfo.avatar){ t.avatar=corpInfo.avatar; changed=true; }
+        if(corpInfo.title && t.title!==corpInfo.title){ t.title=corpInfo.title; changed=true; }
+        if(corpInfo.mobile && !t.mobile){ t.mobile=corpInfo.mobile; changed=true; }
+        if(corpInfo.dept && !t.dept){ t.dept=corpInfo.dept; changed=true; }
+        if(t.dingError){ delete t.dingError; changed=true; }
+      }else if(corpInfo && !corpInfo.ok && corpInfo.error){
+        if(t.dingError!==corpInfo.error){ t.dingError=corpInfo.error; changed=true; }
+      }
+      if((!t.name||t.name==='首位讲师') && me.nick){ t.name=me.nick; changed=true; }
+      if(!t.dept){ const dept=(corpInfo&&corpInfo.dept)||await dingDept(me.unionId); if(dept){ t.dept=dept; changed=true; } }
+      if(changed) saveTeachers(teachers);
       setTeacherCookie(res,t);
       res.writeHead(302,{Location:'/home'}); return res.end();
     }catch(e){ return send(res,500,'钉钉登录失败：'+String(e.message||e),'text/html; charset=utf-8'); }
   }
   if(p==='/auth/logout'){ res.setHeader('Set-Cookie','gtsc_teacher=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax'); res.writeHead(302,{Location:'/'}); return res.end(); }
+  if(p==='/api/dingtalk/diag' && req.method==='GET'){
+    const now=Date.now();
+    if(global.__dingDiag && now-global.__dingDiag.at<300000) return send(res,200,global.__dingDiag.data);
+    const out={ok:false,configured:!!(DING_ID&&DING_SECRET)};
+    try{
+      const tr=await fetch('https://oapi.dingtalk.com/gettoken?appkey='+encodeURIComponent(DING_ID)+'&appsecret='+encodeURIComponent(DING_SECRET));
+      const tj=await tr.json(); out.token=!!tj.access_token;
+      if(tj.access_token){
+        const u1=await fetch('https://oapi.dingtalk.com/topapi/user/getbyunionid?access_token='+tj.access_token,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({unionid:'gtscdt-diagnostic'})});
+        const j1=await u1.json(); out.errcode=j1.errcode; out.errmsg=j1.errmsg||'';
+        out.ok=j1.errcode===0;
+        fromErrMsg(j1.errmsg);
+      }
+    }catch(e){ out.error=String(e.message||e); }
+    function fromErrMsg(msg){ const m=String(msg||'').match(/https:\/\/open-dev\.dingtalk\.com\/appscope\/apply\?[^\s,]+/); if(m) out.applyUrl=m[0]; }
+    global.__dingDiag={at:now,data:out};
+    return send(res,200,out);
+  }
   if(p==='/api/me') return send(res,200,{ok:true,teacher:getTeacher(req)});
   if(p==='/api/teachers' && req.method==='GET') return send(res,200,{ok:true,teachers:loadTeachers()});
   if(p==='/api/teachers' && req.method==='POST'){
@@ -749,7 +783,7 @@ const server=http.createServer(async (req,res)=>{
   if(AUTH_REQUIRED){
     const teacher=getTeacher(req);
     const htmlGuarded=(p==='/ops'||p==='/admin'||p==='/grader'||p==='/shell'||p==='/rooms'||p==='/teachers'||p==='/packages'||p==='/report'||p==='/remote'||p==='/package-edit'||p==='/room'||p==='/home'||p==='/room-setup');
-    const apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p.indexOf('/api/rooms')===0)||(p==='/api/report')||(p==='/api/report.csv')||(p.indexOf('/api/packages')===0)||(p.indexOf('/api/generate')===0)||(p.indexOf('/api/package')===0)||(p==='/api/extract')||(p==='/api/room/upload')||(p==='/api/room/markdown');
+    const apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p.indexOf('/api/rooms')===0)||(p==='/api/report')||(p==='/api/report.csv')||(p.indexOf('/api/packages')===0)||(p.indexOf('/api/generate')===0)||(p.indexOf('/api/package')===0)||(p==='/api/extract')||(p==='/api/dingtalk/diag')||(p==='/api/room/upload')||(p==='/api/room/markdown');
     if(htmlGuarded&&!teacher){ res.writeHead(302,{Location:'/login'}); return res.end(); }
     if(apiGuarded&&!teacher) return send(res,401,{ok:false,error:'login required'});
   }
