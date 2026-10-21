@@ -512,6 +512,7 @@ const server=http.createServer(async (req,res)=>{
       if(corpInfo&&corpInfo.dept) me._dept=corpInfo.dept;
       const teachers=loadTeachers();
       let t=teachers.filter(x=>(uid&&(x.dingUnionId===uid||x.dingOpenId===uid))||(!uid&&x.id==='t-bootstrap'))[0];
+      if(!t && uid){ const orphans=teachers.filter(x=>!x.dingUnionId&&!x.dingOpenId); t=orphans.find(x=>x.id==='t-bootstrap')||orphans.find(x=>x.name===me.nick)||(orphans.length===1?orphans[0]:null); }
       if(!t && teachers.length===0){
         t={id:'t-bootstrap',name:me.nick||'首位讲师',role:'admin',dept:'',dingUnionId:me.unionId||'',dingOpenId:me.openId||'',avatar:me.avatarUrl||'',createdAt:new Date().toISOString()};
         teachers.push(t);
