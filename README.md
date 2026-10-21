@@ -249,14 +249,18 @@ node server.mjs
 - 学员身份是「姓名 + 手机后四位」的弱身份，不适合对身份要求严格的场景；
 - 无头浏览器截图在本机环境不可用，页面只做了加载与接口验证，版式请在浏览器里复核。
 
-## 九、目录
+## 九、需要配合的事
+
+钉钉真实登录与公网部署需要你提供应用凭证与域名，步骤见 [docs/07-钉钉联调与上线清单.md](docs/07-钉钉联调与上线清单.md)。
+
+## 十、目录
 
 ```
 GTSCDT/
 ├─ templates/
 │  ├─ server.mjs               房间/接口/鉴权/课程包/MCP
 │  ├─ course-render.mjs         课程包渲染器
-│  ├─ ops（course/admin.html）  操作台
+│  ├─ course/admin.html         操作台（/ops）
 │  ├─ screen.html / remote.html / report.html / rooms.html
 │  ├─ live.html                 学员页
 │  ├─ login.html / teachers.html / packages.html
