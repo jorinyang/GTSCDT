@@ -274,7 +274,7 @@ const server=http.createServer(async (req,res)=>{
     const origin=(process.env.PUBLIC_URL||u.origin).replace(/\/$/,'');
     const redirect=origin+'/auth/dingtalk/callback';
     const target='https://login.dingtalk.com/oauth2/auth?redirect_uri='+encodeURIComponent(redirect)+'&response_type=code&client_id='+encodeURIComponent(DING_ID)+'&scope=openid&state=gtsc';
-    res.writeHead(302,{Location:target}); return;
+    res.writeHead(302,{Location:target}); return res.end();
   }
   if(p==='/auth/dingtalk/callback'){
     if(!(DING_ID&&DING_SECRET)) return send(res,501,{ok:false,error:'未配置钉钉应用'});
@@ -289,7 +289,7 @@ const server=http.createServer(async (req,res)=>{
       const t=teachers.filter(x=>x.dingUnionId===me.unionId||x.dingOpenId===me.openId)[0];
       if(!t) return send(res,403,'该钉钉账号未加入讲师名单，请联系管理员','text/html; charset=utf-8');
       setTeacherCookie(res,t);
-      res.writeHead(302,{Location:'/ops'}); return;
+      res.writeHead(302,{Location:'/ops'}); return res.end();
     }catch(e){ return send(res,500,'钉钉登录失败：'+String(e.message||e),'text/html; charset=utf-8'); }
   }
   if(p==='/api/me') return send(res,200,{ok:true,teacher:getTeacher(req)});
@@ -333,6 +333,13 @@ const server=http.createServer(async (req,res)=>{
     const ext=path.extname(file).slice(1).toLowerCase();
     const ct=ext==='html'?'text/html; charset=utf-8':ext==='css'?'text/css; charset=utf-8':ext==='js'?'text/javascript; charset=utf-8':ext==='svg'?'image/svg+xml':'application/octet-stream';
     return send(res,200,fs.readFileSync(file),ct);
+  }
+  if(AUTH_REQUIRED){
+    const teacher=getTeacher(req);
+    const htmlGuarded=(p==='/ops'||p==='/admin'||p==='/grader'||p==='/shell');
+    const apiGuarded=(p.indexOf('/api/admin')===0)||(p==='/api/packages'&&req.method==='POST')||(p==='/api/packages/ai');
+    if(htmlGuarded&&!teacher){ res.writeHead(302,{Location:'/login'}); return res.end(); }
+    if(apiGuarded&&!teacher) return send(res,401,{ok:false,error:'login required'});
   }
   if(p==='/api/rooms' && req.method==='GET') return send(res,200,{ok:true,rooms:listRooms(),current:currentRoom});
   if(p==='/api/rooms/create' && req.method==='POST'){
