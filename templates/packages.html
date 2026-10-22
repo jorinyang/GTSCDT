@@ -19,6 +19,7 @@ textarea{width:100%}
 .muted{color:var(--muted)} .small{font-size:12px}
 .pill{border:1px solid rgba(233,180,92,.35);color:var(--amber-l);border-radius:999px;padding:1px 8px;font-size:11px}
 </style><link rel="stylesheet" href="/ui.css" />
+<link rel="stylesheet" href="/dialog.css" />
 </head><body>
 <div class="top"><div class="brand">GTSCDT · 课程包</div><div><a href="/shell">播放框架</a> · <a href="/rooms">房间</a> · <a href="/teachers">讲师</a></div></div>
 <h1>课程包管理</h1>
@@ -38,13 +39,14 @@ textarea{width:100%}
   <div style="margin-top:8px"><input id="genFile" type="file" accept=".docx,.pptx,.pdf,.md,.txt,.html,.htm" /> <span class="muted small" id="genFileMsg">支持 docx/pptx/pdf/md/txt/html</span></div><div style="margin-top:8px"><button class="btn primary" id="genBtn">生成整套课程</button> <span class="muted small" id="genMsg"></span></div><div id="genResult" class="small" style="margin-top:10px"></div></div>
 
 <div class="card"><div class="k">已有课程包</div><div style="overflow:auto"><table id="tbl"></table></div></div>
+<script src="/dialog.js"></script>
 <script>
 function load(){fetch('/api/packages').then(function(r){return r.json()}).then(function(d){
   var rows=(d.packages||[]).map(function(p){
     return '<tr><td><b>'+p.title+'</b></td><td class="small muted">'+p.id+'</td><td><a href="/pkg/'+p.id+'/index.html" target="_blank">预览</a> · <a href="/shell?pkg='+p.id+'" target="_blank">框架打开</a> · <a href="/package-edit?pkg='+p.id+'">编辑</a></td><td><button class="btn sm danger" data-del="'+p.id+'">删除</button></td></tr>';
   }).join('');
   document.getElementById('tbl').innerHTML='<tr><th>课程名</th><th>ID</th><th>打开</th><th></th></tr>'+rows;
-  document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){ if(!confirm('删除该课程包？'))return; fetch('/api/packages/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:b.getAttribute('data-del')})}).then(load) }});
+  document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){ var id=b.getAttribute('data-del'); GTSC.confirm({title:'删除课程包',message:'删除该课程包？删除后不可恢复。',submitText:'删除',danger:true,onConfirm:function(){ fetch('/api/packages/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})}).then(load); }}); }});
 })}
 document.getElementById('upload').onclick=function(){
   var f=document.getElementById('file').files[0]; if(!f){document.getElementById('msg').textContent='先选文件';return}

@@ -27,6 +27,7 @@ h1{font-size:24px;margin:4px 0}
 @media(max-width:900px){.cards4{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:900px){.grid{grid-template-columns:1fr}}
 </style><link rel="stylesheet" href="/ui.css" />
+<link rel="stylesheet" href="/dialog.css" />
 </head><body>
 <div class="top"><div class="brand">GTSCDT · 场次入口</div><div><a href="/rooms">← 场次列表</a> · <a href="/ops" id="lnkOps">课堂后台</a><button class="btn" id="delRoom" style="display:none;margin-left:8px">删除场次</button></div></div>
 <h1 id="title">课堂房间</h1>
@@ -50,6 +51,7 @@ h1{font-size:24px;margin:4px 0}
   </div>
 </div>
 <script src="/qrcode.min.js"></script>
+<script src="/dialog.js"></script>
 <script>
 var q=new URLSearchParams(location.search);
 var CODE=(q.get('code')||q.get('room')||'ROOM0').toUpperCase();
@@ -87,7 +89,7 @@ document.querySelectorAll('[data-copy]').forEach(function(b){b.onclick=function(
 document.getElementById('lnkOps').href='/ops?room='+CODE;
 ['join','remote','ops','screen'].forEach(function(k){var el=document.getElementById('cc'+k.charAt(0).toUpperCase()+k.slice(1));if(el)el.href='/'+k+'?room='+CODE});
 fetch('/api/me',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){ if(d&&d.teacher){var w=document.getElementById('who');var t=d.teacher;w.innerHTML=(t.avatar?'<img src="'+t.avatar+'" style="width:22px;height:22px;border-radius:50%;vertical-align:middle;margin-right:5px" />':'')+'当前讲师：'+(t.name||'')+(t.role==='admin'?'（超管）':'');} }).catch(function(){});
-if(CODE!=='ROOM0'){ var db=document.getElementById('delRoom'); db.style.display='inline-block'; db.onclick=function(){ if(!confirm('删除场次 '+CODE+'？该房间全部数据将不可恢复。'))return; fetch('/api/rooms/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:CODE})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)location.href='/rooms'; else alert(d.error||'删除失败'); }); }; }
+if(CODE!=='ROOM0'){ var db=document.getElementById('delRoom'); db.style.display='inline-block'; db.onclick=function(){ GTSC.confirm({title:'删除场次',message:'删除场次 '+CODE+'？该场次全部数据将不可恢复。',submitText:'删除',danger:true,onConfirm:function(){ fetch('/api/rooms/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:CODE})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)location.href='/rooms'; else GTSC.alert(d.error||'删除失败'); }); }}); }; }
 var join=base+'/join?room='+CODE;
 document.getElementById('joinurl').textContent=join;
 new QRCode(document.getElementById('qrcode'),{text:join,width:220,height:220,colorDark:'#0A1F1A',colorLight:'#F4EFE2',correctLevel:QRCode.CorrectLevel.M});

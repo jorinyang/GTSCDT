@@ -19,6 +19,7 @@ textarea{width:100%}
 .muted{color:var(--muted)} .small{font-size:12px}
 .pill{border:1px solid rgba(233,180,92,.35);color:var(--amber-l);border-radius:999px;padding:1px 8px;font-size:11px}
 </style><link rel="stylesheet" href="/ui.css" />
+<link rel="stylesheet" href="/dialog.css" />
 </head><body>
 <div class="top"><div class="brand">GTSCDT · 讲师管理</div><div><a href="/rooms">房间</a> · <a href="/packages">课程包</a> · <a href="/login">登录</a></div></div>
 <h1>讲师与权限</h1>
@@ -34,13 +35,14 @@ textarea{width:100%}
   <p class="muted small" style="margin-top:8px">钉钉登录会按 unionId 匹配讲师；未填写 unionId 的账号只能本地口令登录。</p>
 </div>
 <div class="card"><div class="k">讲师列表</div><div style="overflow:auto"><table id="tbl"></table></div></div>
+<script src="/dialog.js"></script>
 <script>
 function load(){fetch('/api/teachers').then(function(r){return r.json()}).then(function(d){
   var rows=(d.teachers||[]).map(function(t){
     return '<tr><td><b>'+t.name+'</b></td><td>'+(t.role||'teacher')+'</td><td class="muted">'+(t.dept||'—')+'</td><td class="small muted">'+(t.dingUnionId||'—')+'</td><td><button class="btn danger" data-del="'+t.id+'">删除</button></td></tr>';
   }).join('');
   document.getElementById('tbl').innerHTML='<tr><th>姓名</th><th>角色</th><th>部门</th><th>钉钉 unionId</th><th></th></tr>'+rows;
-  document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){ if(!confirm('删除该讲师？'))return; fetch('/api/teachers/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:b.getAttribute('data-del')})}).then(load) }});
+  document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){ var id=b.getAttribute('data-del'); GTSC.confirm({title:'删除讲师',message:'删除该讲师账号？删除后无法再登录。',submitText:'删除',danger:true,onConfirm:function(){ fetch('/api/teachers/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})}).then(load); }}); }});
 })}
 document.getElementById('add').onclick=function(){
   fetch('/api/teachers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:document.getElementById('name').value,role:document.getElementById('role').value,dept:document.getElementById('dept').value,dingUnionId:document.getElementById('union').value})}).then(function(r){return r.json()}).then(function(d){ if(d.ok){document.getElementById('msg').textContent='已添加';load()}else{document.getElementById('msg').textContent=d.error||'失败'} });

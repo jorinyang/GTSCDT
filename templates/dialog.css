@@ -1,0 +1,26 @@
+/* GTSC 统一浮层规范 */
+.gtsc-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.66);backdrop-filter:blur(3px);animation:gtscFade .16s ease}
+@keyframes gtscFade{from{opacity:0}to{opacity:1}}
+.gtsc-modal{width:100%;max-width:640px;max-height:88vh;overflow:auto;background:#17171B;border:1px solid #2E2E36;border-radius:24px;box-shadow:0 24px 80px rgba(0,0,0,.55);animation:gtscIn .18s cubic-bezier(.22,1,.36,1)}
+@keyframes gtscIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
+.gtsc-head{display:flex;align-items:center;justify-content:space-between;padding:22px 26px;border-bottom:1px solid #2A2A32}
+.gtsc-head h3{font-size:21px;font-weight:800;letter-spacing:-.02em;color:#F4F4F5}
+.gtsc-x{width:32px;height:32px;border-radius:9px;border:none;background:transparent;color:#A1A1AA;font-size:20px;cursor:pointer}
+.gtsc-x:hover{background:#232329;color:#F4F4F5}
+.gtsc-body{padding:24px 26px}
+.gtsc-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.gtsc-field{display:flex;flex-direction:column;gap:7px}
+.gtsc-field.full{grid-column:1/-1}
+.gtsc-field span{font-size:13px;color:#A1A1AA}
+.gtsc-field input,.gtsc-field select,.gtsc-field textarea{width:100%;height:46px;padding:0 13px;border-radius:12px;border:1px solid #2E2E36;background:#101013;color:#F4F4F5;font-size:14px;outline:none}
+.gtsc-field textarea{height:auto;min-height:90px;padding:11px 13px;resize:vertical}
+.gtsc-field input:focus,.gtsc-field select:focus,.gtsc-field textarea:focus{border-color:#CBF74E}
+.gtsc-field .hint{font-size:11.5px;color:#6B6B76}
+.gtsc-msg{color:#FF7A3D;font-size:13px;padding:0 26px 8px}
+.gtsc-foot{display:flex;justify-content:flex-end;gap:10px;padding:18px 26px;border-top:1px solid #2A2A32}
+.gtsc-btn{height:44px;padding:0 22px;border-radius:12px;border:1px solid #2E2E36;background:#202027;color:#F4F4F5;font-size:14px;font-weight:600;cursor:pointer}
+.gtsc-btn.primary{background:#CBF74E;border-color:#CBF74E;color:#0E0E10;font-weight:800}
+.gtsc-btn.danger{background:transparent;border-color:rgba(255,84,112,.45);color:#FF8A9E}
+.gtsc-btn:hover{filter:brightness(1.08)}
+.gtsc-text{font-size:14px;line-height:1.9;color:#D4D4D8}
+@media(max-width:700px){.gtsc-grid{grid-template-columns:1fr}.gtsc-modal{max-height:92vh}}

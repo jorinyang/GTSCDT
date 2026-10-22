@@ -37,6 +37,7 @@ input,select{background:rgba(255,255,255,.05);border:1px solid var(--line);borde
 .modal-card input,.modal-card select{width:100%;margin-bottom:12px}
 .modal-card .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 </style><link rel="stylesheet" href="/ui.css" />
+<link rel="stylesheet" href="/dialog.css" />
 </head><body>
 <div class="top"><div class="brand">弈策课程运营系统 · GTSCDT</div><div class="user" onclick="location.href='/home'"><div class="avatar" id="ava">?</div><div><div id="uname" style="font-size:14px">加载中</div><div class="small muted" id="urole"></div></div><a href="/auth/logout" onclick="event.stopPropagation()">退出</a></div></div>
 <div class="wrap">
@@ -83,18 +84,7 @@ input,select{background:rgba(255,255,255,.05);border:1px solid var(--line);borde
   </div>
 </div>
 
-<div class="modal hidden" id="roomModal">
-  <div class="modal-card">
-    <h3>新建课程场次</h3>
-    <label>客户/项目名称</label><input id="nProject" placeholder="例如：三花集团 AI 培训" />
-    <label>日期</label><input id="nDate" type="date" />
-    <div class="two">
-      <div><label>省份</label><select id="nProvince"></select></div>
-      <div><label>城市</label><select id="nCity"></select></div>
-    </div>
-    <div class="row"><button class="btn primary" id="nCreate">创建场次</button><button class="btn" id="nCancel">取消</button><span class="small muted" id="nMsg"></span></div>
-  </div>
-</div>
+<script src="/dialog.js"></script>
 <script>
 var ME=null, ROOMS=[], TEACHERS=[];
 function $(id){return document.getElementById(id)}
@@ -169,28 +159,83 @@ function loadRooms(){
 $('fKeyword').oninput=renderRooms;
 $('fDate').onchange=renderRooms;
 $('fReset').onclick=function(){ $('fKeyword').value=''; $('fDate').value=''; renderRooms(); };
-function openRoomModal(){
-  var d=new Date(); var iso=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);
-  $('nProject').value=''; $('nDate').value=iso; $('nMsg').textContent='';
-  var show=function(){ fillProvinces('nProvince','浙江省'); fillCities('nCity','浙江省','杭州市'); $('roomModal').classList.remove('hidden'); };
-  if(CITY_DATA.length) show(); else loadCityData().then(show);
+function todayISO(){ var d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function provinceOptions(){ return CITY_DATA.map(function(p){return {value:p.name,label:p.name}}); }
+function cityOptions(prov){ var pv=CITY_DATA.filter(function(p){return p.name===prov})[0]; return pv?pv.cities.map(function(c){return {value:c,label:c}}):[]; }
+function bindCitySelect(root){
+  var p=root.querySelector('[data-name="province"]'), c=root.querySelector('[data-name="city"]');
+  if(!p||!c) return;
+  var current=c.value;
+  function fill(){
+    var opts=cityOptions(p.value);
+    c.innerHTML=opts.map(function(o){return '<option value="'+o.value+'">'+o.label+'</option>'}).join('');
+    if(current && opts.some(function(o){return o.value===current})) c.value=current;
+    current='';
+  }
+  p.addEventListener('change',fill); fill();
 }
-function closeRoomModal(){ $('roomModal').classList.add('hidden'); }
-$('newRoom').onclick=openRoomModal;
-$('nCancel').onclick=closeRoomModal;
-$('nProvince').onchange=function(){ fillCities('nCity',this.value,''); };
-$('nCreate').onclick=function(){
-  var project=$('nProject').value.trim(); if(!project){ $('nMsg').textContent='请填写客户/项目名称'; return; }
-  fetch('/api/rooms/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({project:project,date:$('nDate').value,province:$('nProvince').value,city:$('nCity').value})})
-    .then(function(r){return r.json()}).then(function(d){ if(d.ok)location.href='/room?code='+d.code; else $('nMsg').textContent=d.error||'创建失败'; });
-};
-function editRoom(code){ var r=ROOMS.filter(function(x){return x.code===code})[0]||{};
-  var title=prompt('房间名称',r.title||''); if(title===null)return;
-  var project=prompt('客户/项目名称',r.project||r.city||''); if(project===null)return;
-  var date=prompt('日期（YYYY-MM-DD）',r.date||''); if(date===null)return;
-  fetch('/api/rooms/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code,title:title,project:project,date:date})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)loadRooms(); else alert(d.error||'失败'); });
+function openCreateRoom(){
+  if(!CITY_DATA.length){ loadCityData().then(openCreateRoom); return; }
+  GTSC.dialog({
+    title:'新建课程场次', width:640,
+    fields:[
+      {name:'project',label:'客户/项目名称',required:true,full:true,placeholder:'例如：三花集团 AI 培训'},
+      {name:'date',label:'日期',type:'date',value:todayISO()},
+      {name:'province',label:'省份',type:'select',options:provinceOptions(),value:'浙江省'},
+      {name:'city',label:'城市',type:'select',options:cityOptions('浙江省'),value:'杭州市'}
+    ],
+    submitText:'创建场次',
+    onReady:bindCitySelect,
+    onSubmit:function(v,close){
+      fetch('/api/rooms/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({project:v.project,date:v.date,province:v.province,city:v.city})})
+        .then(function(r){return r.json()}).then(function(d){ if(d.ok)location.href='/room?code='+d.code; else GTSC.alert(d.error||'创建失败'); });
+      return false;
+    }
+  });
 }
-function delRoom(code){ if(!confirm('删除房间 '+code+'？不可恢复。'))return; fetch('/api/rooms/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)loadRooms(); else alert(d.error||'失败'); }); }
+$('newRoom').onclick=openCreateRoom;
+function editRoom(code){
+  if(!CITY_DATA.length){ loadCityData().then(function(){editRoom(code)}); return; }
+  var r=ROOMS.filter(function(x){return x.code===code})[0]||{};
+  var prov=r.province||'浙江省', city=r.city||'杭州市';
+  GTSC.dialog({
+    title:'编辑课程场次', width:640,
+    fields:[
+      {name:'project',label:'客户/项目名称',required:true,full:true,value:r.project||r.city||'',placeholder:'例如：三花集团 AI 培训'},
+      {name:'date',label:'日期',type:'date',value:r.date||todayISO()},
+      {name:'province',label:'省份',type:'select',options:provinceOptions(),value:prov},
+      {name:'city',label:'城市',type:'select',options:cityOptions(prov),value:city}
+    ],
+    submitText:'保存',
+    onReady:bindCitySelect,
+    onSubmit:function(v,close){
+      fetch('/api/rooms/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code,title:'',project:v.project,date:v.date,province:v.province,city:v.city})})
+        .then(function(r){return r.json()}).then(function(d){ if(d.ok){ close(); loadRooms(); } else GTSC.alert(d.error||'保存失败'); });
+      return false;
+    }
+  });
+}
+function delRoom(code){
+  GTSC.confirm({title:'删除场次',message:'删除场次 '+code+'？该场次的学员、投票、作业、报告都会一并删除，不可恢复。',submitText:'删除',danger:true,onConfirm:function(){
+    fetch('/api/rooms/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)loadRooms(); else GTSC.alert(d.error||'删除失败'); });
+  }});
+}
+function editTeacher(id){
+  var t=TEACHERS.filter(function(x){return x.id===id})[0]||{};
+  GTSC.dialog({title:'编辑讲师',width:640,fields:[
+    {name:'name',label:'姓名',required:true,value:t.name||''},
+    {name:'role',label:'角色',type:'select',value:t.role||'teacher',options:[{value:'admin',label:'超级管理员'},{value:'teacher',label:'讲师'},{value:'assistant',label:'助教'},{value:'viewer',label:'观察'}]},
+    {name:'dept',label:'部门',value:t.dept||'',full:true}
+  ],submitText:'保存',onSubmit:function(v,close){
+    fetch('/api/teachers/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,name:v.name,role:v.role,dept:v.dept})}).then(function(r){return r.json()}).then(function(d){ if(d.ok){ close(); loadTeachers(); } else GTSC.alert(d.error||'保存失败'); });
+    return false;
+  }});
+}
+function delTeacher(id){
+  GTSC.confirm({title:'删除讲师',message:'删除该讲师账号？删除后该账号无法再登录。',submitText:'删除',danger:true,onConfirm:function(){
+    fetch('/api/teachers/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)loadTeachers(); else GTSC.alert(d.error||'删除失败'); });
+  }});
+}
 function loadTeachers(){
   return fetch('/api/teachers',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
     TEACHERS=d.teachers||[];
@@ -201,13 +246,6 @@ function loadTeachers(){
     document.querySelectorAll('[data-tdel]').forEach(function(b){b.onclick=function(){delTeacher(b.getAttribute('data-tdel'))}});
   }).catch(function(){});
 }
-function editTeacher(id){ var t=TEACHERS.filter(function(x){return x.id===id})[0]||{};
-  var name=prompt('姓名',t.name||''); if(name===null)return;
-  var role=prompt('角色（admin/teacher/assistant/viewer）',t.role||'teacher'); if(role===null)return;
-  var dept=prompt('部门',t.dept||''); if(dept===null)return;
-  fetch('/api/teachers/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,name:name,role:role,dept:dept})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)loadTeachers(); else alert(d.error||'失败'); });
-}
-function delTeacher(id){ if(!confirm('删除该讲师账号？'))return; fetch('/api/teachers/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)loadTeachers(); else alert(d.error||'失败'); }); }
 $('tAdd').onclick=function(){ fetch('/api/teachers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:$('tName').value,role:$('tRole').value,dept:$('tDept').value,dingUnionId:$('tUnion').value})}).then(function(r){return r.json()}).then(function(d){ if(d.ok){loadTeachers();$('tMsg').textContent='已添加'} else $('tMsg').textContent=d.error||'失败'; }); };
 $('mTest').onclick=function(){ $('mMsg').textContent='测试中…'; fetch('/api/admin/model',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'test',baseUrl:$('mBase').value,model:$('mModel').value,apiKey:$('mKey').value})}).then(function(r){return r.json()}).then(function(d){ $('mMsg').textContent=d.ok?('连通正常 · '+d.model+' · '+d.ms+'ms'):('失败：'+(d.error||'')); }); };
 $('mSave').onclick=function(){ fetch('/api/admin/model',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save',baseUrl:$('mBase').value,model:$('mModel').value,apiKey:$('mKey').value})}).then(function(r){return r.json()}).then(function(d){ $('mKey').value=''; $('mMsg').textContent=d.ok?'已保存':'保存失败'; loadModel(); }); };
