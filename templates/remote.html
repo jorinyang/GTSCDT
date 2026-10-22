@@ -28,6 +28,8 @@ input,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(
     <button class="btn" data-view="data">大屏·报告</button>
     <button class="btn" data-view="course">大屏·课件</button>
   </div>
+  <div class="k" style="margin-top:14px">小组积分</div>
+  <div id="groupScores" class="small"></div>
 </div>
 
 <div class="card"><div class="k">投票</div>
@@ -38,9 +40,11 @@ input,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(
 </div>
 
 <div class="card"><div class="k">抢答</div>
-  <button class="btn wide" id="buzzStart">开始抢答（下一轮）</button>
+  <button class="btn wide" id="buzzEnable">开启抢答</button>
+  <button class="btn primary wide" id="buzzStart">开始抢答（下一轮）</button>
+  <button class="btn wide" id="buzzOff">关闭抢答</button>
   <div class="muted small" id="buzzStat">未开启</div>
-  <div class="muted small" style="margin-top:6px">抢答开关在课堂后台设置</div>
+  <div id="buzzWinner" style="margin-top:10px;font-size:26px;font-weight:800;color:var(--lime);min-height:34px"></div>
 </div>
 
 <div class="card"><div class="k">答题</div>
@@ -53,7 +57,10 @@ input,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(
   <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input id="wsMin" type="number" value="90" min="1" max="240" style="width:90px" /><span class="muted small">分钟</span></div>
   <button class="btn wide" id="wsStart">开始计时</button>
   <button class="btn wide" id="wsReset">重置计时</button>
-  <button class="btn wide" id="wsPush">推送/撤回行动卡</button>
+  <div class="k" style="margin-top:12px">行动卡 / 场景卡</div>
+  <select id="cardSel" style="margin-bottom:8px"></select>
+  <button class="btn wide" id="cardPush">推送卡片</button>
+  <button class="btn wide" id="cardWithdraw">撤回卡片</button>
   <div class="muted small" id="wsStat">未开始</div>
 </div>
 <script src="/dialog.js"></script>
@@ -62,23 +69,38 @@ var q=new URLSearchParams(location.search), ROOM=(q.get('room')||'').toUpperCase
 document.getElementById('room').textContent=ROOM||'ROOM0';
 function api(p,b){var u=p+(ROOM?((p.indexOf('?')>=0?'&':'?')+'room='+ROOM):'');return fetch(u,b?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}:{cache:'no-store'}).then(function(r){return r.json()})}
 function post(p,b){return api(p,b)}
-function refresh(){api('/api/screen').then(function(d){
-  document.getElementById('pollStat').textContent=d.poll.active?('进行中 · '+d.poll.count+' 票'):'未进行';
-  document.getElementById('buzzStat').textContent='第 '+(d.buzz.round||0)+' 轮 · '+(d.buzz.winner?('已抢到：'+d.buzz.winner):(d.buzz.running?'抢答中':(d.buzz.enabled?'已开启':'未开启')));
-  document.getElementById('quizStat').textContent=d.quiz?('进行中 · '+d.quiz.answered+' 人已答'):'未发布';
-  window.__mat=!!d.materialOpen;
-  document.getElementById('matToggle').textContent='素材发放：'+(d.materialOpen?'已开启':'已关闭');
-  window.__hw=!!d.hwOpen;
-  document.getElementById('hwToggle').textContent='作业提交：'+(d.hwOpen?'已开启':'已关闭');
-  window.__wsOpen=!!d.workshopOpen;
-  document.getElementById('wsStat').textContent=(d.timer&&d.timer.running?('计时中 · 剩 '+Math.max(0,Math.round(d.timer.left/60000))+' 分钟'):'计时未开始')+(d.workshopOpen?' · 行动卡已推送':' · 行动卡未推送');
+function refresh(){api('/api/admin/state').then(function(d){
+  var cfg=d.config||{};
+  var pcount=Object.keys((d.poll&&d.poll.votes)||{}).length;
+  document.getElementById('pollStat').textContent=(d.poll&&d.poll.active)?('进行中 · '+pcount+' 人已投'):'未进行';
+  var bz=d.buzz||{};
+  document.getElementById('buzzStat').textContent='第 '+(bz.round||0)+' 轮 · '+(bz.running?'抢答中':(bz.enabled?'已开启':'未开启'));
+  document.getElementById('buzzWinner').textContent=bz.winner?('抢到：'+bz.winner):'';
+  document.getElementById('quizStat').textContent=(d.quiz&&d.quiz.paper&&d.quiz.paper.active)?('进行中 · '+d.quiz.answered+' 人已答'):'未发布';
+  window.__mat=!!cfg.materialOpen;
+  document.getElementById('matToggle').textContent='素材发放：'+(cfg.materialOpen?'已开启':'已关闭');
+  window.__hw=!!(d.hwOpen!==undefined?d.hwOpen:cfg.hwOpen);
+  document.getElementById('hwToggle').textContent='作业提交：'+(window.__hw?'已开启':'已关闭');
+  window.__wsOpen=!!cfg.workshopOpen;
+  var tm=d.timer||{};
+  document.getElementById('wsStat').textContent=(tm.running?('计时中 · 剩 '+Math.max(0,Math.round((tm.endAt-Date.now())/60000))+' 分钟'):'计时未开始')+(cfg.workshopOpen?' · 卡片已推送':'');
+  var wm=document.getElementById('wsMin'); if(wm&&document.activeElement!==wm){ wm.value=String(cfg.wsMinutes||90); }
+  var gs=(d.groups||[]).map(function(g){return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #2A2A32"><b style="width:26px">'+g.id+'</b><span style="flex:1">'+g.name+' · '+g.perf+'</span><button class="btn" data-g="'+g.id+'" data-d="-1">−1</button><button class="btn" data-g="'+g.id+'" data-d="1">+1</button></div>'}).join('');
+  document.getElementById('groupScores').innerHTML=gs||'<span class="muted">还没有分组</span>';
+  var cs=document.getElementById('cardSel'); var cur=cs.value;
+  cs.innerHTML='<option value="">（选择行动卡/场景卡）</option>'+(d.cards||[]).map(function(c){return '<option value="'+c.id+'">'+c.theme+' · '+c.type+'</option>'}).join('');
+  if(cur)cs.value=cur;
 }).catch(function(){})}
 document.getElementById('pollStop').onclick=function(){post('/api/admin/poll',{action:'stop'}).then(refresh)};
+document.getElementById('buzzEnable').onclick=function(){post('/api/admin/buzz',{action:'enable'}).then(refresh)};
 document.getElementById('buzzStart').onclick=function(){post('/api/admin/buzz',{action:'start'}).then(refresh)};
+document.getElementById('buzzOff').onclick=function(){post('/api/admin/buzz',{action:'disable'}).then(refresh)};
 document.getElementById('quizClose').onclick=function(){post('/api/admin/quiz',{action:'close'}).then(refresh)};
 document.getElementById('wsStart').onclick=function(){post('/api/admin/timer',{action:'start',minutes:Number(document.getElementById('wsMin').value)||90}).then(refresh)};
 document.getElementById('wsReset').onclick=function(){post('/api/admin/timer',{action:'reset'}).then(refresh)};
-document.getElementById('wsPush').onclick=function(){post('/api/admin/workshop',{open:!window.__wsOpen}).then(refresh)};
+document.getElementById('cardPush').onclick=function(){var id=document.getElementById('cardSel').value;if(!id){alert('先在课堂后台添加行动卡');return}post('/api/admin/cards',{action:'push',id:id}).then(refresh)};
+document.getElementById('cardWithdraw').onclick=function(){post('/api/admin/cards',{action:'withdraw'}).then(refresh)};
+document.getElementById('groupScores').addEventListener('click',function(e){var b=e.target.closest('[data-g]');if(!b)return;post('/api/admin/perf',{group:b.getAttribute('data-g'),delta:Number(b.getAttribute('data-d'))}).then(refresh)});
 function loadPresets(){
   post('/api/admin/votepreset',{action:'list'}).then(function(d){
     var sel=document.getElementById('presetSel'); var list=(d&&d.list)||[];
@@ -87,12 +109,8 @@ function loadPresets(){
     var pb=document.getElementById('presetStart'); if(pb){ if(!list.length){pb.disabled=true;pb.textContent='先在课堂后台添加预置题目'}else{pb.disabled=false;pb.textContent='开始投票'} }
   }).catch(function(){});
 }
-document.getElementById('presetStart').onclick=function(){
-  var id=document.getElementById('presetSel').value; var v=(window.__presets||[]).filter(function(x){return x.id===id})[0];
-  if(!v){alert('先在课堂后台添加预置题目');return}
-  post('/api/admin/poll',{action:'start',question:v.question,options:v.options}).then(refresh);
-};
-document.getElementById('quizStart').onclick=function(){post('/api/admin/quiz',{action:'startPreset'}).then(function(d){ if(d&&d.ok===false)alert(d.error||'题库为空'); refresh(); })};
+document.getElementById('presetStart').onclick=function(){var id=document.getElementById('presetSel').value;var v=(window.__presets||[]).filter(function(x){return x.id===id})[0];if(!v){alert('先在课堂后台添加预置题目');return}post('/api/admin/poll',{action:'start',question:v.question,options:v.options}).then(refresh)};
+document.getElementById('quizStart').onclick=function(){post('/api/admin/quiz',{action:'startPreset'}).then(function(d){if(d&&d.ok===false)alert(d.error||'题库为空');refresh()})};
 document.getElementById('matToggle').onclick=function(){post('/api/admin/material',{open:!window.__mat}).then(refresh)};
 document.getElementById('hwToggle').onclick=function(){post('/api/admin/hw',{open:!window.__hw}).then(refresh)};
 document.querySelectorAll('[data-view]').forEach(function(b){b.onclick=function(){post('/api/admin/screen',{view:b.getAttribute('data-view')}).then(refresh)}});

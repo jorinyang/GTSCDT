@@ -65,6 +65,8 @@ body{animation:pageIn .32s ease both}
       <div class="rowflex" style="margin-top:10px"><input id="vpQ" placeholder="问题，例如：你从什么时候开始接触 AI？" style="width:100%" /></div>
       <textarea id="vpOpts" rows="4" placeholder="选项，每行一个" style="margin-top:6px;width:100%"></textarea>
       <div class="rowflex" style="margin-top:8px"><button class="btn sm" id="vpAdd">添加题目</button><span class="muted small" id="vpMsg"></span></div>
+      <div class="k" style="margin-top:14px">当前投票结果</div>
+      <div id="pollResults" class="small"></div>
     </div>
 
     <div class="card" style="margin-top:14px">
@@ -86,15 +88,6 @@ body{animation:pageIn .32s ease both}
         </div>
         <p class="muted small" style="margin-top:6px">抽签按人数平均分配、不超过上限；改动会实时同步到学员页。</p>
       </div>
-      <div class="card" style="margin-top:14px">
-        <div class="k">抢答</div>
-        <div class="rowflex" style="gap:8px;flex-wrap:wrap">
-          <button class="btn" id="buzzToggle">开启抢答</button>
-          <button class="btn ghost" id="buzzStart">开始抢答</button>
-          <span class="pill" id="buzzStat">未开启</span>
-        </div>
-        <input id="buzzWinner" readonly placeholder="抢答结果会显示在这里" style="margin-top:10px;width:100%;font-size:17px;font-weight:700;color:#F6E4C6" />
-      </div>
     </div>
   </div>
 
@@ -108,8 +101,6 @@ body{animation:pageIn .32s ease both}
       <button class="btn sm ghost" id="wsPause">暂停</button>
       <button class="btn sm ghost" id="wsReset">重置</button>
       <span class="pill" id="wsTimer">未开始</span>
-      <button class="btn sm ghost" id="wsPush">推送行动卡</button>
-      <span class="muted small" id="wsState">未推送</span>
     </div>
   </div>
 
@@ -117,8 +108,17 @@ body{animation:pageIn .32s ease both}
 
   <div class="card" style="margin-top:14px">
     <div class="k">课程素材（发放后学员端可见）</div>
-    <div class="rowflex"><button class="btn sm" id="matToggle">素材发放：—</button><input id="matFile" type="file" multiple /><span class="muted small" id="matMsg"></span></div>
+    <div class="rowflex"><input id="matFile" type="file" multiple /><span class="muted small" id="matMsg"></span></div>
     <div id="matList" class="small" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="k">行动卡 / 场景卡配置</div>
+    <div id="cardList" class="small"></div>
+    <div class="rowflex" style="margin-top:10px"><input id="cardTheme" placeholder="主题" style="width:220px" /><select id="cardType" style="width:110px"><option>行动卡</option><option>场景卡</option></select></div>
+    <textarea id="cardContent" rows="3" placeholder="内容" style="width:100%;margin-top:6px"></textarea>
+    <input id="cardAttrs" placeholder="属性（如：时长 / 产出 / 适用分组）" style="width:100%;margin-top:6px" />
+    <div class="rowflex" style="margin-top:8px"><button class="btn sm" id="cardAdd">添加卡片</button><span class="muted small" id="cardMsg"></span></div>
   </div>
 
   <div class="card" style="margin-top:14px">
@@ -197,7 +197,7 @@ lk('lnkScreen','/screen'); lk('lnkRemote','/remote'); lk('lnkJoin','/join');
 function render(){
   if(!state) return;
   var p=state.poll||{};
-  document.getElementById('pollStat').textContent=p.active?('进行中 · 已投 '+(Object.keys(p.votes||{}).length)+' 人'):'未发起';
+  var _ps=document.getElementById('pollStat'); if(_ps)_ps.textContent=p.active?('进行中 · 已投 '+(Object.keys(p.votes||{}).length)+' 人'):'未发起';
   var stat=document.getElementById('svc');
   stat.textContent='已连接';stat.className='pill on';
   /* 结果 */
@@ -233,6 +233,7 @@ function render(){
   /* 工作坊 */
   var tm=(state&&state.timer)||{};
   var wsv=document.getElementById('wsTimer'), wss=document.getElementById('wsState');
+  var wsm=document.getElementById('wsMin'); if(wsm&&document.activeElement!==wsm)wsm.value=String((state.config&&state.config.wsMinutes)||90);
   if(wsv)wsv.textContent=tm.running?('进行中 · '+Math.max(0,Math.round((tm.endAt-Date.now())/60000))+' 分钟'):'未开始';
   if(wss)wss.textContent=(state&&state.config&&state.config.workshopOpen)?'已推送':(state&&state.config?'未推送':'—');
   /* 模型管理 */
@@ -252,26 +253,24 @@ function render(){
     if(c&&document.activeElement!==c)c.value=(qcfg.counts&&qcfg.counts[t]!==undefined)?qcfg.counts[t]:c.value;
     if(sc&&document.activeElement!==sc)sc.value=(qcfg.scores&&qcfg.scores[t]!==undefined)?qcfg.scores[t]:sc.value;
   });
-  /* 抢答 */
-  var bz=state.buzz||{};
-  document.getElementById('buzzStat').textContent=(bz.round?('第 '+bz.round+' 轮 · '):'')+(bz.winner?('已抢到：'+bz.winner):(bz.running?'抢答中':(bz.enabled?'已开启':'未开启')));
-  document.getElementById('buzzToggle').textContent=bz.enabled?'关闭抢答':'开启抢答';
-  document.getElementById('buzzWinner').value=bz.winner||'';
-  document.getElementById('buzzStart').disabled=!bz.enabled;
+  /* 抢答控制与结果显示在遥控器 */
   /* 学员管理 */
   var gopts=function(cur){return ['','A','B','C','D','E','F','G'].map(function(g){return '<option value="'+g+'" '+(cur===g?'selected':'')+'>'+(g||'未分')+'</option>'}).join('')};
   var sb='<div class="rowflex" style="justify-content:space-between;margin-bottom:8px"><span class="muted small">共 '+((state.students||[]).length)+' 人</span><button class="btn sm danger" id="clearStudents">清空全部学员</button></div>';
-  sb+='<table><tr><th>姓名</th><th>尾号</th><th>分组</th><th class="num">投票</th><th class="num">抢答</th><th>操作</th></tr>';
+  var oneGroup=(state.config&&state.config.groupMax===1);
+  sb+='<table><tr><th>姓名</th><th>尾号</th><th>分组</th><th class="num">积分</th>'+(oneGroup?'<th class="num">作业分</th><th class="num">答题分</th>':'')+'<th class="num">投票</th><th class="num">抢答</th><th>操作</th></tr>';
   (state.students||[]).forEach(function(s){
     if(editingKey===s.key){
       sb+='<tr data-row="'+s.key+'"><td><input data-edit="name" value="'+s.name+'" style="width:96px;padding:3px 6px"></td>'
         +'<td><input data-edit="tail" value="'+s.tail+'" style="width:64px;padding:3px 6px"></td>'
         +'<td><select data-edit="group" style="width:78px;padding:3px 6px">'+gopts(s.group)+'</select></td>'
+        +'<td class="num">'+(s.score||0)+'</td>'+(oneGroup?'<td class="num">'+(s.hwScore||0)+'</td><td class="num">'+(s.quizScore||0)+'</td>':'')
         +'<td class="num">'+(s.votes||0)+'</td><td class="num">'+(s.buzzes||0)+'</td>'
         +'<td><button class="btn sm" data-save="'+s.key+'">保存</button> <button class="btn sm ghost" data-cancel="1">取消</button></td></tr>';
     }else{
       sb+='<tr><td>'+s.name+'</td><td class="muted">'+s.tail+'</td>'
         +'<td><select data-group="'+s.key+'" style="width:80px;padding:3px 6px;font-size:12px">'+gopts(s.group)+'</select></td>'
+        +'<td class="num">'+(s.score||0)+'</td>'+(oneGroup?'<td class="num">'+(s.hwScore||0)+'</td><td class="num">'+(s.quizScore||0)+'</td>':'')
         +'<td class="num">'+(s.votes||0)+'</td><td class="num">'+(s.buzzes||0)+'</td>'
         +'<td><button class="btn sm ghost" data-edit="'+s.key+'">编辑</button> <button class="btn sm danger" data-del="'+s.key+'">删除</button></td></tr>';
     }
@@ -353,6 +352,8 @@ function bind(){
   if(wsStart)wsStart.addEventListener('click',async function(){ await post('/api/admin/timer',{action:'start',minutes:Number(document.getElementById('wsMin').value)||90}); refresh(); });
   if(wsPause)wsPause.addEventListener('click',async function(){ await post('/api/admin/timer',{action:'pause'}); refresh(); });
   if(wsReset)wsReset.addEventListener('click',async function(){ await post('/api/admin/timer',{action:'reset'}); refresh(); });
+  var wsmEl=document.getElementById('wsMin');
+  if(wsmEl)wsmEl.addEventListener('change',async function(){ await post('/api/admin/workshopcfg',{minutes:Number(wsmEl.value)||90}); refresh(); });
   if(wsPush)wsPush.addEventListener('click',async function(){ var open=!(state&&state.config&&state.config.workshopOpen); await post('/api/admin/workshop',{open:open}); refresh(); });
   var mt=document.getElementById('mdTest'), msave=document.getElementById('mdSave');
   function mdBody(action){return {action:action,baseUrl:document.getElementById('mdBase').value.trim(),model:document.getElementById('mdModel').value.trim(),apiKey:document.getElementById('mdKey').value.trim()}}
@@ -401,15 +402,7 @@ function bind(){
 }
 async function refresh(){ try{ state=await api('/api/admin/state'); render(); }catch(e){ document.getElementById('svc').textContent='未连接（先启动讲师机服务）'; document.getElementById('svc').className='pill'; } }
 document.getElementById('resetGroups').addEventListener('click',async function(){ if(!confirm('清空所有人的分组？学员需要重新抽签。'))return; await post('/api/admin/reset',{scope:'groups'}); refresh(); });
-document.getElementById('buzzToggle').addEventListener('click',async function(){
-  var bz=(state&&state.buzz)||{};
-  await post('/api/admin/buzz',{action:bz.enabled?'disable':'enable'});
-  refresh();
-});
-document.getElementById('buzzStart').addEventListener('click',async function(){
-  await post('/api/admin/buzz',{action:'start'});
-  refresh();
-});
+
 refresh();setInterval(refresh,2500);
 (function(){
   var tabs=[].slice.call(document.querySelectorAll('.tabbtn'));
@@ -436,6 +429,8 @@ refresh();setInterval(refresh,2500);
 (function(){
   var ROOM=(new URLSearchParams(location.search).get('room')||'ROOM0').toUpperCase();
   function post(p,b){return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json()})}
+  window.editCard=function(id){ var c=(window.__cards||[]).filter(function(x){return x.id===id})[0]; if(!c)return; GTSC.dialog({title:'编辑卡片',width:640,fields:[{name:'theme',label:'主题',required:true,value:c.theme},{name:'type',label:'类型',type:'select',value:c.type,options:[{value:'行动卡',label:'行动卡'},{value:'场景卡',label:'场景卡'}]},{name:'content',label:'内容',type:'textarea',value:c.content,full:true},{name:'attrs',label:'属性',value:c.attrs,full:true}],submitText:'保存',onSubmit:function(v,close){post('/api/admin/cards',{action:'update',id:id,theme:v.theme,type:v.type,content:v.content,attrs:v.attrs}).then(function(){close();load();});return false;}}); };
+  window.delCard=function(id){ GTSC.confirm({title:'删除卡片',message:'删除这张卡片？',submitText:'删除',danger:true,onConfirm:function(){post('/api/admin/cards',{action:'delete',id:id}).then(load);}}); };
   function load(){
     fetch('/api/admin/state?room='+ROOM,{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
       var vp=d.votePresets||[]; window.__vps=vp;
@@ -458,6 +453,8 @@ refresh();setInterval(refresh,2500);
       window.delVp=function(id){ if(!confirm('删除这道投票题？'))return; post('/api/admin/votepreset',{action:'delete',id:id}).then(function(){load()}); };
       var hwBtn=document.getElementById('hwOpenBtn'); if(hwBtn){ window.__hw=!!d.hwOpen; hwBtn.textContent=d.hwOpen?'关闭作业提交':'开启作业提交'; hwBtn.onclick=function(){ post('/api/admin/hw',{open:!window.__hw}).then(load); }; }
       var hwList=document.getElementById('hwTasks'); if(hwList){ var ts=d.tasks||[]; hwList.innerHTML=ts.length?ts.map(function(t,i){return '<div style="padding:4px 0">'+(i+1)+'. '+t.title+'</div>'}).join(''):'<span class="muted">还没有作业题</span>'; }
+      var cl=document.getElementById('cardList');
+      if(cl){ window.__cards=d.cards||[]; cl.innerHTML=(window.__cards.length?window.__cards.map(function(c){return '<div style="border:1px solid #2A2A32;border-radius:10px;padding:8px 10px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+c.theme+'</b><span class="small muted">'+c.type+'</span></div><div class="small" style="margin-top:4px">'+c.content+'</div><div class="small muted" style="margin-top:4px">'+c.attrs+'</div><div style="margin-top:6px"><button class="btn sm" onclick="editCard(\''+c.id+'\')">编辑</button> <button class="btn sm danger" onclick="delCard(\''+c.id+'\')">删除</button></div></div>'}).join(''):'<span class="muted small">还没有卡片</span>'); }
       var mt=document.getElementById('matToggle');
       if(mt){mt.textContent='素材发放：'+(d.config&&d.config.materialOpen?'已开启':'已关闭');}
     }).catch(function(){});
@@ -471,15 +468,13 @@ refresh();setInterval(refresh,2500);
     var opts=document.getElementById('vpOpts').value.split('\n').map(function(x){return x.trim()}).filter(Boolean);
     post('/api/admin/votepreset',{action:'add',question:document.getElementById('vpQ').value,options:opts}).then(function(d){document.getElementById('vpMsg').textContent=d.ok?'已添加':(d.error||'失败'); if(d.ok){document.getElementById('vpQ').value='';document.getElementById('vpOpts').value='';} load()});
   };
-  document.getElementById('matToggle').onclick=function(){
-    fetch('/api/admin/state?room='+ROOM).then(function(r){return r.json()}).then(function(d){return post('/api/admin/material',{open:!(d.config&&d.config.materialOpen)})}).then(load);
-  };
   document.getElementById('matFile').onchange=function(){
     var files=[].slice.call(this.files||[]); var msg=document.getElementById('matMsg'); msg.textContent='上传中…';
     Promise.all(files.map(function(f){return new Promise(function(res){
       var fr=new FileReader(); fr.onload=function(){ var b64=String(fr.result).split(',')[1]||''; post('/api/room/upload?room='+ROOM,{filename:f.name,data:b64}).then(res); }; fr.readAsDataURL(f);
     })})).then(function(){msg.textContent='已上传';load();});
   };
+  document.getElementById('cardAdd').onclick=function(){ var theme=document.getElementById('cardTheme').value.trim(); if(!theme){document.getElementById('cardMsg').textContent='主题必填';return} post('/api/admin/cards',{action:'add',theme:theme,type:document.getElementById('cardType').value,content:document.getElementById('cardContent').value,attrs:document.getElementById('cardAttrs').value}).then(function(d){ if(d.ok){document.getElementById('cardTheme').value='';document.getElementById('cardContent').value='';document.getElementById('cardAttrs').value='';document.getElementById('cardMsg').textContent='已添加';load();}else document.getElementById('cardMsg').textContent=d.error||'失败'; }); };
   setInterval(load,4000); load();
   fetch('/api/me',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
     var el=document.getElementById('homeUser'); if(!el||!d.teacher)return;
