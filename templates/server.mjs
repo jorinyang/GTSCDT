@@ -504,7 +504,7 @@ const server=http.createServer(async (req,res)=>{
       if(!tj.accessToken) return send(res,401,'钉钉授权失败','text/html; charset=utf-8');
       const ur=await fetch('https://api.dingtalk.com/v1.0/contact/users/me',{headers:{'x-acs-dingtalk-access-token':tj.accessToken}});
       const me=await ur.json();
-      if(tj.idToken){ try{ const claims=JSON.parse(Buffer.from(String(tj.idToken).split('.')[1]||'','base64url').toString()); me.unionId=me.unionId||claims.unionId||claims.unionid||''; me.openId=me.openId||claims.openId||claims.openid||''; me.nick=me.nick||claims.nick||claims.name||''; me.avatarUrl=me.avatarUrl||claims.avatarUrl||claims.avatar||''; }catch(e){} }
+      if(tj.idToken||tj.id_token){ try{ const claims=JSON.parse(Buffer.from(String(tj.idToken||tj.id_token).split('.')[1]||'','base64url').toString()); me.unionId=me.unionId||claims.unionId||claims.unionid||''; me.openId=me.openId||claims.openId||claims.openid||''; me.nick=me.nick||claims.nick||claims.name||''; me.avatarUrl=me.avatarUrl||claims.avatarUrl||claims.avatar||''; }catch(e){} }
       let corpInfo=null;
       if(process.env.DINGTALK_CORP_ID){ try{ corpInfo=await dingCorpUser(me.unionId); }catch(e){} }
       if(corpInfo&&corpInfo.name&&!me.nick) me.nick=corpInfo.name;
@@ -544,6 +544,7 @@ const server=http.createServer(async (req,res)=>{
     }catch(e){ return send(res,500,'钉钉登录失败：'+String(e.message||e),'text/html; charset=utf-8'); }
   }
   if(p==='/auth/logout'){ res.setHeader('Set-Cookie','gtsc_teacher=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax'); res.writeHead(302,{Location:'/'}); return res.end(); }
+  if(p==='/api/dingtalk/debug' && req.method==='GET'){ return send(res,200,{ok:true,last:global.__lastDingLogin||null}); }
   if(p==='/api/dingtalk/diag' && req.method==='GET'){
     const now=Date.now();
     const fresh=u.searchParams.get('fresh')==='1';
@@ -789,7 +790,7 @@ const server=http.createServer(async (req,res)=>{
   if(AUTH_REQUIRED){
     const teacher=getTeacher(req);
     const htmlGuarded=(p==='/ops'||p==='/admin'||p==='/grader'||p==='/shell'||p==='/rooms'||p==='/teachers'||p==='/packages'||p==='/report'||p==='/remote'||p==='/package-edit'||p==='/room'||p==='/home'||p==='/room-setup');
-    const apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p.indexOf('/api/rooms')===0)||(p==='/api/report')||(p==='/api/report.csv')||(p.indexOf('/api/packages')===0)||(p.indexOf('/api/generate')===0)||(p.indexOf('/api/package')===0)||(p==='/api/extract')||(p==='/api/dingtalk/diag')||(p==='/api/room/upload')||(p==='/api/room/markdown');
+    const apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p.indexOf('/api/rooms')===0)||(p==='/api/report')||(p==='/api/report.csv')||(p.indexOf('/api/packages')===0)||(p.indexOf('/api/generate')===0)||(p.indexOf('/api/package')===0)||(p==='/api/extract')||(p==='/api/dingtalk/diag')||(p==='/api/dingtalk/debug')||(p==='/api/room/upload')||(p==='/api/room/markdown');
     if(htmlGuarded&&!teacher){ res.writeHead(302,{Location:'/login'}); return res.end(); }
     if(apiGuarded&&!teacher) return send(res,401,{ok:false,error:'login required'});
   }
