@@ -72,4 +72,5 @@
     return dialog({title:title||'提示',message:message,submitText:'知道了',cancelText:false,width:420,onSubmit:function(){ if(onClose)onClose(); }});
   }
   window.GTSC={dialog:dialog,confirm:confirm,alert:alert,close:close};
+  window.alert=function(msg){ alert(String(msg==null?"":msg)); };
 })();

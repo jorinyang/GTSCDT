@@ -17,6 +17,7 @@ a{color:var(--amber-l);text-decoration:none}
 @media(min-width:700px){body{max-width:560px;margin:0 auto;padding:16px}}
 input,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px;font-size:15px;font-family:inherit;margin-bottom:8px}
 </style><link rel="stylesheet" href="/ui.css" />
+<link rel="stylesheet" href="/dialog.css" />
 </head><body>
 <div class="top"><div class="brand">GTSCDT · 遥控器</div><div class="links"><span class="pill" id="room">ROOM</span><a href="/screen" target="_blank">大屏</a><a href="/ops" target="_blank">后台</a></div></div>
 <div class="card"><div class="k">投票</div>
@@ -61,6 +62,7 @@ input,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(
     <button class="btn" id="slideNext">课件下一页</button>
   </div>
 </div>
+<script src="/dialog.js"></script>
 <script>
 var q=new URLSearchParams(location.search), ROOM=(q.get('room')||'').toUpperCase();
 document.getElementById('room').textContent=ROOM||'ROOM0';
