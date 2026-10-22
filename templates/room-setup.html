@@ -37,13 +37,12 @@ input[type=text],input[type=date],select{background:var(--bg2);border:1px solid 
   <div class="k">房间信息</div>
   <div class="row">
     <input id="rt" type="text" style="width:280px" placeholder="房间名称" />
-    <select id="rp" style="width:150px"></select>
-    <select id="rc" style="width:190px"></select>
+    <input id="rpj" type="text" style="width:240px" placeholder="客户/项目名称" />
     <input id="rd" type="date" style="width:160px" />
     <button class="btn primary" id="rsave">保存</button>
     <span class="small muted" id="rmsg"></span>
   </div>
-  <div class="hint">先选省份再选城市；名称还是「日期 + 城市」的默认格式时，选完城市会自动更新，手动改过名称则保留。</div>
+  <div class="hint">填写客户/项目名称；名称还是「日期 + 客户/项目」的默认格式时，会自动跟着更新，手动改过名称则保留。</div>
 </div>
 
 <div class="two">
@@ -77,39 +76,8 @@ var ROOM=null;
 document.getElementById('roomLink').href='/room?code='+CODE;
 function esc(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
 function fmtSize(n){ return n>(1024*1024)?((n/1024/1024).toFixed(1)+' MB'):(Math.max(1,Math.round(n/1024))+' KB') }
-var CITY_DATA=[], AUTO_TITLE=true;
-function autoName(d,c){ return String(d||'')+' '+(c||'未设城市'); }
-function normCity(x){ return String(x||'').replace(/(市|地区|盟|自治州|布依族苗族自治州|苗族侗族自治州|布依族苗族自治县)$/,''); }
-function cityLookup(name){
-  if(!name) return null;
-  for(var i=0;i<CITY_DATA.length;i++){
-    var pv=CITY_DATA[i];
-    for(var k=0;k<pv.cities.length;k++){
-      var c=pv.cities[k];
-      if(c===name || normCity(c)===normCity(name) || c.indexOf(name)===0 || name.indexOf(c)===0) return {province:pv.name,city:c};
-    }
-  }
-  return null;
-}
-function fillProvinces(selected){
-  var rp=document.getElementById('rp');
-  rp.innerHTML='<option value="">省份</option>'+CITY_DATA.map(function(p){return '<option value="'+p.name+'">'+p.name+'</option>'}).join('');
-  if(selected) rp.value=selected;
-}
-function fillCities(province, selected){
-  var rc=document.getElementById('rc');
-  var pv=CITY_DATA.filter(function(p){return p.name===province})[0];
-  if(!pv){ rc.innerHTML='<option value="">城市</option>'; return; }
-  rc.innerHTML='<option value="">城市</option>'+pv.cities.map(function(c){return '<option value="'+c+'">'+c+'</option>'}).join('');
-  if(selected) rc.value=selected;
-}
-function syncTitle(){
-  if(!AUTO_TITLE) return;
-  document.getElementById('rt').value=autoName(document.getElementById('rd').value, document.getElementById('rc').value);
-}
-function loadCityData(){
-  return fetch('/assets/china-cities.json',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){ CITY_DATA=d||[]; }).catch(function(){ CITY_DATA=[]; });
-}
+var AUTO_TITLE=true;
+function autoName(d,p){ return String(d||'')+' '+(p||'未命名客户/项目'); }
 function loadRoom(){
   return fetch('/api/rooms',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
     ROOM=(d.rooms||[]).filter(function(x){return x.code===CODE})[0]||{};
@@ -117,31 +85,25 @@ function loadRoom(){
     document.getElementById('sub').textContent=ROOM.title||'';
     document.getElementById('rt').value=ROOM.title||'';
     document.getElementById('rd').value=ROOM.date||'';
-    var origCity=ROOM.city||'';
-    var match=cityLookup(origCity);
-    var prov=ROOM.province||(match&&match.province)||'';
-    if(!prov && !origCity){ prov='浙江省'; }
-    fillProvinces(prov);
-    var defCity=match?match.city:origCity;
-    if(!defCity && prov==='浙江省') defCity='杭州市';
-    fillCities(prov, defCity);
-    AUTO_TITLE=!ROOM.title || ROOM.title===autoName(ROOM.date, origCity);
-    if(AUTO_TITLE) document.getElementById('rt').value=autoName(ROOM.date, document.getElementById('rc').value||origCity);
+    var oldLabel=ROOM.project||ROOM.city||'';
+    document.getElementById('rpj').value=oldLabel;
+    AUTO_TITLE=!ROOM.title || ROOM.title===autoName(ROOM.date, oldLabel);
+    if(AUTO_TITLE) document.getElementById('rt').value=autoName(ROOM.date, oldLabel);
     renderFiles(ROOM.files||[]);
   }).catch(function(){});
 }
-document.getElementById('rp').onchange=function(){ fillCities(this.value,''); syncTitle(); };
-document.getElementById('rc').onchange=syncTitle;
+function syncTitle(){ if(!AUTO_TITLE) return; document.getElementById('rt').value=autoName(document.getElementById('rd').value, document.getElementById('rpj').value); }
+document.getElementById('rpj').oninput=syncTitle;
 document.getElementById('rd').onchange=syncTitle;
-document.getElementById('rt').oninput=function(){ AUTO_TITLE=(this.value===autoName(document.getElementById('rd').value,document.getElementById('rc').value)); };
+document.getElementById('rt').oninput=function(){ AUTO_TITLE=(this.value===autoName(document.getElementById('rd').value,document.getElementById('rpj').value)); };
 document.getElementById('rsave').onclick=function(){
-  fetch('/api/rooms/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:CODE,title:document.getElementById('rt').value,province:document.getElementById('rp').value,city:document.getElementById('rc').value,date:document.getElementById('rd').value})})
+  fetch('/api/rooms/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:CODE,title:document.getElementById('rt').value,project:document.getElementById('rpj').value,date:document.getElementById('rd').value})})
     .then(function(r){return r.json()}).then(function(d){
       if(!d.ok){document.getElementById('rmsg').textContent=d.error||'保存失败';return}
-      ROOM.title=d.meta.title; ROOM.city=d.meta.city; ROOM.date=d.meta.date; ROOM.province=d.meta.province||'';
+      ROOM.title=d.meta.title; ROOM.project=d.meta.project||''; ROOM.date=d.meta.date;
       document.getElementById('rt').value=ROOM.title;
       document.getElementById('sub').textContent=ROOM.title;
-      AUTO_TITLE=(ROOM.title===autoName(ROOM.date,ROOM.city));
+      AUTO_TITLE=(ROOM.title===autoName(ROOM.date,ROOM.project||ROOM.city||''));
       document.getElementById('rmsg').textContent='已保存';
       setTimeout(function(){document.getElementById('rmsg').textContent=''},1500);
     });
@@ -181,5 +143,5 @@ function uploadFiles(inputId,msgId,allowed){
 }
 uploadFiles('pptxFile','pptxMsg',['pptx','ppt']);
 uploadFiles('htmlFile','htmlMsg',['html','htm']);
-loadCityData().then(loadRoom);
+loadRoom();
 </script></body></html>
