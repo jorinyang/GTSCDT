@@ -38,6 +38,7 @@ input,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(
   <button class="btn wide" id="rollStart">随机抽一位学员</button>
   <div id="rollName" style="margin-top:10px;font-size:24px;font-weight:800;color:var(--lime);min-height:32px"></div>
   <div class="muted small" id="rollStat">未点名</div>
+  <button class="btn wide" id="rollStop" style="margin-top:8px">停止抽取</button>
 </div>
 
 <div class="card"><div class="k">投票</div>
@@ -104,6 +105,7 @@ function refresh(){api('/api/admin/state').then(function(d){
   cs.innerHTML='<option value="">（选择行动卡/场景卡）</option>'+(d.cards||[]).map(function(c){return '<option value="'+c.id+'">'+c.theme+' · '+c.type+'</option>'}).join('');
   if(cur)cs.value=cur;
 }).catch(function(){})}
+document.getElementById('rollStop').onclick=function(){post('/api/admin/roll',{action:'stop'}).then(refresh)};
 document.getElementById('rollStart').onclick=function(){post('/api/admin/roll',{action:'start'}).then(function(d){ if(d&&d.ok===false)alert(d.error||'点名失败'); refresh(); })};
 document.getElementById('pollStop').onclick=function(){post('/api/admin/poll',{action:'stop'}).then(refresh)};
 document.getElementById('buzzToggle').onclick=function(){post('/api/admin/buzz',{action:(window.__buzzEnabled?'disable':'enable')}).then(refresh)};
