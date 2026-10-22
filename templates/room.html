@@ -21,7 +21,8 @@ h1{font-size:24px;margin:4px 0}
 #qrcode{background:#F4EFE2;padding:12px;border-radius:12px}
 .muted{color:var(--muted)} .small{font-size:12px}
 .cards4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
-.cc{display:block;border:1px solid var(--line);border-radius:14px;padding:14px;background:rgba(255,255,255,.03)}
+.cc{display:block;border:1px solid var(--line);border-radius:14px;padding:14px;background:rgba(255,255,255,.03);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+.cc:hover{transform:translateY(-4px);border-color:rgba(203,247,78,.45);box-shadow:0 16px 36px rgba(0,0,0,.45),0 0 0 1px rgba(203,247,78,.12)}
 .cc b{display:block;color:#F6E4C6;margin-bottom:6px;font-size:15px}
 .cc span{font-size:12px;color:var(--muted);line-height:1.6}
 @media(max-width:900px){.cards4{grid-template-columns:repeat(2,1fr)}}
@@ -74,12 +75,8 @@ try{
 }catch(e){}
 var items=[
  ['学员交互端（扫码加入）', base+'/join?room='+CODE],
- ['大屏（投影用）', base+'/screen?room='+CODE],
  ['遥控器（讲师手机）', base+'/remote?room='+CODE],
- ['课堂后台（四标签）', base+'/ops?room='+CODE],
- ['课程内容（pptx / html）', base+'/room-setup?code='+CODE],
- ['课堂报告', base+'/report?room='+CODE],
- ['课程包播放', base+'/shell?room='+CODE]
+ ['课堂后台（四标签）', base+'/ops?room='+CODE]
 ];
 document.getElementById('links').innerHTML=items.map(function(x,i){
   return '<div class="linkrow"><div><div class="l">'+x[0]+'</div><div class="u">'+x[1]+'</div></div>'

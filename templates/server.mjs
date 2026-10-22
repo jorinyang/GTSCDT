@@ -817,8 +817,10 @@ const server=http.createServer(async (req,res)=>{
   }
   if(AUTH_REQUIRED){
     const teacher=getTeacher(req);
-    const htmlGuarded=(p==='/ops'||p==='/admin'||p==='/grader'||p==='/shell'||p==='/rooms'||p==='/teachers'||p==='/packages'||p==='/report'||p==='/remote'||p==='/package-edit'||p==='/room'||p==='/home'||p==='/room-setup');
-    const apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p.indexOf('/api/rooms')===0)||(p==='/api/report')||(p==='/api/report.csv')||(p.indexOf('/api/packages')===0)||(p.indexOf('/api/generate')===0)||(p.indexOf('/api/package')===0)||(p==='/api/extract')||(p==='/api/dingtalk/diag')||(p==='/api/dingtalk/debug')||(p==='/api/dingtalk/refresh')||(p==='/api/room/upload')||(p==='/api/room/markdown');
+    let htmlGuarded=(p==='/ops'||p==='/admin'||p==='/grader'||p==='/shell'||p==='/rooms'||p==='/teachers'||p==='/packages'||p==='/report'||p==='/remote'||p==='/package-edit'||p==='/room'||p==='/home'||p==='/room-setup');
+    let apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p.indexOf('/api/rooms')===0)||(p==='/api/report')||(p==='/api/report.csv')||(p.indexOf('/api/packages')===0)||(p.indexOf('/api/generate')===0)||(p.indexOf('/api/package')===0)||(p==='/api/extract')||(p==='/api/dingtalk/diag')||(p==='/api/dingtalk/debug')||(p==='/api/dingtalk/refresh')||(p==='/api/room/upload')||(p==='/api/room/markdown');
+    if(p==='/report' && u.searchParams.get('embed')==='1') htmlGuarded=false;
+    if(p==='/api/report' && u.searchParams.get('embed')==='1') apiGuarded=false;
     if(htmlGuarded&&!teacher){ res.writeHead(302,{Location:'/login'}); return res.end(); }
     if(apiGuarded&&!teacher) return send(res,401,{ok:false,error:'login required'});
   }
@@ -1071,7 +1073,7 @@ const server=http.createServer(async (req,res)=>{
           return send(res,200,{ok:true,list:state.votePresets});
         }
         if(p==='/api/admin/material'){ state.config=state.config||{}; state.config.materialOpen=!!b.open; save(); return send(res,200,{ok:true,materialOpen:state.config.materialOpen}); }
-        if(p==='/api/admin/screen'){ state.config=state.config||{}; const v=['stats','course','promo'].indexOf(b.view)>=0?b.view:'stats'; state.config.screenView=v; save(); return send(res,200,{ok:true,screenView:v}); }
+        if(p==='/api/admin/screen'){ state.config=state.config||{}; const v=b.view==='course'?'course':'data'; state.config.screenView=v; save(); return send(res,200,{ok:true,screenView:v}); }
         if(p==='/api/admin/slide'){
           state.config=state.config||{}; let n=Number(state.config.slide)||0;
           if(b.action==='next')n++; else if(b.action==='prev')n=Math.max(0,n-1); else if(b.value!==undefined)n=Math.max(0,Number(b.value)||0);

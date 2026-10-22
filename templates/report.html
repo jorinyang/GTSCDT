@@ -11,18 +11,23 @@ table{width:100%;border-collapse:collapse;font-size:14px}
 th,td{padding:7px;border-bottom:1px solid var(--line);text-align:left}
 th{color:var(--muted);font-size:12px}
 .btn{border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);border-radius:9px;padding:7px 12px;font-size:13px;cursor:pointer}
+body.embed{padding:14px}
+body.embed .top{display:none}
+body.embed h1{font-size:20px;margin-top:0}
+body.embed .card{border-radius:14px}
 </style><link rel="stylesheet" href="/ui.css" />
 </head><body>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div class="small muted">GTSCDT · 课堂报告</div><div><a href="/ops">操作台</a> · <a href="/rooms">房间</a> · <a href="/screen">大屏</a></div></div>
+<div class="top" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div class="small muted">GTSCDT · 课堂报告</div><div><a href="/ops">操作台</a> · <a href="/rooms">房间</a> · <a href="/screen">大屏</a></div></div>
 <h1 id="title">课堂报告</h1>
 <div class="card"><div class="k">课堂概览</div><div id="sum" class="small"></div></div>
 <div class="card"><div class="k">学员与作业</div><div style="overflow:auto"><table id="stu"></table></div></div>
 <div class="card"><div class="k">小组</div><div style="overflow:auto"><table id="grp"></table></div></div>
 <div class="card"><div class="k">答题</div><div style="overflow:auto"><table id="quiz"></table></div></div>
 <script>
-var q=new URLSearchParams(location.search), ROOM=(q.get('room')||'').toUpperCase();
+var q=new URLSearchParams(location.search), ROOM=(q.get('room')||'').toUpperCase(), EMBED=q.get('embed')==='1';
+if(EMBED) document.body.classList.add('embed');
 function esc(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
-fetch('/api/report'+(ROOM?('?room='+ROOM):'')).then(function(r){return r.json()}).then(function(d){
+fetch('/api/report'+(ROOM?('?room='+ROOM+'&embed=1'):'?embed=1')).then(function(r){return r.json()}).then(function(d){
   document.getElementById('title').textContent='课堂报告 · '+d.room;
   document.getElementById('sum').innerHTML='学员 '+d.students.length+' 人 · 作业提交 '+d.submissions.count+' 份 · 答题 '+((d.quiz.answers||[]).length)+' 人参与 · <a href="/api/report.csv'+(ROOM?('?room='+ROOM):'')+'">下载 CSV</a>';
   var byKey={}; (d.submissions.list||[]).forEach(function(x){byKey[x.name+'|'+x.tail]=(byKey[x.name+'|'+x.tail]||0)+1});

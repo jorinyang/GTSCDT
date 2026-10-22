@@ -53,13 +53,8 @@ input,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(
   <button class="btn wide" id="hwToggle">作业提交：—</button>
   <button class="btn wide" id="buzzReset">抢答重置（开始新一轮）</button>
   <div class="row" style="display:flex;gap:8px;margin-top:8px">
-    <button class="btn" data-view="stats">大屏·数据</button>
+    <button class="btn" data-view="data">大屏·报告</button>
     <button class="btn" data-view="course">大屏·课件</button>
-    <button class="btn" data-view="promo">大屏·宣传页</button>
-  </div>
-  <div class="row" style="display:flex;gap:8px;margin-top:8px">
-    <button class="btn" id="slidePrev">课件上一页</button>
-    <button class="btn" id="slideNext">课件下一页</button>
   </div>
 </div>
 <script src="/dialog.js"></script>
@@ -106,8 +101,6 @@ document.getElementById('matToggle').onclick=function(){post('/api/admin/materia
 document.getElementById('hwToggle').onclick=function(){post('/api/admin/hw',{open:!window.__hw}).then(refresh)};
 document.getElementById('buzzReset').onclick=function(){post('/api/admin/buzz',{action:'start'}).then(refresh)};
 document.querySelectorAll('[data-view]').forEach(function(b){b.onclick=function(){post('/api/admin/screen',{view:b.getAttribute('data-view')}).then(refresh)}});
-document.getElementById('slidePrev').onclick=function(){post('/api/admin/slide',{action:'prev'})};
-document.getElementById('slideNext').onclick=function(){post('/api/admin/slide',{action:'next'})};
 loadPresets();
 refresh();setInterval(refresh,2500);
 </script></body></html>
