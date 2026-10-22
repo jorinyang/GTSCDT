@@ -16,15 +16,17 @@ a{color:var(--amber-l);text-decoration:none}
 .muted{color:var(--muted)} .small{font-size:12px}
 @media(min-width:700px){body{max-width:560px;margin:0 auto;padding:16px}}
 input,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px;font-size:15px;font-family:inherit;margin-bottom:8px}
+.control-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.control-grid .btn{width:100%;padding:10px 6px;font-size:12.5px;line-height:1.35;white-space:normal;min-height:46px}
 </style><link rel="stylesheet" href="/ui.css" />
 <link rel="stylesheet" href="/dialog.css" />
 </head><body>
 <div class="top"><div class="brand">GTSCDT · 遥控器</div><div class="links"><span class="pill" id="room">ROOM</span><a href="/screen" target="_blank">大屏</a><a href="/ops" target="_blank">后台</a></div></div>
 
 <div class="card"><div class="k">课堂控制</div>
-  <button class="btn wide" id="matToggle">素材发放：—</button>
-  <button class="btn wide" id="hwToggle">作业提交：—</button>
-  <div class="row" style="display:flex;gap:8px;margin-top:8px">
+  <div class="control-grid">
+    <button class="btn" id="matToggle">素材发放</button>
+    <button class="btn" id="hwToggle">作业提交</button>
     <button class="btn" data-view="data">大屏·报告</button>
     <button class="btn" data-view="course">大屏·课件</button>
   </div>
