@@ -210,7 +210,7 @@ function render(){
     });
     rr+='<div class="muted small">投票人数 '+total+' · 开始于 '+(p.startedAt||'')+'</div>';
   } else { rr='<div class="muted small">没有进行中的投票。发起后学员手机页会出现投票卡片。</div>'; }
-  document.getElementById('pollResults').innerHTML=rr;
+  var _pr=document.getElementById('pollResults'); if(_pr)_pr.innerHTML=rr;
   /* 分组 */
   var gs=state.groups||[];
   var gt='<table><tr><th>组</th><th>名称</th><th class="num">人数</th><th>成员</th><th class="num">表现分</th><th>操作</th></tr>';
@@ -400,13 +400,6 @@ function bind(){
   })});
 }
 async function refresh(){ try{ state=await api('/api/admin/state'); render(); }catch(e){ document.getElementById('svc').textContent='未连接（先启动讲师机服务）'; document.getElementById('svc').className='pill'; } }
-document.getElementById('startPoll').addEventListener('click',async function(){
-  var q=document.getElementById('qText').value.trim();
-  var opts=document.getElementById('qOpts').value.split('\n').map(function(x){return x.trim()}).filter(Boolean);
-  if(!q||opts.length<2){alert('问题 + 至少两个选项');return}
-  await post('/api/admin/poll',{action:'start',question:q,options:opts});refresh();
-});
-document.getElementById('stopPoll').addEventListener('click',async function(){ await post('/api/admin/poll',{action:'stop'}); refresh(); });
 document.getElementById('resetGroups').addEventListener('click',async function(){ if(!confirm('清空所有人的分组？学员需要重新抽签。'))return; await post('/api/admin/reset',{scope:'groups'}); refresh(); });
 document.getElementById('buzzToggle').addEventListener('click',async function(){
   var bz=(state&&state.buzz)||{};
