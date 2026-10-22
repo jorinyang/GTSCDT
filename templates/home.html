@@ -56,7 +56,7 @@ input,select{background:rgba(255,255,255,.05);border:1px solid var(--line);borde
 
   <div id="pane-rooms" class="hidden">
     <div class="card"><div class="k">创建课程场次</div>
-      <div class="row"><input id="rTitle" placeholder="场次名称（留空=日期+客户/项目）" style="width:280px" /><input id="rProject" placeholder="客户/项目名称" style="width:200px" /><input id="rDate" type="date" style="width:160px" /><button class="btn primary" id="rCreate">创建并上传课程</button><span class="small muted" id="rMsg"></span></div>
+      <div class="row"><input id="rTitle" placeholder="场次名称（留空=日期+客户/项目）" style="width:280px" /><input id="rProject" placeholder="客户/项目名称" style="width:200px" /><input id="rDate" type="date" style="width:160px" /><button class="btn primary" id="rCreate">创建场次</button><span class="small muted" id="rMsg"></span></div>
     </div>
     <div class="card"><div class="k">场次列表</div><div style="overflow:auto"><table id="roomTbl"></table></div></div>
   </div>
@@ -102,8 +102,8 @@ function loadModel(){
 function loadRooms(){
   return fetch('/api/rooms',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
     ROOMS=d.rooms||[];
-    $('roomTbl').innerHTML='<tr><th>场次码</th><th>名称</th><th>日期</th><th>客户/项目</th><th>人数</th><th>操作</th></tr>'+ROOMS.map(function(x){
-      return '<tr><td><b>'+x.code+'</b></td><td>'+esc(x.title)+'</td><td>'+esc(x.date||'—')+'</td><td>'+esc(x.project||x.city||'—')+'</td><td>'+x.students+'</td><td class="small">'
+    $('roomTbl').innerHTML='<tr><th>场次码</th><th>名称</th><th>日期</th><th>地点</th><th>人数</th><th>操作</th></tr>'+ROOMS.map(function(x){
+      return '<tr><td><b>'+x.code+'</b></td><td>'+esc(x.title)+'</td><td>'+esc(x.date||'—')+'</td><td>'+esc((x.province?x.province+' ':'')+(x.city||'—'))+'</td><td>'+x.students+'</td><td class="small">'
         +'<a href="/room?code='+x.code+'">进入</a> · <a href="/room-setup?code='+x.code+'">课程内容</a> · <button class="btn" data-edit="'+x.code+'" style="padding:2px 8px;font-size:12px">编辑</button> <button class="btn danger" data-del="'+x.code+'" style="padding:2px 8px;font-size:12px">删除</button></td></tr>';
     }).join('');
     document.querySelectorAll('[data-edit]').forEach(function(b){b.onclick=function(){editRoom(b.getAttribute('data-edit'))}});
@@ -117,7 +117,7 @@ function editRoom(code){ var r=ROOMS.filter(function(x){return x.code===code})[0
   fetch('/api/rooms/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code,title:title,project:project,date:date})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)loadRooms(); else alert(d.error||'失败'); });
 }
 function delRoom(code){ if(!confirm('删除房间 '+code+'？不可恢复。'))return; fetch('/api/rooms/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)loadRooms(); else alert(d.error||'失败'); }); }
-$('rCreate').onclick=function(){ fetch('/api/rooms/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:$('rTitle').value,project:$('rProject').value,date:$('rDate').value})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)location.href='/room-setup?code='+d.code; else $('rMsg').textContent=d.error||'失败'; }); };
+$('rCreate').onclick=function(){ fetch('/api/rooms/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:$('rTitle').value,project:$('rProject').value,date:$('rDate').value})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)location.href='/room?code='+d.code; else $('rMsg').textContent=d.error||'失败'; }); };
 function loadTeachers(){
   return fetch('/api/teachers',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
     TEACHERS=d.teachers||[];
