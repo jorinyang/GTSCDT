@@ -46,6 +46,7 @@ async function dingDept(unionId){
   }catch(e){ return ''; }
 }
 function loadTeachers(){ try{ return JSON.parse(fs.readFileSync(TEACHERS_FILE,'utf8')); }catch(e){ return []; } }
+function freshTeacher(t){ if(!t) return t; try{ const list=loadTeachers(); const m=list.filter(function(x){return x.id===t.id||(t.dingUnionId&&x.dingUnionId===t.dingUnionId);})[0]; return m?Object.assign({},t,m):t; }catch(e){ return t; } }
 function saveTeachers(list){ fs.mkdirSync(path.dirname(TEACHERS_FILE),{recursive:true}); fs.writeFileSync(TEACHERS_FILE, JSON.stringify(list,null,1)); }
 let currentRoom = DEFAULT_ROOM;
 function roomStateFile(code){ return code===DEFAULT_ROOM ? STATE_FILE : path.join(ROOMS_DIR, code, 'state.json'); }
@@ -566,7 +567,7 @@ const server=http.createServer(async (req,res)=>{
     global.__dingDiag={at:now,data:out};
     return send(res,200,out);
   }
-  if(p==='/api/me') return send(res,200,{ok:true,teacher:getTeacher(req)});
+  if(p==='/api/me'){ const t=getTeacher(req); const f=freshTeacher(t); if(f){ try{ setTeacherCookie(res,f); }catch(e){} } return send(res,200,{ok:true,teacher:f}); }
   if(p==='/api/teachers' && req.method==='GET') return send(res,200,{ok:true,teachers:loadTeachers()});
   if(p==='/api/teachers' && req.method==='POST'){
     const b=await readBody(req);
