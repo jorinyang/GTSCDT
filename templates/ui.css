@@ -38,3 +38,19 @@ table tr:hover td{background:rgba(255,255,255,.02)!important}
 ::-webkit-scrollbar-track{background:transparent}
 
 .btn:disabled,.big-btn:disabled,button:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.4)}
+
+/* 所有按钮统一：荧光绿底 + 黑字（登录页使用 big-btn，不受影响） */
+.btn,.btn.primary,.btn.ghost,.btn.danger,.btn.sm,.btn.sm.ghost,.btn.sm.danger,a.btn{
+  background:var(--lime)!important;
+  border:1px solid var(--lime)!important;
+  color:#0E0E10!important;
+  font-weight:700!important;
+  box-shadow:none!important;
+}
+.btn:hover,.btn.primary:hover,.btn.ghost:hover,.btn.danger:hover{
+  background:#D9FF6A!important;
+  color:#0E0E10!important;
+  filter:none!important;
+  transform:none!important;
+}
+.btn:disabled{opacity:.45!important;background:var(--lime)!important;color:#0E0E10!important;filter:grayscale(.4)!important}
