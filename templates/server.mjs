@@ -560,7 +560,7 @@ const server=http.createServer(async (req,res)=>{
   }
   if(p==='/auth/logout'){ res.setHeader('Set-Cookie','gtsc_teacher=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax'); res.writeHead(302,{Location:'/'}); return res.end(); }
   if(p==='/api/dingtalk/refresh' && req.method==='POST'){
-    const t=getTeacher(req); if(!t||!t.dingUnionId) return send(res,400,{ok:false,error:'当前账号没有 unionId'});
+    const t=freshTeacher(getTeacher(req)); if(!t||!t.dingUnionId) return send(res,400,{ok:false,error:'当前账号没有 unionId'});
     const info=await dingCorpUser(t.dingUnionId);
     if(!info||!info.ok) return send(res,400,{ok:false,error:(info&&info.error)||'钉钉信息读取失败'});
     const list=loadTeachers(); const m=list.filter(function(x){return x.id===t.id||x.dingUnionId===t.dingUnionId})[0];
