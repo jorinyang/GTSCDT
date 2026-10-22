@@ -66,6 +66,13 @@ body{animation:pageIn .32s ease both}
       <textarea id="vpOpts" rows="4" placeholder="选项，每行一个" style="margin-top:6px;width:100%"></textarea>
       <div class="rowflex" style="margin-top:8px"><button class="btn sm" id="vpAdd">添加题目</button><span class="muted small" id="vpMsg"></span></div>
     </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="k">作业配置（固定六关）</div>
+      <div id="hwTasks" class="small"></div>
+      <div class="rowflex" style="margin-top:8px"><span class="muted small">作业提交</span><button class="btn sm" id="hwOpenBtn">—</button></div>
+    </div>
+
     <div>
       <div class="card">
         <div class="k">抽签与分组</div>
@@ -456,6 +463,8 @@ refresh();setInterval(refresh,2500);
         post('/api/admin/votepreset',{action:'update',id:id,question:q,options:opts}).then(function(d){ if(d.ok)load(); else alert(d.error||'保存失败'); });
       };
       window.delVp=function(id){ if(!confirm('删除这道投票题？'))return; post('/api/admin/votepreset',{action:'delete',id:id}).then(function(){load()}); };
+      var hwBtn=document.getElementById('hwOpenBtn'); if(hwBtn){ window.__hw=!!d.hwOpen; hwBtn.textContent=d.hwOpen?'关闭作业提交':'开启作业提交'; hwBtn.onclick=function(){ post('/api/admin/hw',{open:!window.__hw}).then(load); }; }
+      var hwList=document.getElementById('hwTasks'); if(hwList){ var ts=d.tasks||[]; hwList.innerHTML=ts.length?ts.map(function(t,i){return '<div style="padding:4px 0">'+(i+1)+'. '+t.title+'</div>'}).join(''):'<span class="muted">还没有作业题</span>'; }
       var mt=document.getElementById('matToggle');
       if(mt){mt.textContent='素材发放：'+(d.config&&d.config.materialOpen?'已开启':'已关闭');}
     }).catch(function(){});
