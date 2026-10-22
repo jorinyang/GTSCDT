@@ -88,7 +88,7 @@ function cookieRoom(req){ const m=String(req.headers.cookie||'').match(/(?:^|;\s
 function ensureDir(){ if(!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR,{recursive:true}); }
 function blank(){
   const groups={}; GROUPS.forEach(g=>groups[g]={name:g+'组',perf:0});
-  return {students:{},groups,poll:{active:false,question:'',options:[],votes:{},startedAt:''},submissions:{},config:{hwOpen:false,workshopOpen:false,materialOpen:false,screenView:'stats',slide:0,groupMax:3,wsMinutes:90,activeCard:'',model:{baseUrl:'https://api.deepseek.com',model:'deepseek-flash',apiKey:''}},buzz:{enabled:false,running:false,winner:'',round:0,at:''},tasks:[],votePresets:[],cards:[],timer:{running:false,endAt:0,duration:0},quiz:{bank:{choice:[],judge:[],blank:[],short:[]},config:{mode:'random',counts:{choice:5,judge:3,blank:2,short:1},scores:{choice:2,judge:2,blank:3,short:10}},paper:null,answers:{}},updatedAt:new Date().toISOString()};
+  return {students:{},groups,poll:{active:false,question:'',options:[],votes:{},startedAt:''},submissions:{},config:{hwOpen:false,workshopOpen:false,materialOpen:false,screenView:'stats',slide:0,groupMax:3,wsMinutes:90,activeCard:'',model:{baseUrl:'https://api.deepseek.com',model:'deepseek-flash',apiKey:''}},buzz:{enabled:false,running:false,winner:'',round:0,at:''},tasks:[],votePresets:[],cards:[],roll:{active:false,key:'',name:'',round:0,at:0},timer:{running:false,endAt:0,duration:0},quiz:{bank:{choice:[],judge:[],blank:[],short:[]},config:{mode:'random',counts:{choice:5,judge:3,blank:2,short:1},scores:{choice:2,judge:2,blank:3,short:10}},paper:null,answers:{}},updatedAt:new Date().toISOString()};
 }
 function load(){ ensureDir(); if(!fs.existsSync(STATE_FILE)) return blank();
   try{ const s=JSON.parse(fs.readFileSync(STATE_FILE,'utf8')); return Object.assign(blank(),s); }catch(e){ return blank(); } }
@@ -152,6 +152,7 @@ function studentView(k){
     workshopOpen: !!(state.config&&state.config.workshopOpen),
     tasksVersion:(function(){try{return fs.statSync(path.join(DATA_DIR,'rooms',currentRoom,'assets','quests.html')).mtimeMs}catch(e){return 0}})(),
     tasksCount:(state.tasks||[]).length,
+    roll:(function(){var r=state.roll||{};return {active:!!r.active,name:r.name||'',selected:!!(r.active&&r.key===k)};})(),
     card:(function(){ if(!(state.config&&state.config.workshopOpen)) return null; var c=(state.cards||[]).filter(function(x){return x.id===state.config.activeCard})[0]; return c?{theme:c.theme,type:c.type,content:c.content,attrs:c.attrs}:null; })(),
     materialOpen:!!(state.config&&state.config.materialOpen),
     materials:(function(){try{var m=JSON.parse(fs.readFileSync(roomMetaFile(currentRoom),'utf8'));return (m.files||[]).map(function(f){return {name:f.name,url:'/api/room/file?name='+encodeURIComponent(f.stored)}})}catch(e){return []}})(),
@@ -174,7 +175,7 @@ function adminView(){
   if(state.poll.options&&state.poll.options.length){ state.poll.options.forEach((o,i)=>{results[i]=0}); Object.values(state.poll.votes||{}).forEach(v=>{ if(results[v]!==undefined) results[v]++ }); }
   const subs=Object.keys(state.submissions).map(k=>{ const p=k.split('||'); const st=state.students[p[0]]||{}; const sub=state.submissions[k]; return {key:k,studentKey:p[0],name:st.name||p[0],tail:st.tail||'',task:p[1],text:sub.text||'',fileName:sub.fileName||'',q1:sub.q1||'',q2:sub.q2||'',q3:sub.q3||'',files:sub.files||[],at:sub.at,manual:sub.manual||[],score:sub.score||null}; });
   const _mc=modelCfg();
-  return {ok:true,timer:state.timer||null,workshopOpen:!!(state.config&&state.config.workshopOpen),quiz:quizInfo,model:{baseUrl:_mc.base,model:_mc.model,hasKey:!!_mc.key},config:state.config||{},votePresets:state.votePresets||[],cards:state.cards||[],activeCard:(state.config&&state.config.activeCard)||'',tasks:state.tasks||[],hwOpen:!!(state.config&&state.config.hwOpen),buzz:state.buzz||{enabled:false,running:false,winner:''},students:Object.keys(state.students).map(function(k){const st=Object.assign({key:k},state.students[k]);st.hwScore=Object.keys(state.submissions||{}).filter(function(sk){return sk.indexOf(k+'||')===0}).reduce(function(a,sk){return a+(((state.submissions[sk]||{}).score||{}).total||0)},0);st.quizScore=(((state.quiz&&state.quiz.answers&&state.quiz.answers[k])||{}).score)||0;return st}),groups:Object.keys(state.groups).map(g=>({id:g,name:state.groups[g].name,perf:state.groups[g].perf||0,count:counts[g]})),counts,poll:{active:state.poll.active,question:state.poll.question,options:state.poll.options,votes:state.poll.votes,results,startedAt:state.poll.startedAt},submissions:subs,updatedAt:state.updatedAt};
+  return {ok:true,timer:state.timer||null,workshopOpen:!!(state.config&&state.config.workshopOpen),quiz:quizInfo,model:{baseUrl:_mc.base,model:_mc.model,hasKey:!!_mc.key},config:state.config||{},votePresets:state.votePresets||[],cards:state.cards||[],activeCard:(state.config&&state.config.activeCard)||'',tasks:state.tasks||[],hwOpen:!!(state.config&&state.config.hwOpen),buzz:state.buzz||{enabled:false,running:false,winner:''},students:Object.keys(state.students).map(function(k){const st=Object.assign({key:k},state.students[k]);st.hwScore=Object.keys(state.submissions||{}).filter(function(sk){return sk.indexOf(k+'||')===0}).reduce(function(a,sk){return a+(((state.submissions[sk]||{}).score||{}).total||0)},0);st.quizScore=(((state.quiz&&state.quiz.answers&&state.quiz.answers[k])||{}).score)||0;return st}),groups:Object.keys(state.groups).map(g=>({id:g,name:state.groups[g].name,perf:state.groups[g].perf||0,count:counts[g]})),counts,roll:state.roll||{active:false},poll:{active:state.poll.active,question:state.poll.question,options:state.poll.options,votes:state.poll.votes,results,startedAt:state.poll.startedAt},submissions:subs,updatedAt:state.updatedAt};
 }
 function mcpToolDefs(){
   return [
@@ -1024,7 +1025,7 @@ const server=http.createServer(async (req,res)=>{
         if(p==='/api/admin/student'){
           const act=b.action;
           if(act==='clear'){
-            state.students={};state.submissions={};state.poll.votes={};state.buzz={enabled:false,running:false,winner:'',round:0,at:'',counts:{}};
+            state.students={};state.submissions={};state.poll.votes={};state.buzz={enabled:false,running:false,winner:'',round:0,at:'',counts:{}};state.roll={active:false,key:'',name:'',round:0,at:0};
             state.updatedAt=new Date().toISOString();save();return send(res,200,{ok:true});
           }
           const oldKey=b.key, st=state.students[oldKey];
@@ -1095,6 +1096,17 @@ const server=http.createServer(async (req,res)=>{
           else if(b.action==='pause'){ state.timer.running=false; state.timer.endAt=0; }
           else if(b.action==='reset'){ state.timer={running:false,endAt:0,duration:0}; }
           save(); return send(res,200,{ok:true,timer:state.timer});
+        }
+        if(p==='/api/admin/roll'){
+          state.roll=state.roll||{active:false,key:'',name:'',round:0,at:0};
+          if(b.action==='start'){
+            var keys=Object.keys(state.students||{}); if(!keys.length) return send(res,400,{ok:false,error:'还没有学员，先让学员扫码进入'});
+            var k=keys[Math.floor(Math.random()*keys.length)]; var st=state.students[k];
+            state.roll={active:true,key:k,name:(st&&st.name)||'学员',round:(state.roll.round||0)+1,at:Date.now()};
+            save(); return send(res,200,{ok:true,roll:state.roll});
+          }
+          if(b.action==='stop'){ state.roll.active=false; save(); return send(res,200,{ok:true,roll:state.roll}); }
+          return send(res,200,{ok:true,roll:state.roll});
         }
         if(p==='/api/admin/workshopcfg'){ state.config=state.config||{}; state.config.wsMinutes=Math.max(1,Math.min(240,Number(b.minutes)||90)); save(); return send(res,200,{ok:true,wsMinutes:state.config.wsMinutes}); }
         if(p==='/api/admin/workshop'){ state.config=state.config||{}; state.config.workshopOpen=!!b.open; if(!b.open) state.config.activeCard=''; state.updatedAt=new Date().toISOString(); save(); return send(res,200,{ok:true,workshopOpen:state.config.workshopOpen}); }

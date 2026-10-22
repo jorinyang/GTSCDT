@@ -75,6 +75,12 @@ body{animation:pageIn .32s ease both}
       <div class="rowflex" style="margin-top:8px"><span class="muted small">作业提交</span><button class="btn sm" id="hwOpenBtn">—</button></div>
     </div>
 
+    <div class="card" style="margin-top:14px">
+      <div class="k">点名</div>
+      <div id="rollInfo" class="small"></div>
+      <div class="rowflex" style="margin-top:8px"><button class="btn sm" id="rollStop">停止抽取</button></div>
+    </div>
+
     <div>
       <div class="card">
         <div class="k">抽签与分组</div>
@@ -232,6 +238,8 @@ function render(){
   document.getElementById('perfBox').innerHTML=pb;
   /* 工作坊 */
   var tm=(state&&state.timer)||{};
+  var rl=state.roll||{}; var ri=document.getElementById('rollInfo');
+  if(ri)ri.innerHTML=rl.active?('当前点名：<b style="color:#CBF74E;font-size:16px">'+(rl.name||'')+'</b><br><span class="muted small">第 '+(rl.round||0)+' 轮 · 等待回答</span>'):'未点名';
   var wsv=document.getElementById('wsTimer'), wss=document.getElementById('wsState');
   var wsm=document.getElementById('wsMin'); if(wsm&&document.activeElement!==wsm)wsm.value=String((state.config&&state.config.wsMinutes)||90);
   if(wsv)wsv.textContent=tm.running?('进行中 · '+Math.max(0,Math.round((tm.endAt-Date.now())/60000))+' 分钟'):'未开始';
@@ -354,6 +362,8 @@ function bind(){
   if(wsReset)wsReset.addEventListener('click',async function(){ await post('/api/admin/timer',{action:'reset'}); refresh(); });
   var wsmEl=document.getElementById('wsMin');
   if(wsmEl)wsmEl.addEventListener('change',async function(){ await post('/api/admin/workshopcfg',{minutes:Number(wsmEl.value)||90}); refresh(); });
+  var rollStop=document.getElementById('rollStop');
+  if(rollStop)rollStop.addEventListener('click',async function(){ await post('/api/admin/roll',{action:'stop'}); refresh(); });
   if(wsPush)wsPush.addEventListener('click',async function(){ var open=!(state&&state.config&&state.config.workshopOpen); await post('/api/admin/workshop',{open:open}); refresh(); });
   var mt=document.getElementById('mdTest'), msave=document.getElementById('mdSave');
   function mdBody(action){return {action:action,baseUrl:document.getElementById('mdBase').value.trim(),model:document.getElementById('mdModel').value.trim(),apiKey:document.getElementById('mdKey').value.trim()}}

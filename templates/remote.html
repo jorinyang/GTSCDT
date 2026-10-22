@@ -34,6 +34,12 @@ input,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(
   <div id="groupScores" class="small"></div>
 </div>
 
+<div class="card"><div class="k">点名</div>
+  <button class="btn wide" id="rollStart">随机抽一位学员</button>
+  <div id="rollName" style="margin-top:10px;font-size:24px;font-weight:800;color:var(--lime);min-height:32px"></div>
+  <div class="muted small" id="rollStat">未点名</div>
+</div>
+
 <div class="card"><div class="k">投票</div>
   <select id="presetSel" style="margin-bottom:8px"></select>
   <button class="btn wide" id="presetStart">开始投票</button>
@@ -90,10 +96,15 @@ function refresh(){api('/api/admin/state').then(function(d){
   var wm=document.getElementById('wsMin'); if(wm&&document.activeElement!==wm){ wm.value=String(cfg.wsMinutes||90); }
   var gs=(d.groups||[]).map(function(g){return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #2A2A32"><b style="width:26px">'+g.id+'</b><span style="flex:1">'+g.name+' · '+g.perf+'</span><button class="btn" data-g="'+g.id+'" data-d="-1">−1</button><button class="btn" data-g="'+g.id+'" data-d="1">+1</button></div>'}).join('');
   document.getElementById('groupScores').innerHTML=gs||'<span class="muted">还没有分组</span>';
+  var rl=d.roll||{};
+  document.getElementById('rollName').textContent=rl.active?(rl.name||''):'';
+  document.getElementById('rollStat').textContent=rl.active?('第 '+(rl.round||0)+' 轮 · 请该学员回答'):'未点名';
+  document.getElementById('rollStart').textContent=rl.active?'重新随机抽取':'随机抽一位学员';
   var cs=document.getElementById('cardSel'); var cur=cs.value;
   cs.innerHTML='<option value="">（选择行动卡/场景卡）</option>'+(d.cards||[]).map(function(c){return '<option value="'+c.id+'">'+c.theme+' · '+c.type+'</option>'}).join('');
   if(cur)cs.value=cur;
 }).catch(function(){})}
+document.getElementById('rollStart').onclick=function(){post('/api/admin/roll',{action:'start'}).then(function(d){ if(d&&d.ok===false)alert(d.error||'点名失败'); refresh(); })};
 document.getElementById('pollStop').onclick=function(){post('/api/admin/poll',{action:'stop'}).then(refresh)};
 document.getElementById('buzzToggle').onclick=function(){post('/api/admin/buzz',{action:(window.__buzzEnabled?'disable':'enable')}).then(refresh)};
 document.getElementById('buzzStart').onclick=function(){post('/api/admin/buzz',{action:'start'}).then(refresh)};
