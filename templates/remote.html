@@ -42,9 +42,8 @@ input,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(
 </div>
 
 <div class="card"><div class="k">抢答</div>
-  <button class="btn wide" id="buzzEnable">开启抢答</button>
-  <button class="btn primary wide" id="buzzStart">开始抢答（下一轮）</button>
-  <button class="btn wide" id="buzzOff">关闭抢答</button>
+  <button class="btn wide" id="buzzToggle">开启抢答</button>
+  <button class="btn wide" id="buzzStart">开始抢答（下一轮）</button>
   <div class="muted small" id="buzzStat">未开启</div>
   <div id="buzzWinner" style="margin-top:10px;font-size:26px;font-weight:800;color:var(--lime);min-height:34px"></div>
 </div>
@@ -76,7 +75,9 @@ function refresh(){api('/api/admin/state').then(function(d){
   var pcount=Object.keys((d.poll&&d.poll.votes)||{}).length;
   document.getElementById('pollStat').textContent=(d.poll&&d.poll.active)?('进行中 · '+pcount+' 人已投'):'未进行';
   var bz=d.buzz||{};
+  window.__buzzEnabled=!!bz.enabled;
   document.getElementById('buzzStat').textContent='第 '+(bz.round||0)+' 轮 · '+(bz.running?'抢答中':(bz.enabled?'已开启':'未开启'));
+  document.getElementById('buzzToggle').textContent=bz.enabled?'关闭抢答':'开启抢答';
   document.getElementById('buzzWinner').textContent=bz.winner?('抢到：'+bz.winner):'';
   document.getElementById('quizStat').textContent=(d.quiz&&d.quiz.paper&&d.quiz.paper.active)?('进行中 · '+d.quiz.answered+' 人已答'):'未发布';
   window.__mat=!!cfg.materialOpen;
@@ -94,9 +95,8 @@ function refresh(){api('/api/admin/state').then(function(d){
   if(cur)cs.value=cur;
 }).catch(function(){})}
 document.getElementById('pollStop').onclick=function(){post('/api/admin/poll',{action:'stop'}).then(refresh)};
-document.getElementById('buzzEnable').onclick=function(){post('/api/admin/buzz',{action:'enable'}).then(refresh)};
+document.getElementById('buzzToggle').onclick=function(){post('/api/admin/buzz',{action:(window.__buzzEnabled?'disable':'enable')}).then(refresh)};
 document.getElementById('buzzStart').onclick=function(){post('/api/admin/buzz',{action:'start'}).then(refresh)};
-document.getElementById('buzzOff').onclick=function(){post('/api/admin/buzz',{action:'disable'}).then(refresh)};
 document.getElementById('quizClose').onclick=function(){post('/api/admin/quiz',{action:'close'}).then(refresh)};
 document.getElementById('wsStart').onclick=function(){post('/api/admin/timer',{action:'start',minutes:Number(document.getElementById('wsMin').value)||90}).then(refresh)};
 document.getElementById('wsReset').onclick=function(){post('/api/admin/timer',{action:'reset'}).then(refresh)};
