@@ -32,6 +32,15 @@ html,body{height:100%}
 .divider{display:flex;align-items:center;gap:10px;color:var(--ink3);font-size:11.5px;margin:18px 0 0}
 .divider:before,.divider:after{content:"";flex:1;height:1px;background:var(--line)}
 @media(max-width:1000px){#login{display:block;height:auto;min-height:100vh}.brand-side{display:none}.side{min-height:100vh;padding:24px}.login-card{max-width:360px}}
+
+.auth-overlay{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:rgba(8,9,11,.96);backdrop-filter:blur(4px);padding:24px}
+.auth-box{width:100%;max-width:360px;text-align:center}
+.auth-logo{width:54px;height:54px;border-radius:16px;background:var(--lime);color:#0E0E10;font-size:23px;font-weight:800;display:grid;place-items:center;margin:0 auto 18px}
+.auth-box h2{font-size:20px;margin-bottom:6px}
+.spinner{width:28px;height:28px;border-radius:50%;border:3px solid rgba(203,247,78,.2);border-top-color:var(--lime);margin:22px auto;animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.auth-hint{color:var(--ink2);font-size:13px;line-height:1.9;max-width:330px;margin:0 auto}
+.auth-back{margin-top:16px}
 </style></head><body>
 <div id="login">
   <section class="brand-side">
@@ -85,4 +94,13 @@ document.getElementById('local').onclick=function(){
     if(d.ok){location.href='/home'}else{document.getElementById('msg').textContent=d.error||'登录失败'}
   }).catch(function(){document.getElementById('msg').textContent='服务未响应'});
 };
-</script></body></html>
+</script><div class="auth-overlay hidden" id="authOverlay">
+  <div class="auth-box">
+    <div class="auth-logo">弈</div>
+    <h2>正在前往钉钉授权…</h2>
+    <div class="spinner"></div>
+    <p class="auth-hint" id="authHint">正在跳转到钉钉授权页，请稍候。</p>
+    <button class="big-btn auth-back hidden" id="authBack" style="max-width:220px;margin-left:auto;margin-right:auto">返回登录</button>
+  </div>
+</div>
+</body></html>
