@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>房间入口 · GTSCDT</title>
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>场次入口 · GTSCDT</title>
 <style>
 :root{--bg:#081813;--line:rgba(244,239,226,.13);--text:#F4EFE2;--muted:#9DB3A6;--amber:#D98A2B;--amber-l:#E9B45C}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -28,7 +28,7 @@ h1{font-size:24px;margin:4px 0}
 @media(max-width:900px){.grid{grid-template-columns:1fr}}
 </style><link rel="stylesheet" href="/ui.css" />
 </head><body>
-<div class="top"><div class="brand">GTSCDT · 房间入口</div><div><a href="/rooms">← 房间列表</a> · <a href="/ops" id="lnkOps">课堂后台</a><button class="btn" id="delRoom" style="display:none;margin-left:8px">删除房间</button></div></div>
+<div class="top"><div class="brand">GTSCDT · 场次入口</div><div><a href="/rooms">← 场次列表</a> · <a href="/ops" id="lnkOps">课堂后台</a><button class="btn" id="delRoom" style="display:none;margin-left:8px">删除场次</button></div></div>
 <h1 id="title">课堂房间</h1>
 <div class="code" id="code">ROOM0</div>
 <p class="muted small" style="margin-top:6px">把这个页面投屏或发给助教，所有入口和学员二维码都在这里。<span id="who" class="small" style="margin-left:10px"></span></p>
@@ -87,7 +87,7 @@ document.querySelectorAll('[data-copy]').forEach(function(b){b.onclick=function(
 document.getElementById('lnkOps').href='/ops?room='+CODE;
 ['join','remote','ops','screen'].forEach(function(k){var el=document.getElementById('cc'+k.charAt(0).toUpperCase()+k.slice(1));if(el)el.href='/'+k+'?room='+CODE});
 fetch('/api/me',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){ if(d&&d.teacher){var w=document.getElementById('who');var t=d.teacher;w.innerHTML=(t.avatar?'<img src="'+t.avatar+'" style="width:22px;height:22px;border-radius:50%;vertical-align:middle;margin-right:5px" />':'')+'当前讲师：'+(t.name||'')+(t.role==='admin'?'（超管）':'');} }).catch(function(){});
-if(CODE!=='ROOM0'){ var db=document.getElementById('delRoom'); db.style.display='inline-block'; db.onclick=function(){ if(!confirm('删除房间 '+CODE+'？该房间全部数据将不可恢复。'))return; fetch('/api/rooms/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:CODE})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)location.href='/rooms'; else alert(d.error||'删除失败'); }); }; }
+if(CODE!=='ROOM0'){ var db=document.getElementById('delRoom'); db.style.display='inline-block'; db.onclick=function(){ if(!confirm('删除场次 '+CODE+'？该房间全部数据将不可恢复。'))return; fetch('/api/rooms/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:CODE})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)location.href='/rooms'; else alert(d.error||'删除失败'); }); }; }
 var join=base+'/join?room='+CODE;
 document.getElementById('joinurl').textContent=join;
 new QRCode(document.getElementById('qrcode'),{text:join,width:220,height:220,colorDark:'#0A1F1A',colorLight:'#F4EFE2',correctLevel:QRCode.CorrectLevel.M});
