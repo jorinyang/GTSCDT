@@ -1,13 +1,13 @@
 {
-  "title": "示例课程：AI 入门",
-  "subtitle": "一天课程 · 示例",
+  "title": "课程标题",
+  "subtitle": "一天课程",
   "date": "2026-10-23",
   "sections": [
     {
       "type": "cover",
       "title": "AI 入门",
       "text": "看清能力边界，找到可用场景",
-      "meta": "讲师：示例"
+      "meta": "讲师：讲师姓名"
     },
     {
       "type": "bullets",

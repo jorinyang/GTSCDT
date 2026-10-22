@@ -78,7 +78,7 @@ body{animation:pageIn .32s ease both}
 </style><link rel="stylesheet" href="/ui.css" />
 </head><body>
 <div class="app">
-  <div class="brand">示例文旅集团 × 弈策智询</div>
+  <div class="brand">弈策AI研究院 × 弈策课程运营系统</div>
   <section id="gate">
     <h1>AI 超级个体创造营<span>课 堂</span></h1>
     <p class="tip">填姓名和手机号后四位进入课堂页。<br />用于抽签分组、投票与作业提交。</p>
@@ -142,7 +142,7 @@ body{animation:pageIn .32s ease both}
       <button class="btn" id="hwConfirm" style="margin-top:10px">确认提交（<span id="hwPendingN">0</span>）</button>
     </div>
 
-    <p class="foot">2026.10.23 09:00–17:40 · 示例文旅集团会议室</p>
+    <p class="foot">课程当天 09:00–17:40 · 弈策AI研究院培训室</p>
   </section>
 </div>
 <script>
@@ -154,7 +154,7 @@ var stateData=null,pollChoice=-1,lastPollId='',pending=[];
 var WS=[
  {t:'T1 活动策划方案',p:'20 分',inp:'需求要点 + 往期方案',act:'框架生成 / 内容填充 / 风险审查',out:'可送审方案',ok:'六要素齐全、可执行',files:[['T1 主题卡','t1-主题卡.md'],['T1 需求简报','t1-需求简报.md']]},
  {t:'T2 表格协作',p:'20 分',inp:'报名表 / 对账表等原始表',act:'清洗 / 校验 / 统计 / 透视',out:'干净数据 + 汇总表',ok:'数值可复核',files:[['T2 报名表（1080 行）','t2-报名表-1080行.csv'],['T2 住宿分配规则卡','t2-住宿分配规则卡.md']]},
- {t:'T3 汇报与推介 PPT',p:'15 分',inp:'素材包（《示例剧目》等）',act:'结构生成 / 文案精炼 / 排版',out:'成稿 PPT',ok:'叙事线清晰、可直接讲',files:[['T3《示例剧目》素材包','t3-锦蓝素材包.md']]},
+ {t:'T3 汇报与推介 PPT',p:'15 分',inp:'素材包（《目标剧目》等）',act:'结构生成 / 文案精炼 / 排版',out:'成稿 PPT',ok:'叙事线清晰、可直接讲',files:[['T3《目标剧目》素材包','t3-锦蓝素材包.md']]},
  {t:'T4 对外宣传',p:'10 分 + 加分',inp:'活动素材 + 参考片',act:'选题 / 脚本 / 分镜 /（成片）',out:'宣传物料包',ok:'符合传播逻辑',files:[['T4 视频任务卡','t4-视频任务卡.md'],['T4 参考素材','t4-参考素材.md']]},
  {t:'T5 项目协作',p:'15 分',inp:'项目信息、人员、资料',act:'建项目 / 拆任务 / 排期 / 归档',out:'项目工作台',ok:'责任到人、进度可视',files:[['T5 项目协作任务卡','t5-项目协作任务卡.md'],['T5 初始信息','t5-初始信息.md']]},
  {t:'T6 对外核对',p:'20 分',inp:'多方账目与资料',act:'交叉比对 / 差异定位',out:'对账差异报告',ok:'差异全找到、口径清楚',files:[['T6 结算规则与背景','t6-结算规则与背景.md'],['T6 执行方总账','t6-执行方总账.csv'],['T6 演出方','t6-演出方.csv'],['T6 场地方','t6-场地方.csv'],['T6 服务提供方','t6-服务提供方.csv'],['T6 渠道合作方','t6-渠道合作方.csv'],['T6 设施提供方','t6-设施提供方.csv']]}
@@ -363,7 +363,7 @@ $('voteBtn').addEventListener('click',async function(){
   if(pollChoice<0)return;
   try{var r=await fetch(API+'/api/vote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:me.name,tail:me.tail,choice:pollChoice})});var d=await r.json();if(d.ok){await refresh()}else alert(d.error==='already voted'?'你已经投过了':'投票失败：'+(d.error||''))}catch(e){alert('没连上课堂服务')}
 });
-try{if(new URLSearchParams(location.search).get('preview')==='1'){me={name:'示例学员',tail:'0000'};$('name').value=me.name;$('tail').value=me.tail;$('enter').disabled=false;fetch(API+'/api/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(me)}).catch(function(){});openMain();}}catch(e){}
+try{if(new URLSearchParams(location.search).get('preview')==='1'){me={name:'学员',tail:'0000'};$('name').value=me.name;$('tail').value=me.tail;$('enter').disabled=false;fetch(API+'/api/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(me)}).catch(function(){});openMain();}}catch(e){}
 if(me.name&&me.tail){$('name').value=me.name;$('tail').value=me.tail;$('enter').disabled=false;openMain()}
 </script>
 </body></html>
