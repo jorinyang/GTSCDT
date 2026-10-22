@@ -14,6 +14,10 @@ input[type=text],input[type=date],select{background:var(--bg2);border:1px solid 
 .btn{border:1px solid var(--line);background:var(--card2);color:var(--ink);border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer}
 .btn.primary{background:var(--lime);color:#0E0E10;border-color:var(--lime);font-weight:700}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.info2{display:grid;grid-template-columns:1.25fr .75fr;gap:18px}
+.info2 label{display:block;font-size:11.5px;color:var(--ink2);margin:8px 0 4px}
+.info2 input,.info2 select{width:100%}
+@media(max-width:900px){.info2{grid-template-columns:1fr}}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:900px){.two{grid-template-columns:1fr}}
 .filelist{margin-top:12px;display:flex;flex-direction:column;gap:8px}
@@ -35,14 +39,19 @@ input[type=text],input[type=date],select{background:var(--bg2);border:1px solid 
 
 <div class="card">
   <div class="k">场次信息</div>
-  <div class="row">
-    <input id="rt" type="text" style="width:280px" placeholder="场次名称" />
-    <input id="rpj" type="text" style="width:240px" placeholder="客户/项目名称" />
-    <input id="rd" type="date" style="width:160px" />
-    <button class="btn primary" id="rsave">保存</button>
-    <span class="small muted" id="rmsg"></span>
+  <div class="info2">
+    <div>
+      <label>场次名称</label><input id="rt" type="text" placeholder="场次名称" />
+      <label>客户/项目名称</label><input id="rpj" type="text" placeholder="客户/项目名称" />
+      <label>日期</label><input id="rd" type="date" />
+    </div>
+    <div>
+      <label>省份</label><select id="rp"></select>
+      <label>城市</label><select id="rc"></select>
+    </div>
   </div>
-  <div class="hint">填写客户/项目名称；名称还是「日期 + 客户/项目」的默认格式时，会自动跟着更新，手动改过名称则保留。</div>
+  <div class="row"><button class="btn primary" id="rsave">保存</button><span class="small muted" id="rmsg"></span></div>
+  <div class="hint">标题按「日期 + 客户/项目」生成；省份/城市单独保存，不进入标题。手动改过名称则保留。</div>
 </div>
 
 <div class="two">
@@ -76,8 +85,27 @@ var ROOM=null;
 document.getElementById('roomLink').href='/room?code='+CODE;
 function esc(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
 function fmtSize(n){ return n>(1024*1024)?((n/1024/1024).toFixed(1)+' MB'):(Math.max(1,Math.round(n/1024))+' KB') }
-var AUTO_TITLE=true;
+var CITY_DATA=[], AUTO_TITLE=true;
 function autoName(d,p){ return String(d||'')+' '+(p||'未命名客户/项目'); }
+function matchProvince(city){
+  if(!city) return '';
+  for(var i=0;i<CITY_DATA.length;i++){ if(CITY_DATA[i].cities.indexOf(city)>=0) return CITY_DATA[i].name; }
+  for(var j=0;j<CITY_DATA.length;j++){ for(var k=0;k<CITY_DATA[j].cities.length;k++){ var c=CITY_DATA[j].cities[k]; if(c.indexOf(city)===0||city.indexOf(c)===0) return CITY_DATA[j].name; } }
+  return '';
+}
+function fillProvinces(sel){
+  var rp=document.getElementById('rp');
+  rp.innerHTML='<option value="">省份</option>'+CITY_DATA.map(function(p){return '<option value="'+p.name+'">'+p.name+'</option>'}).join('');
+  if(sel) rp.value=sel;
+}
+function fillCities(prov, sel){
+  var rc=document.getElementById('rc'); var pv=CITY_DATA.filter(function(p){return p.name===prov})[0];
+  if(!pv){ rc.innerHTML='<option value="">城市</option>'; return; }
+  rc.innerHTML='<option value="">城市</option>'+pv.cities.map(function(c){return '<option value="'+c+'">'+c+'</option>'}).join('');
+  if(sel) rc.value=sel;
+}
+function loadCityData(){ return fetch('/assets/china-cities.json',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){ CITY_DATA=d||[]; }).catch(function(){ CITY_DATA=[]; }); }
+function syncTitle(){ if(!AUTO_TITLE) return; document.getElementById('rt').value=autoName(document.getElementById('rd').value, document.getElementById('rpj').value); }
 function loadRoom(){
   return fetch('/api/rooms',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
     ROOM=(d.rooms||[]).filter(function(x){return x.code===CODE})[0]||{};
@@ -85,25 +113,30 @@ function loadRoom(){
     document.getElementById('sub').textContent=ROOM.title||'';
     document.getElementById('rt').value=ROOM.title||'';
     document.getElementById('rd').value=ROOM.date||'';
-    var oldLabel=ROOM.project||ROOM.city||'';
-    document.getElementById('rpj').value=oldLabel;
-    AUTO_TITLE=!ROOM.title || ROOM.title===autoName(ROOM.date, oldLabel) || ROOM.title===(String(ROOM.date||'')+' 未设城市');
-    if(AUTO_TITLE) document.getElementById('rt').value=autoName(ROOM.date, oldLabel);
+    document.getElementById('rpj').value=ROOM.project||'';
+    var prov=ROOM.province||matchProvince(ROOM.city)||'';
+    var city=ROOM.city||'';
+    if(!prov && !city){ prov='浙江省'; city='杭州市'; }
+    fillProvinces(prov); fillCities(prov, city);
+    if(!document.getElementById('rc').value && prov==='浙江省'){ document.getElementById('rc').value='杭州市'; }
+    var project=ROOM.project||'';
+    AUTO_TITLE=!ROOM.title || ROOM.title===autoName(ROOM.date, project) || ROOM.title===(String(ROOM.date||'')+' 未设城市') || ROOM.title===(String(ROOM.date||'')+' '+city);
+    if(AUTO_TITLE) document.getElementById('rt').value=autoName(ROOM.date, project);
     renderFiles(ROOM.files||[]);
   }).catch(function(){});
 }
-function syncTitle(){ if(!AUTO_TITLE) return; document.getElementById('rt').value=autoName(document.getElementById('rd').value, document.getElementById('rpj').value); }
+document.getElementById('rp').onchange=function(){ fillCities(this.value,''); };
 document.getElementById('rpj').oninput=syncTitle;
 document.getElementById('rd').onchange=syncTitle;
 document.getElementById('rt').oninput=function(){ AUTO_TITLE=(this.value===autoName(document.getElementById('rd').value,document.getElementById('rpj').value)); };
 document.getElementById('rsave').onclick=function(){
-  fetch('/api/rooms/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:CODE,title:document.getElementById('rt').value,project:document.getElementById('rpj').value,date:document.getElementById('rd').value})})
+  fetch('/api/rooms/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:CODE,title:document.getElementById('rt').value,project:document.getElementById('rpj').value,province:document.getElementById('rp').value,city:document.getElementById('rc').value,date:document.getElementById('rd').value})})
     .then(function(r){return r.json()}).then(function(d){
       if(!d.ok){document.getElementById('rmsg').textContent=d.error||'保存失败';return}
-      ROOM.title=d.meta.title; ROOM.project=d.meta.project||''; ROOM.date=d.meta.date;
+      ROOM.title=d.meta.title; ROOM.project=d.meta.project||''; ROOM.province=d.meta.province||''; ROOM.city=d.meta.city||''; ROOM.date=d.meta.date;
       document.getElementById('rt').value=ROOM.title;
       document.getElementById('sub').textContent=ROOM.title;
-      AUTO_TITLE=(ROOM.title===autoName(ROOM.date,ROOM.project||ROOM.city||''));
+      AUTO_TITLE=(ROOM.title===autoName(ROOM.date,ROOM.project));
       document.getElementById('rmsg').textContent='已保存';
       setTimeout(function(){document.getElementById('rmsg').textContent=''},1500);
     });
@@ -143,5 +176,5 @@ function uploadFiles(inputId,msgId,allowed){
 }
 uploadFiles('pptxFile','pptxMsg',['pptx','ppt']);
 uploadFiles('htmlFile','htmlMsg',['html','htm']);
-loadRoom();
+loadCityData().then(loadRoom);
 </script></body></html>

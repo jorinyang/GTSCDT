@@ -74,9 +74,9 @@ function createRoom(title, city, date, owner, province, project){
   let code='';
   for(let i=0;i<50;i++){ code=Array.from({length:4},()=>ROOM_ALPHABET[Math.floor(Math.random()*ROOM_ALPHABET.length)]).join(''); if(!fs.existsSync(roomStateFile(code))) break; }
   const d=String(date||new Date().toISOString().slice(0,10));
-  const rawProv=String(province||'').trim(); const prov=rawProv||''; const pj=String(project||'').trim();
-  const c=String(city||'').trim();
-  const t=String(title||'').trim()||(d+' '+(pj||c||'未命名客户/项目'));
+  const rawProv=String(province||'').trim(); const rawCity=String(city||'').trim(); const pj=String(project||'').trim();
+  const prov=rawProv||'浙江省'; const c=rawCity||(rawProv?'':'杭州市');
+  const t=String(title||'').trim()||(d+' '+(pj||'未命名客户/项目'));
   fs.mkdirSync(path.join(ROOMS_DIR,code),{recursive:true});
   fs.writeFileSync(roomMetaFile(code), JSON.stringify({title:t,city:c,date:d,province:prov,project:pj,owner:owner||'',createdAt:new Date().toISOString()},null,1));
   saveRoom(code, blank());
@@ -840,8 +840,7 @@ const server=http.createServer(async (req,res)=>{
     const nextProvince=b.province!==undefined?String(b.province||'').trim():(meta.province||'');
     const nextProject=b.project!==undefined?String(b.project||'').trim():oldProject;
     const nextDate=b.date!==undefined?String(b.date||'').trim():oldDate;
-    const label=nextProject||nextCity||'未命名客户/项目';
-    const autoTitle=nextDate+' '+label;
+    const autoTitle=nextDate+' '+(nextProject||'未命名客户/项目');
     const currentAuto=(!meta.title||meta.title===oldAutoCity||meta.title===oldAutoProject);
     let nextTitle=meta.title||autoTitle;
     if(b.title!==undefined){
