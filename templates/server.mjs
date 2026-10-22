@@ -73,10 +73,12 @@ function listRooms(teacher){
 function createRoom(title, city, date, owner, province){
   let code='';
   for(let i=0;i<50;i++){ code=Array.from({length:4},()=>ROOM_ALPHABET[Math.floor(Math.random()*ROOM_ALPHABET.length)]).join(''); if(!fs.existsSync(roomStateFile(code))) break; }
-  const d=String(date||new Date().toISOString().slice(0,10)); const c=String(city||'').trim();
+  const d=String(date||new Date().toISOString().slice(0,10));
+  const rawProv=String(province||'').trim(); const prov=rawProv||'浙江省';
+  const c=String(city||'').trim()||(rawProv?'':'杭州市');
   const t=String(title||'').trim()||(d+' '+(c||'未设城市'));
   fs.mkdirSync(path.join(ROOMS_DIR,code),{recursive:true});
-  fs.writeFileSync(roomMetaFile(code), JSON.stringify({title:t,city:c,date:d,province:province||'',owner:owner||'',createdAt:new Date().toISOString()},null,1));
+  fs.writeFileSync(roomMetaFile(code), JSON.stringify({title:t,city:c,date:d,province:prov,owner:owner||'',createdAt:new Date().toISOString()},null,1));
   saveRoom(code, blank());
   return code;
 }

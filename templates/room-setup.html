@@ -120,8 +120,11 @@ function loadRoom(){
     var origCity=ROOM.city||'';
     var match=cityLookup(origCity);
     var prov=ROOM.province||(match&&match.province)||'';
+    if(!prov && !origCity){ prov='浙江省'; }
     fillProvinces(prov);
-    fillCities(prov, match?match.city:origCity);
+    var defCity=match?match.city:origCity;
+    if(!defCity && prov==='浙江省') defCity='杭州市';
+    fillCities(prov, defCity);
     AUTO_TITLE=!ROOM.title || ROOM.title===autoName(ROOM.date, origCity);
     if(AUTO_TITLE) document.getElementById('rt').value=autoName(ROOM.date, document.getElementById('rc').value||origCity);
     renderFiles(ROOM.files||[]);
