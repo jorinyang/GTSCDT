@@ -108,7 +108,7 @@ function syncTitle(){
   document.getElementById('rt').value=autoName(document.getElementById('rd').value, document.getElementById('rc').value);
 }
 function loadCityData(){
-  return fetch('/data/china-cities.json',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){ CITY_DATA=d||[]; }).catch(function(){ CITY_DATA=[]; });
+  return fetch('/assets/china-cities.json',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){ CITY_DATA=d||[]; }).catch(function(){ CITY_DATA=[]; });
 }
 function loadRoom(){
   return fetch('/api/rooms',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
