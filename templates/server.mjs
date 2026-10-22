@@ -64,19 +64,19 @@ function listRooms(teacher){
     let meta={}; try{ meta=JSON.parse(fs.readFileSync(roomMetaFile(code),'utf8')); }catch(e){}
     const st=loadRoom(code);
     const _t=teacher||{}; if(_t.role!=='admin'){ if(code===DEFAULT_ROOM||!meta.owner||meta.owner!==_t.id) return; }
-    out.push({code,title:meta.title||('课堂 '+code),city:meta.city||'',date:meta.date||'',owner:meta.owner||'',files:meta.files||[],frameworkUrl:meta.frameworkUrl||'',createdAt:meta.createdAt||'',students:Object.keys(st.students||{}).length,active:!!(st.poll&&st.poll.active)||!!(st.quiz&&st.quiz.paper&&st.quiz.paper.active)});
+    out.push({code,title:meta.title||('课堂 '+code),city:meta.city||'',date:meta.date||'',owner:meta.owner||'',province:meta.province||'',files:meta.files||[],frameworkUrl:meta.frameworkUrl||'',createdAt:meta.createdAt||'',students:Object.keys(st.students||{}).length,active:!!(st.poll&&st.poll.active)||!!(st.quiz&&st.quiz.paper&&st.quiz.paper.active)});
   };
   one(DEFAULT_ROOM);
   if(fs.existsSync(ROOMS_DIR)) fs.readdirSync(ROOMS_DIR).forEach(function(d){ if(validRoom(d)&&d!==DEFAULT_ROOM) one(d); });
   return out;
 }
-function createRoom(title, city, date, owner){
+function createRoom(title, city, date, owner, province){
   let code='';
   for(let i=0;i<50;i++){ code=Array.from({length:4},()=>ROOM_ALPHABET[Math.floor(Math.random()*ROOM_ALPHABET.length)]).join(''); if(!fs.existsSync(roomStateFile(code))) break; }
   const d=String(date||new Date().toISOString().slice(0,10)); const c=String(city||'').trim();
   const t=String(title||'').trim()||(d+' '+(c||'未设城市'));
   fs.mkdirSync(path.join(ROOMS_DIR,code),{recursive:true});
-  fs.writeFileSync(roomMetaFile(code), JSON.stringify({title:t,city:c,date:d,owner:owner||'',createdAt:new Date().toISOString()},null,1));
+  fs.writeFileSync(roomMetaFile(code), JSON.stringify({title:t,city:c,date:d,province:province||'',owner:owner||'',createdAt:new Date().toISOString()},null,1));
   saveRoom(code, blank());
   return code;
 }
@@ -823,7 +823,7 @@ const server=http.createServer(async (req,res)=>{
   if(p==='/api/rooms' && req.method==='GET') return send(res,200,{ok:true,rooms:listRooms(getTeacher(req)),current:currentRoom});
   if(p==='/api/rooms/create' && req.method==='POST'){
     const b=await readBody(req);
-    const _t=getTeacher(req); const code=createRoom(b.title,b.city,b.date,_t&&_t.id);
+    const _t=getTeacher(req); const code=createRoom(b.title,b.city,b.date,_t&&_t.id,b.province);
     return send(res,200,{ok:true,code,urls:{room:'/room?code='+code,ops:'/ops?room='+code,join:'/join?room='+code,screen:'/screen?room='+code,remote:'/remote?room='+code}});
   }
   if(p==='/api/rooms/update' && req.method==='POST'){
@@ -834,6 +834,7 @@ const server=http.createServer(async (req,res)=>{
     const oldCity=meta.city||''; const oldDate=meta.date||'';
     const oldAuto=oldDate+' '+(oldCity||'未设城市');
     const nextCity=b.city!==undefined?String(b.city||'').trim():oldCity;
+    const nextProvince=b.province!==undefined?String(b.province||'').trim():(meta.province||'');
     const nextDate=b.date!==undefined?String(b.date||'').trim():oldDate;
     const currentAuto=(!meta.title || meta.title===oldAuto);
     let nextTitle=meta.title||oldAuto;
@@ -843,7 +844,7 @@ const server=http.createServer(async (req,res)=>{
       else if(incoming!==meta.title && incoming!==oldAuto) nextTitle=incoming;
       else nextTitle=currentAuto?(nextDate+' '+(nextCity||'未设城市')):meta.title;
     }else if(currentAuto){ nextTitle=nextDate+' '+(nextCity||'未设城市'); }
-    meta.title=nextTitle; meta.city=nextCity; meta.date=nextDate;
+    meta.title=nextTitle; meta.city=nextCity; meta.date=nextDate; meta.province=nextProvince;
     fs.writeFileSync(roomMetaFile(code), JSON.stringify(meta,null,1));
     return send(res,200,{ok:true,meta});
   }
