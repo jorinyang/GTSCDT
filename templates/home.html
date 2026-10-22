@@ -29,6 +29,13 @@ input,select{background:rgba(255,255,255,.05);border:1px solid var(--line);borde
 .big{font-size:15px;line-height:2}
 .warn{margin-top:12px;padding:10px 12px;border:1px solid rgba(255,122,61,.4);border-radius:10px;background:rgba(255,122,61,.08);color:#FFB08A;font-size:12.5px;line-height:1.7}
 .warn a{color:#FFB08A;text-decoration:underline}
+
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.68);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
+.modal-card{width:100%;max-width:460px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px}
+.modal-card h3{font-size:18px;margin-bottom:16px}
+.modal-card label{display:block;font-size:12px;color:var(--ink2);margin-bottom:5px}
+.modal-card input,.modal-card select{width:100%;margin-bottom:12px}
+.modal-card .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 </style><link rel="stylesheet" href="/ui.css" />
 </head><body>
 <div class="top"><div class="brand">弈策课程运营系统 · GTSCDT</div><div class="user" onclick="location.href='/home'"><div class="avatar" id="ava">?</div><div><div id="uname" style="font-size:14px">加载中</div><div class="small muted" id="urole"></div></div><a href="/auth/logout" onclick="event.stopPropagation()">退出</a></div></div>
@@ -55,8 +62,15 @@ input,select{background:rgba(255,255,255,.05);border:1px solid var(--line);borde
   </div>
 
   <div id="pane-rooms" class="hidden">
-    <div class="card"><div class="k">创建课程场次</div>
-      <div class="row"><input id="rTitle" placeholder="场次名称（留空=日期+客户/项目）" style="width:280px" /><input id="rProject" placeholder="客户/项目名称" style="width:200px" /><input id="rDate" type="date" style="width:160px" /><button class="btn primary" id="rCreate">创建场次</button><span class="small muted" id="rMsg"></span></div>
+    <div class="card"><div class="k">筛选场次</div>
+      <div class="row">
+        <input id="fKeyword" placeholder="场次名称 / 客户项目 / 地点" style="width:280px" />
+        <input id="fDate" type="date" style="width:160px" />
+        <button class="btn" id="fReset">重置</button>
+        <span class="small muted" id="fCount"></span>
+        <span style="flex:1"></span>
+        <button class="btn primary" id="newRoom">+ 新建场次</button>
+      </div>
     </div>
     <div class="card"><div class="k">场次列表</div><div style="overflow:auto"><table id="roomTbl"></table></div></div>
   </div>
@@ -66,6 +80,19 @@ input,select{background:rgba(255,255,255,.05);border:1px solid var(--line);borde
       <div class="row"><input id="tName" placeholder="姓名" style="width:150px" /><select id="tRole"><option value="teacher">讲师</option><option value="admin">超管</option><option value="assistant">助教</option><option value="viewer">观察</option></select><input id="tDept" placeholder="部门" style="width:150px" /><input id="tUnion" placeholder="钉钉 unionId" style="width:240px" /><button class="btn primary" id="tAdd">添加</button><span class="small muted" id="tMsg"></span></div>
     </div>
     <div class="card"><div class="k">讲师列表</div><div style="overflow:auto"><table id="tTbl"></table></div></div>
+  </div>
+</div>
+
+<div class="modal hidden" id="roomModal">
+  <div class="modal-card">
+    <h3>新建课程场次</h3>
+    <label>客户/项目名称</label><input id="nProject" placeholder="例如：三花集团 AI 培训" />
+    <label>日期</label><input id="nDate" type="date" />
+    <div class="two">
+      <div><label>省份</label><select id="nProvince"></select></div>
+      <div><label>城市</label><select id="nCity"></select></div>
+    </div>
+    <div class="row"><button class="btn primary" id="nCreate">创建场次</button><button class="btn" id="nCancel">取消</button><span class="small muted" id="nMsg"></span></div>
   </div>
 </div>
 <script>
@@ -99,17 +126,64 @@ function loadModel(){
     var m=d.model||{}; $('mBase').value=m.baseUrl||''; $('mModel').value=m.model||''; $('mMsg').textContent=m.hasKey?'已配置':'未配置（生成会失败）';
   }).catch(function(){});
 }
-function loadRooms(){
-  return fetch('/api/rooms',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
-    ROOMS=d.rooms||[];
-    $('roomTbl').innerHTML='<tr><th>场次码</th><th>名称</th><th>日期</th><th>地点</th><th>人数</th><th>操作</th></tr>'+ROOMS.map(function(x){
-      return '<tr><td><b>'+x.code+'</b></td><td>'+esc(x.title)+'</td><td>'+esc(x.date||'—')+'</td><td>'+esc((x.province?x.province+' ':'')+(x.city||'—'))+'</td><td>'+x.students+'</td><td class="small">'
-        +'<a href="/room?code='+x.code+'">进入</a> · <a href="/room-setup?code='+x.code+'">课程内容</a> · <button class="btn" data-edit="'+x.code+'" style="padding:2px 8px;font-size:12px">编辑</button> <button class="btn danger" data-del="'+x.code+'" style="padding:2px 8px;font-size:12px">删除</button></td></tr>';
-    }).join('');
-    document.querySelectorAll('[data-edit]').forEach(function(b){b.onclick=function(){editRoom(b.getAttribute('data-edit'))}});
-    document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){delRoom(b.getAttribute('data-del'))}});
+var CITY_DATA=[];
+function loadCityData(){ return fetch('/assets/china-cities.json',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){ CITY_DATA=d||[]; }).catch(function(){ CITY_DATA=[]; }); }
+function fillProvinces(id, selected){
+  var el=document.getElementById(id); if(!el)return;
+  el.innerHTML='<option value="">省份</option>'+CITY_DATA.map(function(p){return '<option value="'+p.name+'">'+p.name+'</option>'}).join('');
+  if(selected) el.value=selected;
+}
+function fillCities(id, province, selected){
+  var el=document.getElementById(id); if(!el)return;
+  var pv=CITY_DATA.filter(function(p){return p.name===province})[0];
+  if(!pv){ el.innerHTML='<option value="">城市</option>'; return; }
+  el.innerHTML='<option value="">城市</option>'+pv.cities.map(function(c){return '<option value="'+c+'">'+c+'</option>'}).join('');
+  if(selected) el.value=selected;
+}
+function filteredRooms(){
+  var kw=($('fKeyword').value||'').trim().toLowerCase();
+  var date=$('fDate').value||'';
+  return ROOMS.filter(function(x){
+    if(date && (x.date||'')!==date) return false;
+    if(!kw) return true;
+    var text=((x.title||'')+' '+(x.project||'')+' '+(x.city||'')+' '+(x.province||'')).toLowerCase();
+    return text.indexOf(kw)>=0;
   });
 }
+function renderRooms(){
+  var list=filteredRooms();
+  $('fCount').textContent='共 '+list.length+' 个场次';
+  var rows='<tr><th>场次码</th><th>名称</th><th>日期</th><th>地点</th><th>人数</th><th>操作</th></tr>';
+  if(!list.length){ rows+='<tr><td colspan="6" class="muted small">没有符合条件的场次</td></tr>'; }
+  rows+=list.map(function(x){
+    return '<tr><td><b>'+x.code+'</b></td><td>'+esc(x.title)+'</td><td>'+esc(x.date||'—')+'</td><td>'+esc((x.province?x.province+' ':'')+(x.city||'—'))+'</td><td>'+x.students+'</td><td class="small">'
+      +'<a href="/room?code='+x.code+'">进入</a> · <a href="/room-setup?code='+x.code+'">课程内容</a> · <button class="btn" data-edit="'+x.code+'" style="padding:2px 8px;font-size:12px">编辑</button> <button class="btn danger" data-del="'+x.code+'" style="padding:2px 8px;font-size:12px">删除</button></td></tr>';
+  }).join('');
+  $('roomTbl').innerHTML=rows;
+  document.querySelectorAll('[data-edit]').forEach(function(b){b.onclick=function(){editRoom(b.getAttribute('data-edit'))}});
+  document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){delRoom(b.getAttribute('data-del'))}});
+}
+function loadRooms(){
+  return fetch('/api/rooms',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){ ROOMS=d.rooms||[]; renderRooms(); });
+}
+$('fKeyword').oninput=renderRooms;
+$('fDate').onchange=renderRooms;
+$('fReset').onclick=function(){ $('fKeyword').value=''; $('fDate').value=''; renderRooms(); };
+function openRoomModal(){
+  var d=new Date(); var iso=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  $('nProject').value=''; $('nDate').value=iso; $('nMsg').textContent='';
+  var show=function(){ fillProvinces('nProvince','浙江省'); fillCities('nCity','浙江省','杭州市'); $('roomModal').classList.remove('hidden'); };
+  if(CITY_DATA.length) show(); else loadCityData().then(show);
+}
+function closeRoomModal(){ $('roomModal').classList.add('hidden'); }
+$('newRoom').onclick=openRoomModal;
+$('nCancel').onclick=closeRoomModal;
+$('nProvince').onchange=function(){ fillCities('nCity',this.value,''); };
+$('nCreate').onclick=function(){
+  var project=$('nProject').value.trim(); if(!project){ $('nMsg').textContent='请填写客户/项目名称'; return; }
+  fetch('/api/rooms/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({project:project,date:$('nDate').value,province:$('nProvince').value,city:$('nCity').value})})
+    .then(function(r){return r.json()}).then(function(d){ if(d.ok)location.href='/room?code='+d.code; else $('nMsg').textContent=d.error||'创建失败'; });
+};
 function editRoom(code){ var r=ROOMS.filter(function(x){return x.code===code})[0]||{};
   var title=prompt('房间名称',r.title||''); if(title===null)return;
   var project=prompt('客户/项目名称',r.project||r.city||''); if(project===null)return;
@@ -117,7 +191,6 @@ function editRoom(code){ var r=ROOMS.filter(function(x){return x.code===code})[0
   fetch('/api/rooms/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code,title:title,project:project,date:date})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)loadRooms(); else alert(d.error||'失败'); });
 }
 function delRoom(code){ if(!confirm('删除房间 '+code+'？不可恢复。'))return; fetch('/api/rooms/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)loadRooms(); else alert(d.error||'失败'); }); }
-$('rCreate').onclick=function(){ fetch('/api/rooms/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:$('rTitle').value,project:$('rProject').value,date:$('rDate').value})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)location.href='/room?code='+d.code; else $('rMsg').textContent=d.error||'失败'; }); };
 function loadTeachers(){
   return fetch('/api/teachers',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
     TEACHERS=d.teachers||[];
