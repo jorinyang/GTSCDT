@@ -34,9 +34,9 @@ input[type=text],input[type=date],select{background:var(--bg2);border:1px solid 
 <p class="muted small" id="sub" style="margin-top:4px">课件与前端页面</p>
 
 <div class="card">
-  <div class="k">房间信息</div>
+  <div class="k">场次信息</div>
   <div class="row">
-    <input id="rt" type="text" style="width:280px" placeholder="房间名称" />
+    <input id="rt" type="text" style="width:280px" placeholder="场次名称" />
     <input id="rpj" type="text" style="width:240px" placeholder="客户/项目名称" />
     <input id="rd" type="date" style="width:160px" />
     <button class="btn primary" id="rsave">保存</button>
@@ -87,7 +87,7 @@ function loadRoom(){
     document.getElementById('rd').value=ROOM.date||'';
     var oldLabel=ROOM.project||ROOM.city||'';
     document.getElementById('rpj').value=oldLabel;
-    AUTO_TITLE=!ROOM.title || ROOM.title===autoName(ROOM.date, oldLabel);
+    AUTO_TITLE=!ROOM.title || ROOM.title===autoName(ROOM.date, oldLabel) || ROOM.title===(String(ROOM.date||'')+' 未设城市');
     if(AUTO_TITLE) document.getElementById('rt').value=autoName(ROOM.date, oldLabel);
     renderFiles(ROOM.files||[]);
   }).catch(function(){});
