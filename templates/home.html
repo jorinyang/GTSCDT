@@ -35,7 +35,7 @@ input,select{background:rgba(255,255,255,.05);border:1px solid var(--line);borde
 <div class="wrap">
   <h1>工作台</h1>
   <div class="tabs">
-    <button class="tab on" data-t="rooms">房间管理</button>
+    <button class="tab on" data-t="rooms">课程场次</button>
     <button class="tab" data-t="model">模型配置</button>
     <button class="tab" data-t="me">个人信息</button>
     <button class="tab hidden" data-t="teachers" id="tabTeachers">讲师管理</button>
@@ -55,10 +55,10 @@ input,select{background:rgba(255,255,255,.05);border:1px solid var(--line);borde
   </div>
 
   <div id="pane-rooms" class="hidden">
-    <div class="card"><div class="k">创建房间</div>
-      <div class="row"><input id="rTitle" placeholder="名称（留空=日期+城市）" style="width:260px" /><input id="rCity" placeholder="城市" style="width:120px" /><input id="rDate" type="date" style="width:160px" /><button class="btn primary" id="rCreate">创建并上传课程</button><span class="small muted" id="rMsg"></span></div>
+    <div class="card"><div class="k">创建课程场次</div>
+      <div class="row"><input id="rTitle" placeholder="场次名称（留空=日期+城市）" style="width:260px" /><input id="rCity" placeholder="城市" style="width:120px" /><input id="rDate" type="date" style="width:160px" /><button class="btn primary" id="rCreate">创建并上传课程</button><span class="small muted" id="rMsg"></span></div>
     </div>
-    <div class="card"><div class="k">房间列表</div><div style="overflow:auto"><table id="roomTbl"></table></div></div>
+    <div class="card"><div class="k">场次列表</div><div style="overflow:auto"><table id="roomTbl"></table></div></div>
   </div>
 
   <div id="pane-teachers" class="hidden">
@@ -102,7 +102,7 @@ function loadModel(){
 function loadRooms(){
   return fetch('/api/rooms',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
     ROOMS=d.rooms||[];
-    $('roomTbl').innerHTML='<tr><th>房间码</th><th>名称</th><th>日期</th><th>城市</th><th>人数</th><th>操作</th></tr>'+ROOMS.map(function(x){
+    $('roomTbl').innerHTML='<tr><th>场次码</th><th>名称</th><th>日期</th><th>城市</th><th>人数</th><th>操作</th></tr>'+ROOMS.map(function(x){
       return '<tr><td><b>'+x.code+'</b></td><td>'+esc(x.title)+'</td><td>'+esc(x.date||'—')+'</td><td>'+esc(x.city||'—')+'</td><td>'+x.students+'</td><td class="small">'
         +'<a href="/room?code='+x.code+'">进入</a> · <a href="/room-setup?code='+x.code+'">课程内容</a> · <button class="btn" data-edit="'+x.code+'" style="padding:2px 8px;font-size:12px">编辑</button> <button class="btn danger" data-del="'+x.code+'" style="padding:2px 8px;font-size:12px">删除</button></td></tr>';
     }).join('');
