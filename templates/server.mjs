@@ -235,6 +235,19 @@ async function dingCorpUser(unionId){
     return {ok:true,userid:userid,name:r2.name||'',avatar:r2.avatar||'',title:r2.title||'',mobile:r2.mobile||'',dept:(r2.dept_id_list||[]).join('/')};
   }catch(e){ return {ok:false,reason:String(e.message||e)}; }
 }
+async function dingDeptNames(ids){
+  if(!(ids&&ids.length)) return '';
+  try{
+    const tr=await fetch('https://oapi.dingtalk.com/gettoken?appkey='+encodeURIComponent(DING_ID)+'&appsecret='+encodeURIComponent(DING_SECRET));
+    const tj=await tr.json(); if(!tj.access_token) return '';
+    const out=[];
+    for(const id of ids.slice(0,6)){
+      const d=await fetch('https://oapi.dingtalk.com/topapi/v2/department/get?access_token='+tj.access_token,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dept_id:Number(id)})});
+      const j=await d.json(); if(j.result&&j.result.name) out.push(j.result.name);
+    }
+    return out.join(' / ');
+  }catch(e){ return ''; }
+}
 async function genJSON(prompt,maxTokens){
   const r=await modelChat([{role:'user',content:prompt}],maxTokens||2600,true);
   if(!r.ok) return {err:r.error};
@@ -527,6 +540,7 @@ const server=http.createServer(async (req,res)=>{
       if(me.openId && !t.dingOpenId){ t.dingOpenId=me.openId; changed=true; }
       if(me.avatarUrl && !t.avatar){ t.avatar=me.avatarUrl; changed=true; }
       if(corpInfo && corpInfo.ok){
+        try{ const ids=String(corpInfo.dept||'').split('/').map(function(x){return Number(x)}).filter(Boolean); if(ids.length){ const names=await dingDeptNames(ids); if(names) corpInfo.dept=names; } }catch(e){}
         if(corpInfo.userid && t.dingUserId!==corpInfo.userid){ t.dingUserId=corpInfo.userid; changed=true; }
         if(corpInfo.name && t.name!==corpInfo.name){ t.name=corpInfo.name; changed=true; }
         if(corpInfo.avatar && t.avatar!==corpInfo.avatar){ t.avatar=corpInfo.avatar; changed=true; }
@@ -545,6 +559,17 @@ const server=http.createServer(async (req,res)=>{
     }catch(e){ return send(res,500,'钉钉登录失败：'+String(e.message||e),'text/html; charset=utf-8'); }
   }
   if(p==='/auth/logout'){ res.setHeader('Set-Cookie','gtsc_teacher=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax'); res.writeHead(302,{Location:'/'}); return res.end(); }
+  if(p==='/api/dingtalk/refresh' && req.method==='POST'){
+    const t=getTeacher(req); if(!t||!t.dingUnionId) return send(res,400,{ok:false,error:'当前账号没有 unionId'});
+    const info=await dingCorpUser(t.dingUnionId);
+    if(!info||!info.ok) return send(res,400,{ok:false,error:(info&&info.error)||'钉钉信息读取失败'});
+    const list=loadTeachers(); const m=list.filter(function(x){return x.id===t.id||x.dingUnionId===t.dingUnionId})[0];
+    if(!m) return send(res,404,{ok:false,error:'讲师记录不存在'});
+    if(info.name) m.name=info.name; if(info.avatar) m.avatar=info.avatar; if(info.userid) m.dingUserId=info.userid; if(info.title) m.title=info.title;
+    try{ const ids=String(info.dept||'').split('/').map(function(x){return Number(x)}).filter(Boolean); if(ids.length){ const names=await dingDeptNames(ids); m.dept=names||info.dept||m.dept; } }catch(e){ m.dept=info.dept||m.dept; }
+    saveTeachers(list); setTeacherCookie(res,m);
+    return send(res,200,{ok:true,teacher:m});
+  }
   if(p==='/api/dingtalk/debug' && req.method==='GET'){ return send(res,200,{ok:true,last:global.__lastDingLogin||null}); }
   if(p==='/api/dingtalk/diag' && req.method==='GET'){
     const now=Date.now();
@@ -791,7 +816,7 @@ const server=http.createServer(async (req,res)=>{
   if(AUTH_REQUIRED){
     const teacher=getTeacher(req);
     const htmlGuarded=(p==='/ops'||p==='/admin'||p==='/grader'||p==='/shell'||p==='/rooms'||p==='/teachers'||p==='/packages'||p==='/report'||p==='/remote'||p==='/package-edit'||p==='/room'||p==='/home'||p==='/room-setup');
-    const apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p.indexOf('/api/rooms')===0)||(p==='/api/report')||(p==='/api/report.csv')||(p.indexOf('/api/packages')===0)||(p.indexOf('/api/generate')===0)||(p.indexOf('/api/package')===0)||(p==='/api/extract')||(p==='/api/dingtalk/diag')||(p==='/api/dingtalk/debug')||(p==='/api/room/upload')||(p==='/api/room/markdown');
+    const apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p.indexOf('/api/rooms')===0)||(p==='/api/report')||(p==='/api/report.csv')||(p.indexOf('/api/packages')===0)||(p.indexOf('/api/generate')===0)||(p.indexOf('/api/package')===0)||(p==='/api/extract')||(p==='/api/dingtalk/diag')||(p==='/api/dingtalk/debug')||(p==='/api/dingtalk/refresh')||(p==='/api/room/upload')||(p==='/api/room/markdown');
     if(htmlGuarded&&!teacher){ res.writeHead(302,{Location:'/login'}); return res.end(); }
     if(apiGuarded&&!teacher) return send(res,401,{ok:false,error:'login required'});
   }
