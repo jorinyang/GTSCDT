@@ -89,10 +89,7 @@ function refresh(){
     if(view==='workshop'){ showWorkshop(d); return; }
     hideWorkshop();
     if(view==='course'){
-      var files=d.files||[];
-      var html=files.filter(function(f){return /\.html?$/i.test(f.name||'')})[0];
-      if(html) setFrame(html.url,'','');
-      else setFrame('','还没有上传 HTML 课件','请先在「课程内容」页上传 html 课件，遥控器切到课件视图即可显示。');
+      setFrame('/course-screen?room='+room+'&embed=1','','');
     }else{
       setFrame('/report?room='+room+'&embed=1','','');
     }

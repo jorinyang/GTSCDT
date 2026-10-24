@@ -1,0 +1,128 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>课件大屏 · YSCOT</title>
+<style>
+:root{--bg:#0B0D0E;--panel:#141619;--line:#282B31;--text:#F4F4F5;--muted:#9CA3AF;--lime:#CBF74E}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:Inter,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+.topbar{flex:0 0 auto;display:flex;align-items:center;gap:14px;padding:10px 18px;border-bottom:1px solid var(--line);background:#0F1113;min-height:58px;flex-wrap:wrap}
+.brand{font-size:13px;font-weight:700;white-space:nowrap;max-width:300px;overflow:hidden;text-overflow:ellipsis}
+.brand span{display:block;font-size:10px;color:var(--muted);font-weight:400;letter-spacing:.12em;margin-top:2px}
+.tabs{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:120px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{border:1px solid var(--line);background:#191C21;color:#D1D5DB;border-radius:9px;padding:7px 12px;font-size:12.5px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.tab.on{border-color:var(--lime);color:var(--lime);background:rgba(203,247,78,.08)}
+.entries{display:flex;gap:6px;flex-wrap:wrap}
+.entry{border:1px solid var(--line);border-radius:8px;padding:6px 10px;color:#D1D5DB;text-decoration:none;font-size:12px;white-space:nowrap}
+.entry:hover{border-color:var(--lime);color:var(--lime)}
+.scorebar{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:6px 18px;border-bottom:1px solid var(--line);background:#0D0F11;overflow-x:auto}
+.scorebar .label{font-size:11px;color:var(--muted);white-space:nowrap;margin-right:2px}
+.gchip{display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:9px;padding:4px 6px;white-space:nowrap;background:#15181C}
+.gchip b{font-size:12px;color:var(--lime);min-width:16px}
+.gchip em{font-style:normal;font-size:12px;color:#D1D5DB;min-width:20px;text-align:center}
+.gbtn{border:1px solid #343941;background:#1D2127;color:#F4F4F5;border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:15px;line-height:1;font-family:inherit}
+.gbtn:hover{border-color:var(--lime);color:var(--lime)}
+.stage{flex:1;position:relative;min-height:0;background:#050606}
+.stage iframe{width:100%;height:100%;border:0;background:#fff;display:none}
+.pptx-wrap{position:absolute;inset:0;overflow:auto;display:none;background:#111;padding:14px}
+.pptx-holder{width:100%;max-width:1400px;margin:0 auto}
+.empty{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:var(--muted);text-align:center;padding:30px}
+.empty.show{display:flex}
+.empty b{color:var(--text);font-size:18px}
+.slide-nav{display:none;gap:6px;align-items:center}
+.slide-nav.show{display:flex}
+.slide-nav button{border:1px solid var(--line);background:#191C21;color:#D1D5DB;border-radius:7px;padding:5px 9px;cursor:pointer;font-size:12px}
+</style></head><body>
+<div class="topbar">
+  <div class="brand" id="title">课件大屏<span id="roomLabel">YSCOT</span></div>
+  <div class="tabs" id="tabs"></div>
+  <div class="slide-nav" id="slideNav"><button id="prevSlide">上一页</button><button id="nextSlide">下一页</button></div>
+  <div class="entries">
+    <a class="entry" id="entryJoin" target="_blank">学员端</a>
+    <a class="entry" id="entryRemote" target="_blank">遥控器</a>
+    <a class="entry" id="entryOps" target="_blank">课堂后台</a>
+    <a class="entry" id="entryScreen" target="_blank">大屏</a>
+  </div>
+</div>
+<div class="scorebar" id="scorebar"><span class="label">小组加减分</span><span class="label" id="scoreMsg"></span></div>
+<div class="stage" id="stage">
+  <iframe id="frame" title="HTML 课件" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+  <div class="pptx-wrap" id="pptxWrap"><div class="pptx-holder" id="pptxHolder"></div></div>
+  <div class="empty" id="empty"><b>还没有课件</b><span>在课堂后台「课程内容」上传 PPTX 或 HTML 后，这里会自动出现。</span></div>
+</div>
+<script src="/assets/pptx-preview.umd.js"></script>
+<script>
+var q=new URLSearchParams(location.search), ROOM=(q.get('room')||'ROOM0').toUpperCase();
+var files=[], current=-1, groups=[], screenData=null, pptxArea=null;
+var $=function(id){return document.getElementById(id)};
+document.getElementById('roomLabel').textContent=ROOM;
+['entryJoin','entryRemote','entryOps','entryScreen'].forEach(function(id){
+  var path={entryJoin:'/join',entryRemote:'/remote',entryOps:'/ops',entryScreen:'/screen'}[id];
+  document.getElementById(id).href=path+'?room='+ROOM;
+});
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function ext(name){return (String(name||'').split('.').pop()||'').toLowerCase()}
+function renderTabs(){
+  var t=$('tabs'); if(!t)return;
+  if(!files.length){t.innerHTML='<span style="color:#6B7280;font-size:12px">暂无课件文件</span>';return}
+  t.innerHTML=files.map(function(f,i){return '<button class="tab '+(i===current?'on':'')+'" data-i="'+i+'" title="'+esc(f.name)+'">'+esc(f.name)+'</button>'}).join('');
+  t.querySelectorAll('[data-i]').forEach(function(b){b.onclick=function(){showFile(+b.getAttribute('data-i'))}});
+}
+function renderScores(){
+  var bar=$('scorebar'); if(!bar)return;
+  var html='<span class="label">小组加减分</span>';
+  groups.forEach(function(g){html+='<div class="gchip"><b>'+esc(g.id)+'</b><em>'+esc(g.perf)+'</em><button class="gbtn" data-g="'+esc(g.id)+'" data-d="-1">−</button><button class="gbtn" data-g="'+esc(g.id)+'" data-d="1">+</button></div>'});
+  bar.innerHTML=html+'<span class="label" id="scoreMsg"></span>';
+  bar.querySelectorAll('[data-g]').forEach(function(b){b.onclick=function(){
+    fetch('/api/admin/perf?room='+ROOM,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({group:b.getAttribute('data-g'),delta:Number(b.getAttribute('data-d'))})})
+      .then(function(r){ if(r.status===401) throw new Error('请用讲师账号打开大屏'); return r.json() })
+      .then(function(d){ if(d.ok) refresh(); else throw new Error(d.error||'调整失败') })
+      .catch(function(e){ var m=$('scoreMsg'); if(m)m.textContent=e.message; });
+  }});
+}
+function showEmpty(msg){
+  $('frame').style.display='none'; $('pptxWrap').style.display='none'; $('empty').classList.add('show');
+  $('empty').querySelector('span').textContent=msg||'在课堂后台「课程内容」上传 PPTX 或 HTML 后，这里会自动出现。';
+}
+function showFile(i){
+  current=i;
+  var f=files[i]; if(!f){showEmpty();renderTabs();return}
+  renderTabs();
+  var name=f.name||'', url=f.url||'';
+  if(/^html?$/i.test(ext(name))){
+    $('empty').classList.remove('show'); $('pptxWrap').style.display='none'; $('frame').style.display='block'; $('frame').src=url;
+    $('slideNav').classList.remove('show');
+    return;
+  }
+  if(/^pptx?$/i.test(ext(name))){
+    $('empty').classList.remove('show'); $('frame').style.display='none'; $('pptxWrap').style.display='block'; $('slideNav').classList.add('show');
+    renderPptx(url);
+    return;
+  }
+  // 其他类型：浏览器直接打开
+  $('empty').classList.remove('show'); $('pptxWrap').style.display='none'; $('frame').style.display='block'; $('frame').src=url;
+  $('slideNav').classList.remove('show');
+}
+function renderPptx(url){
+  var holder=$('pptxHolder'); if(!holder)return;
+  holder.innerHTML='';
+  var stage=$('stage'); var w=Math.min(stage.clientWidth-40,1400); var h=Math.round(w*9/16);
+  if(!window.pptxPreview||!window.pptxPreview.init){holder.innerHTML='<div style="color:#f87171;padding:20px">PPTX 预览组件加载失败</div>';return}
+  holder.innerHTML='<div style="color:#9CA3AF;padding:12px">正在渲染 PPTX…</div>';
+  try{
+    pptxArea=window.pptxPreview.init(holder,{width:w,height:h});
+    fetch(url,{cache:'no-store'}).then(function(r){return r.arrayBuffer()}).then(function(buf){ pptxArea.preview(buf); }).catch(function(e){holder.innerHTML='<div style="color:#f87171;padding:20px">PPTX 读取失败：'+esc(e.message||e)+'</div>'});
+  }catch(e){ holder.innerHTML='<div style="color:#f87171;padding:20px">PPTX 渲染失败：'+esc(e.message||e)+'</div>'; }
+}
+function refresh(){
+  fetch('/api/screen?room='+ROOM,{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+    screenData=d; groups=d.groups||[]; renderScores();
+    $('title').childNodes[0].nodeValue=(d.title||('课堂 '+ROOM))+' ';
+    var fs=(d.files||[]).filter(function(f){return /.(pptx?|html?)$/i.test(f.name||'')});
+    var sig=fs.map(function(f){return f.name+f.url}).join('|');
+    if(sig!==files.map(function(f){return f.name+f.url}).join('|')){ files=fs; current=Math.min(Math.max(current,0),Math.max(files.length-1,0)); renderTabs(); if(files.length) showFile(current); else showEmpty(); }
+  }).catch(function(){});
+}
+$('prevSlide').onclick=function(){ var w=$('pptxWrap'); w.scrollBy({top:-Math.round(w.clientHeight*0.9),behavior:'smooth'}); };
+$('nextSlide').onclick=function(){ var w=$('pptxWrap'); w.scrollBy({top:Math.round(w.clientHeight*0.9),behavior:'smooth'}); };
+refresh(); setInterval(refresh,4000);
+</script></body></html>
