@@ -71,6 +71,11 @@ button,.btn,.tab,.tabbtn{font-family:inherit}
   .modal-card .two{grid-template-columns:1fr}
 }
 @media(max-width:720px){
+  .top:has(> .links){flex-direction:column;align-items:stretch}
+  .top .links{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:12px;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+  .top .links::-webkit-scrollbar{display:none}
+  .top:has(> .links) .brand{max-width:100%}
+
   .top{padding:10px 12px;gap:8px;align-items:flex-start}
   .top>div:last-child,.top .links{display:flex;flex-wrap:wrap;gap:8px;font-size:12px}
   .brand{font-size:11px;line-height:1.45;max-width:58%}
