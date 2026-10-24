@@ -183,7 +183,7 @@ body{animation:pageIn .32s ease both}
 <script src="../xlsx.full.min.js"></script>
 <script src="/dialog.js"></script>
 <script>
-var API=(window.GTSCDT_API||'');
+var API=(window.YSCOT_API||'');
 function fmt(n){return n==null?'—':n}
 async function api(p,opt){
   var r=await fetch(API+p,opt||{});
@@ -424,7 +424,7 @@ refresh();setInterval(refresh,2500);
     try{history.replaceState(null,'','#'+t)}catch(e){}
   }
   tabs.forEach(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-tab'))})});
-  window.GTSCDT_showTab=show;
+  window.YSCOT_showTab=show;
   window.addEventListener('hashchange',function(){var x=(location.hash||'').replace('#','');if(['class','hw','quiz','model'].indexOf(x)>=0)show(x)});
   var h=(location.hash||'').replace('#','');
   show(['class','hw','quiz','model'].indexOf(h)>=0?h:'class');

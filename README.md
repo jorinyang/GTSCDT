@@ -16,7 +16,8 @@
 
 讲师把课程大纲和课件丢进来，系统用模型生成课程页、宣传页、题库、过程素材和作业场景题；课堂上学员端、遥控器、课堂后台、大屏四个端同时跑；下课前作业评分和课堂报告已经就绪。
 
-> **Yice Strategy Course Operation Tool** · 企业 AI 培训的课堂运营系统
+> **YSCOT（Yice Strategy Course Operation Tool）** · 企业 AI 培训的课堂运营系统
+> 原名 GTSCDT（Game Theory Strategy Course Development Tools），2026-10 更名为 YSCOT。
 > Node 20 零依赖服务 · 钉钉登录 · 房间模型 · 可私有化部署
 
 ---
@@ -201,7 +202,7 @@ docker run -d -p 8899:8899 \
 ## 目录结构
 
 ```
-GTSCDT/
+YSCOT/
 ├─ templates/
 │  ├─ server.mjs              房间 / 鉴权 / 生成 / 上传 / API / MCP
 │  ├─ ui.css                  全站主题（近黑 + 荧光绿 + 大圆角）
@@ -259,7 +260,7 @@ GTSCDT/
 
 ## 文档
 
-- [系统总体说明](docs/01-系统说明-GTSCDT.md)
+- [系统总体说明](docs/01-系统说明-YSCOT.md)
 - [方法论与设计原则](docs/02-方法论与设计原则.md)
 - [课程包架构](docs/05-架构-房间与课程包.md)
 - [课堂使用说明](docs/06-课堂使用说明-按课程流程.md)
