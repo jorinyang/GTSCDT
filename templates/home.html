@@ -147,11 +147,12 @@ function renderRooms(){
   if(!list.length){ rows+='<tr><td colspan="6" class="muted small">没有符合条件的场次</td></tr>'; }
   rows+=list.map(function(x){
     return '<tr><td><b>'+x.code+'</b></td><td>'+esc(x.title)+'</td><td>'+esc(x.date||'—')+'</td><td>'+esc((x.province?x.province+' ':'')+(x.city||'—'))+'</td><td>'+x.students+'</td><td class="small">'
-      +'<a href="/room?code='+x.code+'">进入</a> · <a href="/room-setup?code='+x.code+'">课程内容</a> · <button class="btn" data-edit="'+x.code+'" style="padding:2px 8px;font-size:12px">编辑</button> <button class="btn danger" data-del="'+x.code+'" style="padding:2px 8px;font-size:12px">删除</button></td></tr>';
+      +'<a href="/room?code='+x.code+'">进入</a> · <a href="/room-setup?code='+x.code+'">课程内容</a> · <button class="btn" data-edit="'+x.code+'" style="padding:2px 8px;font-size:12px">编辑</button> '+(x.code==='ROOM0'?'<span class="small muted">默认</span> <button class="btn" data-clear="'+x.code+'" style="padding:2px 8px;font-size:12px">清空</button>':'<button class="btn danger" data-del="'+x.code+'" style="padding:2px 8px;font-size:12px">删除</button>')+'</td></tr>';
   }).join('');
   $('roomTbl').innerHTML=rows;
   document.querySelectorAll('[data-edit]').forEach(function(b){b.onclick=function(){editRoom(b.getAttribute('data-edit'))}});
   document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){delRoom(b.getAttribute('data-del'))}});
+  document.querySelectorAll('[data-clear]').forEach(function(b){b.onclick=function(){clearRoom(b.getAttribute('data-clear'))}});
 }
 function loadRooms(){
   return fetch('/api/rooms',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){ ROOMS=d.rooms||[]; renderRooms(); });
@@ -218,6 +219,11 @@ function editRoom(code){
 function delRoom(code){
   GTSC.confirm({title:'删除场次',message:'删除场次 '+code+'？该场次的学员、投票、作业、报告都会一并删除，不可恢复。',submitText:'删除',danger:true,onConfirm:function(){
     fetch('/api/rooms/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)loadRooms(); else GTSC.alert(d.error||'删除失败'); });
+  }});
+}
+function clearRoom(code){
+  GTSC.confirm({title:'清空默认场次',message:'清空 '+code+' 的学员、投票、作业、分组与课堂数据？场次本身和已上传文件保留。',submitText:'清空',danger:true,onConfirm:function(){
+    fetch('/api/rooms/clear',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code})}).then(function(r){return r.json()}).then(function(d){ if(d.ok)loadRooms(); else GTSC.alert(d.error||'清空失败'); });
   }});
 }
 function editTeacher(id){

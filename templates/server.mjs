@@ -935,6 +935,13 @@ const server=http.createServer(async (req,res)=>{
     fs.rmSync(dir,{recursive:true,force:true});
     return send(res,200,{ok:true,code});
   }
+  if(p==='/api/rooms/clear' && req.method==='POST'){
+    const b=await readBody(req); const code=String(b.code||'').toUpperCase();
+    if(!validRoom(code)) return send(res,400,{ok:false,error:'房间码不对'});
+    const f=roomStateFile(code); if(!fs.existsSync(f)) return send(res,404,{ok:false,error:'房间不存在'});
+    setRoom(code); state=blank(); save();
+    return send(res,200,{ok:true,code});
+  }
   if(p==='/api/screen') return send(res,200,screenView());
   if(p==='/api/stream'){
     res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache','Connection':'keep-alive','Access-Control-Allow-Origin':'*'});
