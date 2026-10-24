@@ -17,6 +17,16 @@ body{background:#0E0E10;color:#F4F4F5;font-family:Inter,'PingFang SC','Microsoft
 .empty.show{display:flex}
 .empty b{font-size:20px;color:#F4F4F5}
 .empty span{font-size:13px;color:#A1A1AA;max-width:520px;line-height:1.8}
+.workshop{position:absolute;inset:0;z-index:2;display:none;flex-direction:column;align-items:center;justify-content:center;gap:2vh;padding:4vh 6vw;text-align:center;background:radial-gradient(120% 90% at 50% 0,#16352A,#0E0E10 58%)}
+.workshop.show{display:flex}
+.ws-kicker{font-size:12px;letter-spacing:.3em;color:#6B6B76}
+.ws-clock{font-size:clamp(96px,19vw,260px);font-weight:900;line-height:.95;letter-spacing:-.05em;color:#CBF74E;font-variant-numeric:tabular-nums}
+.ws-status{font-size:clamp(14px,1.6vw,22px);color:#A1A1AA}
+.ws-card{max-width:900px;border:1px solid rgba(203,247,78,.35);border-radius:24px;padding:18px 24px;background:rgba(203,247,78,.06);color:#F4F4F5;line-height:1.7;font-size:clamp(13px,1.3vw,18px)}
+.ws-card b{display:block;font-size:clamp(18px,2.2vw,30px);color:#CBF74E;margin-bottom:6px}
+.ws-card .attrs{color:#A1A1AA;font-size:.85em;margin-top:6px}
+.ws-empty{color:#6B6B76;font-size:clamp(14px,1.4vw,20px)}
+.ws-foot{font-size:12px;color:#6B6B76;letter-spacing:.08em}
 </style></head><body>
 <div class="top">
   <div class="brand">YSCOT · 授课大屏</div>
@@ -24,6 +34,13 @@ body{background:#0E0E10;color:#F4F4F5;font-family:Inter,'PingFang SC','Microsoft
 </div>
 <div class="frame-wrap">
   <iframe id="viewFrame" title="大屏内容"></iframe>
+  <div class="workshop" id="workshopView">
+  <div class="ws-kicker">YSCOT · 工作坊</div>
+  <div class="ws-clock" id="wsClock">--:--</div>
+  <div class="ws-status" id="wsStatus">等待开始计时</div>
+  <div class="ws-card" id="wsCard"><span class="ws-empty">暂无行动卡 / 场景卡</span></div>
+  <div class="ws-foot">遥控器 → 工作坊 → 开始计时 / 推送行动卡</div>
+</div>
   <div class="empty" id="empty"><b id="emptyTitle">还没有内容</b><span id="emptyMsg"></span></div>
 </div>
 <script>
@@ -32,17 +49,45 @@ document.getElementById('room').textContent=room;
 document.getElementById('backLink').href='/room?code='+room;
 document.getElementById('remoteLink').href='/remote?room='+room;
 document.getElementById('fs').onclick=function(){ if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen(); };
-var lastSrc='';
-function setFrame(src, title, msg){
-  var f=document.getElementById('viewFrame');
-  var e=document.getElementById('empty');
-  if(!src){ if(f.getAttribute('src')) f.removeAttribute('src'); f.style.display='none'; e.classList.add('show'); document.getElementById('emptyTitle').textContent=title||'还没有内容'; document.getElementById('emptyMsg').textContent=msg||''; return; }
+var lastSrc='', wsEnd=0, wsRunning=false;
+
+function setFrame(src,title,msg){
+  var f=document.getElementById('viewFrame'), e=document.getElementById('empty');
+  if(!src){ if(f.getAttribute('src'))f.removeAttribute('src'); f.style.display='none'; e.classList.add('show'); document.getElementById('emptyTitle').textContent=title||'还没有内容'; document.getElementById('emptyMsg').textContent=msg||''; return; }
   e.classList.remove('show'); f.style.display='block';
   if(lastSrc!==src){ lastSrc=src; f.src=src; }
 }
+function showWorkshop(d){
+  var w=document.getElementById('workshopView'), f=document.getElementById('viewFrame'), e=document.getElementById('empty');
+  w.classList.add('show'); f.style.display='none'; e.classList.remove('show');
+  var tm=d.timer||{}; wsEnd=Number(tm.endAt)||0; wsRunning=!!tm.running;
+  var st=document.getElementById('wsStatus');
+  st.textContent=wsRunning?'倒计时进行中':(wsEnd?'已暂停':'等待开始计时');
+  var box=document.getElementById('wsCard'), c=d.activeCardData;
+  if(c){ box.innerHTML='<b>'+esc(c.theme||'')+'</b>'+(c.type?('<span style="color:#A1A1AA">'+esc(c.type)+'</span><br>'):'')+esc(c.content||'')+(c.attrs?('<div class="attrs">'+esc(c.attrs)+'</div>'):''); }
+  else{ box.innerHTML='<span class="ws-empty">暂无行动卡 / 场景卡</span>'; }
+  tickClock();
+}
+function hideWorkshop(){ document.getElementById('workshopView').classList.remove('show'); }
+function esc(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
+function pad(n){return n<10?'0'+n:''+n}
+function tickClock(){
+  var el=document.getElementById('wsClock'), st=document.getElementById('wsStatus');
+  if(!wsEnd && !wsRunning){ el.textContent='--:--'; return; }
+  if(!wsRunning){ el.textContent='--:--'; if(st)st.textContent='等待开始计时'; return; }
+  var left=Math.max(0,wsEnd-Date.now());
+  var sec=Math.ceil(left/1000), m=Math.floor(sec/60), ss=sec%60;
+  el.textContent=pad(m)+':'+pad(ss);
+  if(left<=0 && st) st.textContent='时间到';
+  else if(st) st.textContent='倒计时进行中';
+}
+setInterval(tickClock,250);
+
 function refresh(){
   fetch('/api/screen?room='+room,{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
     var view=d.screenView||'data';
+    if(view==='workshop'){ showWorkshop(d); return; }
+    hideWorkshop();
     if(view==='course'){
       var files=d.files||[];
       var html=files.filter(function(f){return /\.html?$/i.test(f.name||'')})[0];

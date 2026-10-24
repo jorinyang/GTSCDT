@@ -18,17 +18,22 @@ a{color:var(--amber-l);text-decoration:none}
 input,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px;font-size:15px;font-family:inherit;margin-bottom:8px}
 .control-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
 .control-grid .btn{width:100%;padding:10px 6px;font-size:12.5px;line-height:1.35;white-space:normal;min-height:46px}
+.control-grid.cols-2{grid-template-columns:repeat(2,1fr)}
+.control-grid.cols-3{grid-template-columns:repeat(3,1fr)}
 </style><link rel="stylesheet" href="/ui.css" />
 <link rel="stylesheet" href="/dialog.css" />
 </head><body>
 <div class="top"><div class="brand">YSCOT · 遥控器</div><div class="links"><span class="pill" id="room">ROOM</span><a href="/screen" target="_blank">大屏</a><a href="/ops" target="_blank">后台</a></div></div>
 
 <div class="card"><div class="k">课堂控制</div>
-  <div class="control-grid">
+  <div class="control-grid cols-2">
     <button class="btn" id="matToggle">素材发放</button>
     <button class="btn" id="hwToggle">作业提交</button>
-    <button class="btn" data-view="data">大屏·报告</button>
+  </div>
+  <div class="control-grid cols-3">
     <button class="btn" data-view="course">大屏·课件</button>
+    <button class="btn" data-view="data">大屏·报告</button>
+    <button class="btn" data-view="workshop">大屏·工作坊</button>
   </div>
   <div class="k" style="margin-top:14px">小组积分</div>
   <div id="groupScores" class="small"></div>

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1220" viewBox="0 0 1200 1220" font-family="PingFang SC,Microsoft YaHei,Segoe UI,sans-serif"><defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#5B6475"/></marker></defs><rect width="1200" height="1220" fill="#FFFFFF"/>
+<rect x="30" y="20" width="600" height="270" rx="14" fill="#FAFAFD" stroke="#D9DCE6" stroke-width="1.2"/><text x="46" y="44" font-size="14" font-weight="700" fill="#333A4A">遥控器 · 课堂控制</text>
+<rect x="45" y="55" width="132" height="38" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="111" y="78.5" text-anchor="middle" font-size="12.5" fill="#1F2937">素材开关</text>
+<rect x="192" y="55" width="132" height="38" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="258" y="78.5" text-anchor="middle" font-size="12.5" fill="#1F2937">作业开关</text>
+<rect x="339" y="55" width="132" height="38" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="405" y="78.5" text-anchor="middle" font-size="12.5" fill="#1F2937">大屏切换</text>
+<rect x="486" y="55" width="132" height="38" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="552" y="78.5" text-anchor="middle" font-size="12.5" fill="#1F2937">积分调整</text>
+<rect x="45" y="105" width="132" height="38" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="111" y="128.5" text-anchor="middle" font-size="12.5" fill="#1F2937">点名</text>
+<rect x="192" y="105" width="132" height="38" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="258" y="128.5" text-anchor="middle" font-size="12.5" fill="#1F2937">投票</text>
+<rect x="339" y="105" width="132" height="38" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="405" y="128.5" text-anchor="middle" font-size="12.5" fill="#1F2937">抢答</text>
+<rect x="486" y="105" width="132" height="38" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="552" y="128.5" text-anchor="middle" font-size="12.5" fill="#1F2937">答题</text>
+<rect x="150" y="155" width="132" height="38" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="216" y="178.5" text-anchor="middle" font-size="12.5" fill="#1F2937">工作坊</text>
+<rect x="330" y="155" width="132" height="38" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="396" y="178.5" text-anchor="middle" font-size="12.5" fill="#1F2937">卡片</text>
+<rect x="650" y="20" width="520" height="320" rx="14" fill="#FAFAFD" stroke="#D9DCE6" stroke-width="1.2"/><text x="666" y="44" font-size="14" font-weight="700" fill="#333A4A">课堂管理</text>
+<rect x="670" y="60" width="145" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="742.5" y="85.5" text-anchor="middle" font-size="12.5" fill="#1F2937">投票题库添加</text>
+<rect x="830" y="60" width="145" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="902.5" y="85.5" text-anchor="middle" font-size="12.5" fill="#1F2937">抽签分组管理</text>
+<rect x="990" y="60" width="145" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="1062.5" y="85.5" text-anchor="middle" font-size="12.5" fill="#1F2937">作业配置</text>
+<rect x="670" y="120" width="145" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="742.5" y="145.5" text-anchor="middle" font-size="12.5" fill="#1F2937">点名结果</text>
+<rect x="830" y="120" width="145" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="902.5" y="145.5" text-anchor="middle" font-size="12.5" fill="#1F2937">工作坊配置</text>
+<rect x="990" y="120" width="145" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="1062.5" y="145.5" text-anchor="middle" font-size="12.5" fill="#1F2937">课程素材配置</text>
+<rect x="670" y="180" width="145" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="742.5" y="205.5" text-anchor="middle" font-size="12.5" fill="#1F2937">行动卡 / 场景卡配置</text>
+<rect x="830" y="180" width="145" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="902.5" y="205.5" text-anchor="middle" font-size="12.5" fill="#1F2937">分组积分管理</text>
+<rect x="990" y="180" width="145" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="1062.5" y="205.5" text-anchor="middle" font-size="12.5" fill="#1F2937">学员管理</text>
+<rect x="30" y="325" width="600" height="300" rx="14" fill="#FAFAFD" stroke="#D9DCE6" stroke-width="1.2"/><text x="46" y="349" font-size="14" font-weight="700" fill="#333A4A">学员端 /join · 能力</text>
+<rect x="45" y="365" width="180" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="135" y="390.5" text-anchor="middle" font-size="12.5" fill="#1F2937">分组抽签</text>
+<rect x="240" y="365" width="180" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="330" y="390.5" text-anchor="middle" font-size="12.5" fill="#1F2937">抢答</text>
+<rect x="435" y="365" width="180" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="525" y="390.5" text-anchor="middle" font-size="12.5" fill="#1F2937">在线答题</text>
+<rect x="45" y="425" width="270" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="180" y="450.5" text-anchor="middle" font-size="12.5" fill="#1F2937">点名核验</text>
+<rect x="330" y="425" width="270" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="465" y="450.5" text-anchor="middle" font-size="12.5" fill="#1F2937">行动卡 / 场景卡推送</text>
+<rect x="45" y="485" width="270" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="180" y="510.5" text-anchor="middle" font-size="12.5" fill="#1F2937">课程素材下载</text>
+<rect x="330" y="485" width="270" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="465" y="510.5" text-anchor="middle" font-size="12.5" fill="#1F2937">作业提交</text>
+<rect x="650" y="325" width="200" height="300" rx="14" fill="#FAFAFD" stroke="#D9DCE6" stroke-width="1.2"/><text x="666" y="349" font-size="14" font-weight="700" fill="#333A4A">作业评分</text>
+<rect x="665" y="365" width="170" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="750" y="390.5" text-anchor="middle" font-size="12.5" fill="#1F2937">作业提交开关</text>
+<rect x="665" y="425" width="170" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="750" y="450.5" text-anchor="middle" font-size="12.5" fill="#1F2937">作业提交状态</text>
+<rect x="665" y="485" width="170" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="750" y="510.5" text-anchor="middle" font-size="12.5" fill="#1F2937">提交情况</text>
+<rect x="870" y="325" width="300" height="300" rx="14" fill="#FAFAFD" stroke="#D9DCE6" stroke-width="1.2"/><text x="886" y="349" font-size="14" font-weight="700" fill="#333A4A">在线答题</text>
+<rect x="885" y="365" width="135" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="952.5" y="390.5" text-anchor="middle" font-size="12.5" fill="#1F2937">下载模板</text>
+<rect x="1030" y="365" width="135" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="1097.5" y="390.5" text-anchor="middle" font-size="12.5" fill="#1F2937">导入题库</text>
+<rect x="885" y="425" width="135" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="952.5" y="450.5" text-anchor="middle" font-size="12.5" fill="#1F2937">出题方式</text>
+<rect x="1030" y="425" width="135" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="1097.5" y="450.5" text-anchor="middle" font-size="12.5" fill="#1F2937">开启 / 关闭答题</text>
+<rect x="30" y="660" width="270" height="190" rx="14" fill="#FAFAFD" stroke="#D9DCE6" stroke-width="1.2"/><text x="46" y="684" font-size="14" font-weight="700" fill="#333A4A">大屏 /screen · 能力</text>
+<rect x="50" y="695" width="230" height="40" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="165" y="719.5" text-anchor="middle" font-size="12.5" fill="#1F2937">课堂数据报告</text>
+<rect x="50" y="745" width="230" height="40" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="165" y="769.5" text-anchor="middle" font-size="12.5" fill="#1F2937">课件展示</text>
+<rect x="50" y="795" width="230" height="40" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="165" y="819.5" text-anchor="middle" font-size="12.5" fill="#1F2937">工作坊倒计时</text>
+<rect x="320" y="660" width="850" height="190" rx="14" fill="#FAFAFD" stroke="#D9DCE6" stroke-width="1.2"/><text x="336" y="684" font-size="14" font-weight="700" fill="#333A4A">课堂四端</text>
+<rect x="340" y="720" width="180" height="62" rx="7" fill="#E8F7EF" stroke="#C9D4E8" stroke-width="1.1"/><text x="430" y="755.5" text-anchor="middle" font-size="12.5" fill="#1F2937">大屏 /screen</text>
+<rect x="540" y="720" width="180" height="62" rx="7" fill="#EAF2FF" stroke="#C9D4E8" stroke-width="1.1"/><text x="630" y="755.5" text-anchor="middle" font-size="12.5" fill="#1F2937">学员端 /join</text>
+<rect x="740" y="720" width="180" height="62" rx="7" fill="#FFF4E6" stroke="#C9D4E8" stroke-width="1.1"/><text x="830" y="755.5" text-anchor="middle" font-size="12.5" fill="#1F2937">遥控器 /remote</text>
+<rect x="940" y="720" width="180" height="62" rx="7" fill="#F1ECFF" stroke="#C9D4E8" stroke-width="1.1"/><text x="1030" y="755.5" text-anchor="middle" font-size="12.5" fill="#1F2937">课堂后台 /ops</text>
+<rect x="150" y="890" width="900" height="180" rx="14" fill="#FAFAFD" stroke="#D9DCE6" stroke-width="1.2"/><text x="166" y="914" font-size="14" font-weight="700" fill="#333A4A">Node 20 · 零依赖服务</text>
+<rect x="485" y="915" width="230" height="46" rx="7" fill="#F1ECFF" stroke="#C9C3E8" stroke-width="1.1"/><text x="600" y="942.5" text-anchor="middle" font-size="12.5" fill="#1F2937">REST API + MCP</text>
+<rect x="185" y="1000" width="185" height="46" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="277.5" y="1027.5" text-anchor="middle" font-size="12.5" fill="#1F2937">房间状态 JSON</text>
+<rect x="395" y="1000" width="185" height="46" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="487.5" y="1027.5" text-anchor="middle" font-size="12.5" fill="#1F2937">预渲染资产</text>
+<rect x="605" y="1000" width="185" height="46" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="697.5" y="1027.5" text-anchor="middle" font-size="12.5" fill="#1F2937">课程生成 / 文档解析</text>
+<rect x="815" y="1000" width="185" height="46" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="907.5" y="1027.5" text-anchor="middle" font-size="12.5" fill="#1F2937">钉钉 OAuth + 签名 Cookie</text>
+<rect x="300" y="1110" width="600" height="90" rx="14" fill="#FAFAFD" stroke="#D9DCE6" stroke-width="1.2"/><text x="316" y="1134" font-size="14" font-weight="700" fill="#333A4A">外部能力</text>
+<rect x="340" y="1135" width="240" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="460" y="1160.5" text-anchor="middle" font-size="12.5" fill="#1F2937">模型 API（页面配置）</text>
+<rect x="620" y="1135" width="240" height="42" rx="7" fill="#EEF0FF" stroke="#C9CEE8" stroke-width="1.1"/><text x="740" y="1160.5" text-anchor="middle" font-size="12.5" fill="#1F2937">钉钉开放平台</text>
+<path d="M30,155 H14 V690 H740 V720" fill="none" stroke="#5B6475" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M1170,200 H1186 V690 H1090 V720" fill="none" stroke="#5B6475" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M600,625 V720" fill="none" stroke="#5B6475" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M750,625 V690 H1010 V720" fill="none" stroke="#5B6475" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M1020,625 V720" fill="none" stroke="#5B6475" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M300,755 H335" fill="none" stroke="#5B6475" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M760,850 V880 H600 V915" fill="none" stroke="#5B6475" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M600,961 V980 H277 V1000" fill="none" stroke="#5B6475" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M600,961 V980 H487 V1000" fill="none" stroke="#5B6475" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M600,961 V980 H697 V1000" fill="none" stroke="#5B6475" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M600,961 V980 H907 V1000" fill="none" stroke="#5B6475" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M697,1046 V1110 H520 V1135" fill="none" stroke="#5B6475" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M907,1046 V1110 H740 V1135" fill="none" stroke="#5B6475" stroke-width="1.4" marker-end="url(#arrow)"/>
+</svg>
