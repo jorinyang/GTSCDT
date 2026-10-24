@@ -108,6 +108,10 @@ var TASKS=[
   manual:[],crit:[['差异召回（10处）',10,'每处1分；漏报扣分'],['定位准确（方名+项目名）',3,'写清在哪一方的哪一行'],['金额核对',3,'差异金额与教师版一致'],['处理建议合理',4,'可执行、责任到方']]}
 ];
 var st=null, curKey='', hwOpen=false;
+fetch(API+'/api/admin/state',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+  var rb=(d&&d.rubrics)||{};
+  TASKS.forEach(function(t){ if(rb[t.id]&&rb[t.id].length){ t.crit=rb[t.id].map(function(x){return [x.t,x.pts,x.desc||'']}); } });
+}).catch(function(){});
 
 function $(id){return document.getElementById(id)}
 function fmt(n){return Math.round(n*10)/10}

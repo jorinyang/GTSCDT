@@ -1,10 +1,12 @@
-# Yice Strategy Course Operation Tool（YSCOT）· 弈策课程运营系统
+# Yice Strategy Course Operation Tool（弈策课程运营系统）
+
+简称 **YSCOT**。
 
 <div align="center">
 
 **把一堂企业 AI 培训，从课前生成跑到课后复盘。**
 
-[![Release](https://img.shields.io/github/v/release/jorinyang/Yice-Strategy-Course-Operation-Tool?style=flat-square&color=CBF74E)](https://github.com/jorinyang/Yice-Strategy-Course-Operation-Tool/releases)
+[![Release](https://img.shields.io/github/v/release/jorinyang/YSCOT?style=flat-square&color=CBF74E)](https://github.com/jorinyang/YSCOT/releases)
 [![Node](https://img.shields.io/badge/Node-20+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/License-MIT-3355FF?style=flat-square)](LICENSE)
 [![DingTalk](https://img.shields.io/badge/DingTalk-OAuth-1E9FFF?style=flat-square)](https://open.dingtalk.com/)
@@ -103,6 +105,46 @@ YSCOT 把这三段接成一条流水线：**一次上传，生成一套内容；
 
 ```mermaid
 flowchart TB
+  subgraph StudentCap["学员端 /join · 向上衍生"]
+    direction LR
+    S1["分组抽签"]
+    S2["抢答"]
+    S3["在线答题"]
+    S4["点名核验"]
+    S5["行动卡 / 场景卡推送"]
+    S6["课程素材下载"]
+    S7["作业提交"]
+  end
+
+  subgraph AdminCap["课堂后台 /ops · 向上衍生两层"]
+    direction TB
+    subgraph Manage["课堂管理"]
+      direction LR
+      M1["投票题库添加"]
+      M2["抽签分组管理"]
+      M3["作业配置"]
+      M4["点名结果"]
+      M5["工作坊配置"]
+      M6["课程素材配置"]
+      M7["行动卡 / 场景卡配置"]
+      M8["分组积分管理"]
+      M9["学员管理"]
+    end
+    subgraph Grade["作业评分"]
+      direction LR
+      H1["作业提交开关"]
+      H2["作业提交状态"]
+      H3["提交情况"]
+    end
+    subgraph QuizCfg["在线答题"]
+      direction LR
+      Q1["下载模板"]
+      Q2["导入题库"]
+      Q3["出题方式"]
+      Q4["开启 / 关闭答题"]
+    end
+  end
+
   subgraph Client["课堂四端"]
     S["学员端 /join"]
     R["遥控器 /remote"]
@@ -113,8 +155,8 @@ flowchart TB
   subgraph Core["Node 20 · 零依赖服务"]
     API["REST API + MCP"]
     STORE[("房间状态 JSON")]
-    GEN["课程生成 / 文档解析"]
     ASSET["预渲染资产"]
+    GEN["课程生成 / 文档解析"]
     AUTH["钉钉 OAuth + 签名 Cookie"]
   end
 
@@ -124,7 +166,14 @@ flowchart TB
     DING["钉钉开放平台"]
   end
 
-  S & R & O & P --> API
+  StudentCap --> S
+  Manage --> O
+  Grade --> O
+  QuizCfg --> O
+  S --> API
+  R --> API
+  O --> API
+  P --> API
   API --> STORE
   API --> ASSET
   API --> GEN
@@ -145,8 +194,8 @@ flowchart TB
 ## 快速开始
 
 ```bash
-git clone https://github.com/jorinyang/Yice-Strategy-Course-Operation-Tool.git
-cd Yice-Strategy-Course-Operation-Tool/templates
+git clone https://github.com/jorinyang/YSCOT.git
+cd YSCOT/templates
 node server.mjs
 ```
 
@@ -197,6 +246,8 @@ docker run -d -p 8899:8899 \
 6. **复盘**：报告导出，积分公布；房间保留或删除。
 
 完整操作说明见 [docs/06-课堂使用说明-按课程流程.md](docs/06-课堂使用说明-按课程流程.md)。
+
+通过 MCP 导入投票题库、课程素材、行动卡 / 场景卡、作业评分标准的字段与示例，见 [docs/09-MCP内容导入标准.md](docs/09-MCP内容导入标准.md)。
 
 ---
 
@@ -255,7 +306,7 @@ YSCOT/
 | **v0.2** | 后台四标签、在线答题、模型管理、AI 评分 |
 | **v0.1** | 六页面 + 局域网服务 |
 
-更详细的变更见 [Releases](https://github.com/jorinyang/Yice-Strategy-Course-Operation-Tool/releases)。
+更详细的变更见 [Releases](https://github.com/jorinyang/YSCOT/releases)。
 
 ---
 

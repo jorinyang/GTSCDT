@@ -88,7 +88,7 @@ function cookieRoom(req){ const m=String(req.headers.cookie||'').match(/(?:^|;\s
 function ensureDir(){ if(!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR,{recursive:true}); }
 function blank(){
   const groups={}; GROUPS.forEach(g=>groups[g]={name:g+'组',perf:0});
-  return {students:{},groups,poll:{active:false,question:'',options:[],votes:{},startedAt:''},submissions:{},config:{hwOpen:false,workshopOpen:false,materialOpen:false,screenView:'stats',slide:0,groupMax:3,wsMinutes:90,activeCard:'',model:{baseUrl:'https://api.deepseek.com',model:'deepseek-flash',apiKey:''}},buzz:{enabled:false,running:false,winner:'',round:0,at:''},tasks:[],votePresets:[],cards:[],roll:{active:false,key:'',name:'',round:0,at:0},timer:{running:false,endAt:0,duration:0},quiz:{bank:{choice:[],judge:[],blank:[],short:[]},config:{mode:'random',counts:{choice:5,judge:3,blank:2,short:1},scores:{choice:2,judge:2,blank:3,short:10}},paper:null,answers:{}},updatedAt:new Date().toISOString()};
+  return {students:{},groups,poll:{active:false,question:'',options:[],votes:{},startedAt:''},submissions:{},config:{hwOpen:false,workshopOpen:false,materialOpen:false,screenView:'stats',slide:0,groupMax:3,wsMinutes:90,activeCard:'',model:{baseUrl:'https://api.deepseek.com',model:'deepseek-flash',apiKey:''}},buzz:{enabled:false,running:false,winner:'',round:0,at:''},tasks:[],votePresets:[],cards:[],materials:[],rubrics:{},roll:{active:false,key:'',name:'',round:0,at:0},timer:{running:false,endAt:0,duration:0},quiz:{bank:{choice:[],judge:[],blank:[],short:[]},config:{mode:'random',counts:{choice:5,judge:3,blank:2,short:1},scores:{choice:2,judge:2,blank:3,short:10}},paper:null,answers:{}},updatedAt:new Date().toISOString()};
 }
 function load(){ ensureDir(); if(!fs.existsSync(STATE_FILE)) return blank();
   try{ const s=JSON.parse(fs.readFileSync(STATE_FILE,'utf8')); return Object.assign(blank(),s); }catch(e){ return blank(); } }
@@ -133,6 +133,23 @@ async function qModelGrade(q,ans){
   if(isNaN(n)) return null;
   return Math.max(0,Math.min(100,n));
 }
+function quizBuildPaper(cfg){
+  cfg=cfg||{}; const counts=cfg.counts||{}, scores=cfg.scores||{};
+  const pick=function(t,n){
+    let arr=(state.quiz.bank[t]||[]).slice();
+    if(cfg.mode!=='seq'){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const x=arr[i];arr[i]=arr[j];arr[j]=x; } }
+    return arr.slice(0,Math.max(0,Math.min(Number(n)||0,arr.length))).map(function(q){ const c=Object.assign({},q); c.type=t; c.score=Number(scores[t]||0)||0; return c; });
+  };
+  return [].concat(pick('choice',counts.choice),pick('judge',counts.judge),pick('blank',counts.blank),pick('short',counts.short));
+}
+function quizPaperFor(k){
+  const q=state.quiz||{}; const pz=q.paper;
+  if(!pz||!pz.active) return [];
+  if(pz.mode!=='random') return pz.questions||[];
+  q.papers=q.papers||{};
+  if(!q.papers[k]){ q.papers[k]=quizBuildPaper(q.config||pz); save(); }
+  return q.papers[k];
+}
 function studentView(k){
   const s=state.students[k];
   const poll=state.poll;
@@ -155,11 +172,11 @@ function studentView(k){
     roll:(function(){var r=state.roll||{};return {active:!!r.active,name:r.name||'',selected:!!(r.active&&r.key===k)};})(),
     card:(function(){ if(!(state.config&&state.config.workshopOpen)) return null; var c=(state.cards||[]).filter(function(x){return x.id===state.config.activeCard})[0]; return c?{theme:c.theme,type:c.type,content:c.content,attrs:c.attrs}:null; })(),
     materialOpen:!!(state.config&&state.config.materialOpen),
-    materials:(function(){try{var m=JSON.parse(fs.readFileSync(roomMetaFile(currentRoom),'utf8'));return (m.files||[]).map(function(f){return {name:f.name,url:'/api/room/file?name='+encodeURIComponent(f.stored)}})}catch(e){return []}})(),
+    materials:(function(){var out=[];try{var m=JSON.parse(fs.readFileSync(roomMetaFile(currentRoom),'utf8'));out=(m.files||[]).map(function(f){return {name:f.name,url:'/api/room/file?name='+encodeURIComponent(f.stored)}})}catch(e){}; (state.materials||[]).forEach(function(x){out.push({name:x.name,url:x.url,type:x.type||''})}); return out})(),
     tasks:(state.tasks||[]).map(function(t){return {id:t.id,title:t.title,scenario:t.scenario,requirements:t.requirements||[],deliverable:t.deliverable||'',acceptance:t.acceptance||''}}),
     timer:{running:!!(state.timer&&state.timer.running),endAt:(state.timer&&state.timer.endAt)||0,left:(state.timer&&state.timer.running)?Math.max(0,state.timer.endAt-Date.now()):0},
     buzz:{enabled:!!(state.buzz&&state.buzz.enabled),running:!!(state.buzz&&state.buzz.running),winner:(state.buzz&&state.buzz.winner)||'',round:(state.buzz&&state.buzz.round)||0},
-    quiz:(function(){var q=state.quiz||{};var p=q.paper;if(!p||!p.active)return {active:false};var a=(q.answers||{})[k];return {active:true,submitted:!!a,myScore:a?a.score:null,total:p.questions.reduce(function(x,y){return x+(y.score||0)},0),questions:p.questions.map(function(x){return {id:x.id,type:x.type,q:x.q,options:x.options||[],score:x.score}})};})(),
+    quiz:(function(){var q=state.quiz||{};var p=q.paper;if(!p||!p.active)return {active:false};var a=(q.answers||{})[k];var qs=quizPaperFor(k);return {active:true,submitted:!!a,myScore:a?a.score:null,total:qs.reduce(function(x,y){return x+(y.score||0)},0),questions:qs.map(function(x){return {id:x.id,type:x.type,q:x.q,options:x.options||[],score:x.score}})};})(),
     groupCounts: groupCounts(),
     groups: Object.keys(state.groups).map(g=>({id:g,name:state.groups[g].name})),
     submissions: s? Object.keys(state.submissions).filter(k2=>k2.indexOf(k+'||')===0).map(k2=>{const p=k2.split('||');return {task:p[1],at:state.submissions[k2].at,total:(state.submissions[k2].score||{}).total||0,files:(state.submissions[k2].files||[]).length}}):[]
@@ -175,7 +192,7 @@ function adminView(){
   if(state.poll.options&&state.poll.options.length){ state.poll.options.forEach((o,i)=>{results[i]=0}); Object.values(state.poll.votes||{}).forEach(v=>{ if(results[v]!==undefined) results[v]++ }); }
   const subs=Object.keys(state.submissions).map(k=>{ const p=k.split('||'); const st=state.students[p[0]]||{}; const sub=state.submissions[k]; return {key:k,studentKey:p[0],name:st.name||p[0],tail:st.tail||'',task:p[1],text:sub.text||'',fileName:sub.fileName||'',q1:sub.q1||'',q2:sub.q2||'',q3:sub.q3||'',files:sub.files||[],at:sub.at,manual:sub.manual||[],score:sub.score||null}; });
   const _mc=modelCfg();
-  return {ok:true,timer:state.timer||null,workshopOpen:!!(state.config&&state.config.workshopOpen),quiz:quizInfo,model:{baseUrl:_mc.base,model:_mc.model,hasKey:!!_mc.key},config:state.config||{},votePresets:state.votePresets||[],cards:state.cards||[],activeCard:(state.config&&state.config.activeCard)||'',tasks:state.tasks||[],hwOpen:!!(state.config&&state.config.hwOpen),buzz:state.buzz||{enabled:false,running:false,winner:''},students:Object.keys(state.students).map(function(k){const st=Object.assign({key:k},state.students[k]);st.hwScore=Object.keys(state.submissions||{}).filter(function(sk){return sk.indexOf(k+'||')===0}).reduce(function(a,sk){return a+(((state.submissions[sk]||{}).score||{}).total||0)},0);st.quizScore=(((state.quiz&&state.quiz.answers&&state.quiz.answers[k])||{}).score)||0;return st}),groups:Object.keys(state.groups).map(g=>({id:g,name:state.groups[g].name,perf:state.groups[g].perf||0,count:counts[g]})),counts,roll:state.roll||{active:false},poll:{active:state.poll.active,question:state.poll.question,options:state.poll.options,votes:state.poll.votes,results,startedAt:state.poll.startedAt},submissions:subs,updatedAt:state.updatedAt};
+  return {ok:true,timer:state.timer||null,workshopOpen:!!(state.config&&state.config.workshopOpen),quiz:quizInfo,model:{baseUrl:_mc.base,model:_mc.model,hasKey:!!_mc.key},config:state.config||{},votePresets:state.votePresets||[],cards:state.cards||[],materials:state.materials||[],rubrics:state.rubrics||{},activeCard:(state.config&&state.config.activeCard)||'',tasks:state.tasks||[],hwOpen:!!(state.config&&state.config.hwOpen),buzz:state.buzz||{enabled:false,running:false,winner:''},students:Object.keys(state.students).map(function(k){const st=Object.assign({key:k},state.students[k]);st.hwScore=Object.keys(state.submissions||{}).filter(function(sk){return sk.indexOf(k+'||')===0}).reduce(function(a,sk){return a+(((state.submissions[sk]||{}).score||{}).total||0)},0);st.quizScore=(((state.quiz&&state.quiz.answers&&state.quiz.answers[k])||{}).score)||0;return st}),groups:Object.keys(state.groups).map(g=>({id:g,name:state.groups[g].name,perf:state.groups[g].perf||0,count:counts[g]})),counts,roll:state.roll||{active:false},poll:{active:state.poll.active,question:state.poll.question,options:state.poll.options,votes:state.poll.votes,results,startedAt:state.poll.startedAt},submissions:subs,updatedAt:state.updatedAt};
 }
 function mcpToolDefs(){
   return [
@@ -185,17 +202,22 @@ function mcpToolDefs(){
     {name:'poll.start',description:'发起投票',inputSchema:{type:'object',properties:{room:{type:'string'},question:{type:'string'},options:{type:'array',items:{type:'string'}}},required:['room','question','options']}},
     {name:'poll.stop',description:'结束投票',inputSchema:{type:'object',properties:{room:{type:'string'}},required:['room']}},
     {name:'buzz.start',description:'开始一轮抢答',inputSchema:{type:'object',properties:{room:{type:'string'}},required:['room']}},
-    {name:'quiz.publish',description:'按题库发布答题',inputSchema:{type:'object',properties:{room:{type:'string'},counts:{type:'object'},scores:{type:'object'}}}},
+    {name:'quiz.publish',description:'按题库发布答题；mode=random 每个学员独立随机卷，seq 统一顺序卷',inputSchema:{type:'object',properties:{room:{type:'string'},mode:{type:'string',enum:['random','seq']},counts:{type:'object'},scores:{type:'object'}}}},
     {name:'score.adjust',description:'调整小组表现分',inputSchema:{type:'object',properties:{room:{type:'string'},group:{type:'string'},delta:{type:'number'}},required:['room','group','delta']}},
     {name:'report.export',description:'导出课堂报告',inputSchema:{type:'object',properties:{room:{type:'string'}},required:['room']}},
-    {name:'screen.url',description:'取大屏地址',inputSchema:{type:'object',properties:{room:{type:'string'}},required:['room']}}
+    {name:'screen.url',description:'取大屏地址',inputSchema:{type:'object',properties:{room:{type:'string'}},required:['room']}},
+    {name:'material.put',description:'导入课程素材。data_base64 写入房间素材库；url 登记外链。返回素材与下载地址。',inputSchema:{type:'object',properties:{room:{type:'string'},name:{type:'string'},filename:{type:'string'},data_base64:{type:'string'},url:{type:'string'},type:{type:'string'},description:{type:'string'}},required:['room','name']}},
+    {name:'card.put',description:'导入行动卡或场景卡；带 id 为更新，不带为新增。',inputSchema:{type:'object',properties:{room:{type:'string'},id:{type:'string'},theme:{type:'string'},type:{type:'string'},content:{type:'string'},attrs:{type:'string'}},required:['room','theme']}},
+    {name:'votebank.put',description:'导入投票题库；mode=append/replace，presets 为 {question,options[]} 数组。',inputSchema:{type:'object',properties:{room:{type:'string'},mode:{type:'string',enum:['append','replace']},presets:{type:'array',items:{type:'object',properties:{question:{type:'string'},options:{type:'array',items:{type:'string'}}},required:['question','options']}},question:{type:'string'},options:{type:'array',items:{type:'string'}}},required:['room']}},
+    {name:'rubric.put',description:'导入作业评分标准；items 为 {t,pts,desc}，按 task 保存。',inputSchema:{type:'object',properties:{room:{type:'string'},task:{type:'string'},items:{type:'array',items:{type:'object',properties:{t:{type:'string'},pts:{type:'number'},desc:{type:'string'}},required:['t','pts']}}},required:['room','task','items']}}
+
   ];
 }
 async function mcpHandle(msg){
   const id=(msg&&msg.id!==undefined)?msg.id:null;
   const method=msg&&msg.method;
   const reply=function(result){ return {jsonrpc:'2.0',id,result}; };
-  if(method==='initialize') return reply({protocolVersion:'2025-06-18',capabilities:{tools:{}},serverInfo:{name:'gtscdt',version:'0.3.0'}});
+  if(method==='initialize') return reply({protocolVersion:'2025-06-18',capabilities:{tools:{}},serverInfo:{name:'yscot',version:'0.4.0'}});
   if(method==='notifications/initialized') return {jsonrpc:'2.0',id:null,result:{ok:true}};
   if(method==='tools/list') return reply({tools:mcpToolDefs()});
   if(method==='tools/call'){
@@ -211,14 +233,58 @@ async function mcpHandle(msg){
       if(name==='buzz.start'){ state.buzz.enabled=true; state.buzz.running=true; state.buzz.winner=''; state.buzz.round=(state.buzz.round||0)+1; save(); return reply({content:[{type:'text',text:JSON.stringify({ok:true,round:state.buzz.round})}]}); }
       if(name==='quiz.publish'){
         state.quiz=state.quiz||{bank:{choice:[],judge:[],blank:[],short:[]},config:{},answers:{}};
-        const cfg={mode:'random',counts:a.counts||{choice:5,judge:3,blank:2,short:1},scores:a.scores||{choice:2,judge:2,blank:3,short:10}};
-        const pick=function(t,n){ let arr=(state.quiz.bank[t]||[]).slice(); if(!arr.length)return []; return arr.slice(0,Math.max(0,Math.min(Number(n)||0,arr.length))).map(function(q){const c=Object.assign({},q);c.type=t;c.score=Number(cfg.scores[t]||0)||0;return c}); };
-        const qs=[].concat(pick('choice',cfg.counts.choice),pick('judge',cfg.counts.judge),pick('blank',cfg.counts.blank),pick('short',cfg.counts.short));
+        const cfg={mode:a.mode==='seq'?'seq':'random',counts:a.counts||{choice:5,judge:3,blank:2,short:1},scores:a.scores||{choice:2,judge:2,blank:3,short:10}};
+        const qs=quizBuildPaper(cfg);
         if(!qs.length) return reply({isError:true,content:[{type:'text',text:'题库为空'}]});
-        state.quiz.paper={active:true,at:new Date().toLocaleString('zh-CN'),questions:qs}; state.quiz.answers={}; state.quiz.config=cfg; save();
-        return reply({content:[{type:'text',text:JSON.stringify({ok:true,count:qs.length})}]});
+        state.quiz.paper={active:true,at:new Date().toLocaleString('zh-CN'),mode:cfg.mode,counts:cfg.counts,scores:cfg.scores,questions:qs};
+        state.quiz.answers={}; state.quiz.papers={}; state.quiz.config=cfg;
+        if(cfg.mode==='random'){ Object.keys(state.students||{}).forEach(function(k){ state.quiz.papers[k]=quizBuildPaper(cfg); }); }
+        save();
+        return reply({content:[{type:'text',text:JSON.stringify({ok:true,count:qs.length,mode:cfg.mode})}]});
       }
       if(name==='score.adjust'){ if(state.groups[a.group]){ state.groups[a.group].perf=(state.groups[a.group].perf||0)+Number(a.delta||0); save(); } return reply({content:[{type:'text',text:JSON.stringify({ok:true,perf:state.groups[a.group]&&state.groups[a.group].perf})}]}); }
+      if(name==='material.put'){
+        const nm=String(a.name||'').trim(); if(!nm) return reply({isError:true,content:[{type:'text',text:'name 必填'}]});
+        if(a.data_base64){
+          const buf=Buffer.from(String(a.data_base64),'base64'); if(!buf.length) return reply({isError:true,content:[{type:'text',text:'data_base64 为空'}]});
+          if(buf.length>30*1024*1024) return reply({isError:true,content:[{type:'text',text:'单文件超过 30MB'}]});
+          const raw=String(a.filename||nm); const safe=raw.replace(/[^\w.\-\u4e00-\u9fa5]/g,'_');
+          const stored=Date.now().toString(36)+'-'+safe; fs.writeFileSync(path.join(roomUploadDir(room),stored),buf);
+          let meta={}; try{ meta=JSON.parse(fs.readFileSync(roomMetaFile(room),'utf8')); }catch(e){}
+          meta.files=meta.files||[]; meta.files.push({name:nm,stored:stored,size:buf.length,type:String(a.type||raw.split('.').pop()||''),at:new Date().toISOString()});
+          fs.writeFileSync(roomMetaFile(room),JSON.stringify(meta,null,1));
+          return reply({content:[{type:'text',text:JSON.stringify({ok:true,name:nm,stored:stored,url:'/api/room/file?name='+encodeURIComponent(stored),size:buf.length})}]});
+        }
+        if(a.url){
+          const uu=String(a.url); if(!/^https?:\/\//i.test(uu)) return reply({isError:true,content:[{type:'text',text:'url 必须是 http(s)'}]});
+          state.materials=state.materials||[]; const id='m-'+Date.now().toString(36);
+          state.materials.push({id:id,name:nm,url:uu,type:String(a.type||'link'),description:String(a.description||''),at:new Date().toISOString()});
+          save(); return reply({content:[{type:'text',text:JSON.stringify({ok:true,id:id,name:nm,url:uu})}]});
+        }
+        return reply({isError:true,content:[{type:'text',text:'需要 data_base64 或 url'}]});
+      }
+      if(name==='card.put'){
+        const theme=String(a.theme||'').trim(); if(!theme) return reply({isError:true,content:[{type:'text',text:'theme 必填'}]});
+        state.cards=state.cards||[]; let id=String(a.id||''); let card=id?state.cards.filter(function(x){return x.id===id})[0]:null;
+        if(!id){ id='c-'+Date.now().toString(36); card={id:id}; state.cards.push(card); }
+        if(!card) return reply({isError:true,content:[{type:'text',text:'卡片不存在'}]});
+        card.theme=theme; card.type=String(a.type||card.type||'行动卡'); card.content=String(a.content||''); card.attrs=String(a.attrs||'');
+        save(); return reply({content:[{type:'text',text:JSON.stringify({ok:true,id:id})}]});
+      }
+      if(name==='votebank.put'){
+        state.votePresets=state.votePresets||[];
+        const list=Array.isArray(a.presets)?a.presets:[{question:a.question,options:a.options}];
+        if(a.mode==='replace') state.votePresets=[];
+        const ids=[];
+        for(const it of list){ const q=String((it&&it.question)||'').trim(); const opts=((it&&it.options)||[]).map(String).filter(function(x){return x.trim()}); if(!q||opts.length<2) continue; const id='v-'+Date.now().toString(36)+'-'+ids.length; state.votePresets.push({id:id,question:q,options:opts}); ids.push(id); }
+        if(!ids.length) return reply({isError:true,content:[{type:'text',text:'没有有效题目（question + 至少两个 options）'}]});
+        save(); return reply({content:[{type:'text',text:JSON.stringify({ok:true,ids:ids,count:state.votePresets.length})}]});
+      }
+      if(name==='rubric.put'){
+        const task=String(a.task||'').trim(); const items=Array.isArray(a.items)?a.items:[]; if(!task||!items.length) return reply({isError:true,content:[{type:'text',text:'task 与 items 必填'}]});
+        state.rubrics=state.rubrics||{}; state.rubrics[task]=items.map(function(x){return {t:String(x.t||''),pts:Number(x.pts)||0,desc:String(x.desc||'')}}); save();
+        return reply({content:[{type:'text',text:JSON.stringify({ok:true,task:task,count:items.length})}]});
+      }
       if(name==='report.export'){ return reply({content:[{type:'text',text:JSON.stringify({room:currentRoom,students:Object.keys(state.students).length,groups:screenView().groups,quiz:screenView().quiz,poll:screenView().poll})}]}); }
       if(name==='screen.url'){ return reply({content:[{type:'text',text:JSON.stringify({url:'/screen?room='+room})}]}); }
       return reply({isError:true,content:[{type:'text',text:'unknown tool '+name}]});
@@ -986,19 +1052,24 @@ const server=http.createServer(async (req,res)=>{
           state.quiz=state.quiz||{bank:{choice:[],judge:[],blank:[],short:[]},answers:{}};
           if(b.action==='publish'){
             const cfg={mode:b.mode==='seq'?'seq':'random',counts:b.counts||{},scores:b.scores||{}};
-            state.quiz.config=cfg;
-            const pick=function(t,n){
-              let arr=(state.quiz.bank[t]||[]).slice();
-              if(cfg.mode==='random') arr.sort(function(){return Math.random()-0.5});
-              return arr.slice(0,Math.max(0,Math.min(Number(n)||0,arr.length))).map(function(q){ const c=Object.assign({},q); c.type=t; c.score=Number(cfg.scores[t]||0)||0; return c; });
-            };
-            const qs=[].concat(pick('choice',cfg.counts.choice),pick('judge',cfg.counts.judge),pick('blank',cfg.counts.blank),pick('short',cfg.counts.short));
+            const qs=quizBuildPaper(cfg);
             if(!qs.length) return send(res,400,{ok:false,error:'题库为空或各类数量为 0'});
-            state.quiz.paper={active:true,at:new Date().toLocaleString('zh-CN'),questions:qs};
-            state.quiz.answers={}; save();
-            return send(res,200,{ok:true,count:qs.length,points:qs.reduce(function(a,q){return a+(q.score||0)},0)});
+            state.quiz.config=cfg;
+            state.quiz.paper={active:true,at:new Date().toLocaleString('zh-CN'),mode:cfg.mode,counts:cfg.counts,scores:cfg.scores,questions:qs};
+            state.quiz.answers={}; state.quiz.papers={};
+            if(cfg.mode==='random'){ Object.keys(state.students||{}).forEach(function(k){ state.quiz.papers[k]=quizBuildPaper(cfg); }); }
+            save();
+            return send(res,200,{ok:true,count:qs.length,points:qs.reduce(function(a,q){return a+(q.score||0)},0),mode:cfg.mode});
           }
-          if(b.action==='startPreset'){ const cfg=state.quiz.config||{mode:'random',counts:{choice:5,judge:3,blank:2,short:1},scores:{choice:2,judge:2,blank:3,short:10}}; const pick=function(t,n){ let arr=(state.quiz.bank[t]||[]).slice(); if(cfg.mode!=='seq')arr.sort(function(){return Math.random()-0.5}); return arr.slice(0,Math.max(0,Math.min(Number(n)||0,arr.length))).map(function(q){const c=Object.assign({},q);c.type=t;c.score=Number((cfg.scores||{})[t]||0)||0;return c}); }; const qs=[].concat(pick('choice',(cfg.counts||{}).choice),pick('judge',(cfg.counts||{}).judge),pick('blank',(cfg.counts||{}).blank),pick('short',(cfg.counts||{}).short)); if(!qs.length) return send(res,400,{ok:false,error:'题库为空'}); state.quiz.paper={active:true,at:new Date().toLocaleString('zh-CN'),questions:qs}; state.quiz.answers={}; save(); return send(res,200,{ok:true,count:qs.length}); }
+          if(b.action==='startPreset'){
+            const cfg=state.quiz.config||{mode:'random',counts:{choice:5,judge:3,blank:2,short:1},scores:{choice:2,judge:2,blank:3,short:10}};
+            const qs=quizBuildPaper(cfg);
+            if(!qs.length) return send(res,400,{ok:false,error:'题库为空'});
+            state.quiz.paper={active:true,at:new Date().toLocaleString('zh-CN'),mode:cfg.mode,counts:cfg.counts,scores:cfg.scores,questions:qs};
+            state.quiz.answers={}; state.quiz.papers={};
+            if(cfg.mode==='random'){ Object.keys(state.students||{}).forEach(function(k){ state.quiz.papers[k]=quizBuildPaper(cfg); }); }
+            save(); return send(res,200,{ok:true,count:qs.length,mode:cfg.mode});
+          }
           if(b.action==='close'){ if(state.quiz.paper) state.quiz.paper.active=false; save(); return send(res,200,{ok:true}); }
           if(b.action==='clear'){ state.quiz.paper=null; state.quiz.answers={}; save(); return send(res,200,{ok:true}); }
           if(b.action==='resetbank'){ state.quiz.bank={choice:[],judge:[],blank:[],short:[]}; state.quiz.paper=null; state.quiz.answers={}; save(); return send(res,200,{ok:true}); }
