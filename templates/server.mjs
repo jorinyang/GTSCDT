@@ -910,6 +910,7 @@ const server=http.createServer(async (req,res)=>{
     let htmlGuarded=(p==='/ops'||p==='/admin'||p==='/grader'||p==='/shell'||p==='/rooms'||p==='/teachers'||p==='/packages'||p==='/report'||p==='/remote'||p==='/package-edit'||p==='/room'||p==='/home'||p==='/room-setup');
     let apiGuarded=(p.indexOf('/api/admin')===0)||(p.indexOf('/api/teachers')===0)||(p.indexOf('/api/rooms')===0)||(p==='/api/report')||(p==='/api/report.csv')||(p.indexOf('/api/packages')===0)||(p.indexOf('/api/generate')===0)||(p.indexOf('/api/package')===0)||(p==='/api/extract')||(p==='/api/dingtalk/diag')||(p==='/api/dingtalk/debug')||(p==='/api/dingtalk/refresh')||(p==='/api/room/upload')||(p==='/api/room/markdown');
     if(p==='/report' && u.searchParams.get('embed')==='1') htmlGuarded=false;
+    if(p==='/api/screen/perf') apiGuarded=false;
     if(p==='/api/report' && u.searchParams.get('embed')==='1') apiGuarded=false;
     if(htmlGuarded&&!teacher){ res.writeHead(302,{Location:'/login'}); return res.end(); }
     if(apiGuarded&&!teacher) return send(res,401,{ok:false,error:'login required'});
@@ -960,6 +961,12 @@ const server=http.createServer(async (req,res)=>{
     const f=roomStateFile(code); if(!fs.existsSync(f)) return send(res,404,{ok:false,error:'房间不存在'});
     setRoom(code); state=blank(); save();
     return send(res,200,{ok:true,code});
+  }
+  if(p==='/api/screen/perf' && req.method==='POST'){
+    const b=await readBody(req); const g=String(b.group||''); const d=Math.max(-10,Math.min(10,Number(b.delta)||0));
+    if(!state.groups[g]) return send(res,400,{ok:false,error:'分组不存在'});
+    state.groups[g].perf=(state.groups[g].perf||0)+d; state.updatedAt=new Date().toISOString(); save();
+    return send(res,200,{ok:true,group:g,perf:state.groups[g].perf});
   }
   if(p==='/api/screen') return send(res,200,screenView());
   if(p==='/api/stream'){

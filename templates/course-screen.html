@@ -81,7 +81,7 @@ function renderScores(){
   groups.forEach(function(g){html+='<div class="gchip"><b>'+esc(g.id)+'</b><em>'+esc(g.perf)+'</em><button class="gbtn" data-g="'+esc(g.id)+'" data-d="-1">−</button><button class="gbtn" data-g="'+esc(g.id)+'" data-d="1">+</button></div>'});
   bar.innerHTML=html+'<span class="label" id="scoreMsg"></span>';
   bar.querySelectorAll('[data-g]').forEach(function(b){b.onclick=function(){
-    fetch('/api/admin/perf?room='+ROOM,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({group:b.getAttribute('data-g'),delta:Number(b.getAttribute('data-d'))})})
+    fetch('/api/screen/perf?room='+ROOM,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({group:b.getAttribute('data-g'),delta:Number(b.getAttribute('data-d'))})})
       .then(function(r){ if(r.status===401) throw new Error('请用讲师账号打开大屏'); return r.json() })
       .then(function(d){ if(d.ok) refresh(); else throw new Error(d.error||'调整失败') })
       .catch(function(e){ var m=$('scoreMsg'); if(m)m.textContent=e.message; });
