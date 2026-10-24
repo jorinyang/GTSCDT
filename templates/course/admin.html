@@ -184,6 +184,8 @@ body{animation:pageIn .32s ease both}
 <script src="/dialog.js"></script>
 <script>
 var API=(window.YSCOT_API||'');
+var _xlsxLoading=false;
+function loadXLSX(){ if(_xlsxLoading||window.XLSX)return; _xlsxLoading=true; var s=document.createElement('script'); s.src='../xlsx.full.min.js'; s.onload=function(){_xlsxLoading=false}; s.onerror=function(){_xlsxLoading=false}; document.head.appendChild(s); }
 function fmt(n){return n==null?'—':n}
 async function api(p,opt){
   var r=await fetch(API+p,opt||{});
@@ -304,7 +306,7 @@ function bind(){
   })});
   var tf=document.getElementById('quizTpl');
   if(tf)tf.addEventListener('click',function(){
-    if(!window.XLSX){alert('表格组件还在加载，请稍后再试');return}
+    if(!window.XLSX){loadXLSX();alert('表格组件正在加载，请稍后再点一次');return}
   var wb=XLSX.utils.book_new();
     function add(name,header,sample){XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([header,sample]),name)}
     add('选择题',['题目','答案A','答案B','答案C','答案D','正确答案'],['例如：中华人民共和国成立于哪一年？','1949 年','1950 年','1948 年','1951 年','A']);
@@ -318,7 +320,7 @@ function bind(){
     var f=qf.files&&qf.files[0]; if(!f)return;
     try{
       var buf=await f.arrayBuffer();
-      if(!window.XLSX){alert('表格组件还在加载，请稍后再试');return}
+      if(!window.XLSX){loadXLSX();alert('表格组件正在加载，请稍后再点一次');return}
   var wb=XLSX.read(buf,{type:'array'});
       function rows(name){
         var sh=wb.Sheets[name]||wb.Sheets[(wb.SheetNames||[]).filter(function(n){return n.indexOf(name)===0})[0]];
@@ -495,5 +497,4 @@ refresh();setInterval(refresh,2500);
 })();
 </script>
 
-<script src="../xlsx.full.min.js" defer></script>
 </body></html>
