@@ -21,6 +21,11 @@ body{background:var(--bg);color:var(--text);font-family:Inter,"PingFang SC","Mic
 .gchip em{font-style:normal;font-size:12px;color:#D1D5DB;min-width:20px;text-align:center}
 .gbtn{border:1px solid #343941;background:#1D2127;color:#F4F4F5;border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:15px;line-height:1;font-family:inherit}
 .gbtn:hover{border-color:var(--lime);color:var(--lime)}
+.pagebar{display:none;gap:6px;align-items:center;padding:5px 18px;border-bottom:1px solid var(--line);background:#0C0E10;overflow-x:auto;flex:0 0 auto}
+.pagebar.show{display:flex}
+.pagebar .ptab{border:1px solid var(--line);background:#191C21;color:#D1D5DB;border-radius:7px;padding:4px 9px;font-size:11px;cursor:pointer;white-space:nowrap}
+.pagebar .ptab.on{border-color:var(--lime);color:var(--lime);background:rgba(203,247,78,.08)}
+.pagebar .pinfo{font-size:11px;color:#9CA3AF;margin-right:4px;white-space:nowrap}
 .stage{flex:1;position:relative;min-height:0;background:#050606}
 .stage iframe{width:100%;height:100%;border:0;background:#fff;display:none}
 .pptx-wrap{position:absolute;inset:0;overflow:auto;display:none;background:#111;padding:14px}
@@ -45,6 +50,7 @@ body{background:var(--bg);color:var(--text);font-family:Inter,"PingFang SC","Mic
     <a class="entry" id="entryScreen" target="_blank">大屏</a>
   </div>
 </div>
+<div class="pagebar" id="pageBar"></div>
 <div class="scorebar" id="scorebar"><span class="label">小组加减分</span><span class="label" id="scoreMsg"></span></div>
 <div class="stage" id="stage">
   <iframe id="frame" title="HTML 课件" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
@@ -54,7 +60,7 @@ body{background:var(--bg);color:var(--text);font-family:Inter,"PingFang SC","Mic
 <script src="/assets/pptx-preview.umd.js"></script>
 <script>
 var q=new URLSearchParams(location.search), ROOM=(q.get('room')||'ROOM0').toUpperCase();
-var files=[], current=-1, groups=[], screenData=null, pptxArea=null;
+var files=[], current=-1, groups=[], screenData=null, pptxArea=null, slideIndex=0, slideCount=0;
 var $=function(id){return document.getElementById(id)};
 document.getElementById('roomLabel').textContent=ROOM;
 ['entryJoin','entryRemote','entryOps','entryScreen'].forEach(function(id){
@@ -84,6 +90,7 @@ function renderScores(){
 function showEmpty(msg){
   $('frame').style.display='none'; $('pptxWrap').style.display='none'; $('empty').classList.add('show');
   $('empty').querySelector('span').textContent=msg||'在课堂后台「课程内容」上传 PPTX 或 HTML 后，这里会自动出现。';
+  var pb=$('pageBar'); if(pb){pb.classList.remove('show');pb.innerHTML=''}
 }
 function showFile(i){
   current=i;
@@ -92,7 +99,7 @@ function showFile(i){
   var name=f.name||'', url=f.url||'';
   if(/^html?$/i.test(ext(name))){
     $('empty').classList.remove('show'); $('pptxWrap').style.display='none'; $('frame').style.display='block'; $('frame').src=url;
-    $('slideNav').classList.remove('show');
+    $('slideNav').classList.remove('show'); $('pageBar').classList.remove('show');
     return;
   }
   if(/^pptx?$/i.test(ext(name))){
@@ -111,11 +118,16 @@ function renderPptx(url){
   var stage=$('stage'); var w=Math.max(320,Math.min(stage.clientWidth-40,1400)); var h=Math.round(w*9/16);
   if(!window.pptxPreview||!window.pptxPreview.init){pptxMsg('PPTX 预览组件加载失败');return}
   try{
-    pptxArea=window.pptxPreview.init(holder,{width:w,height:h});
+    pptxArea=window.pptxPreview.init(holder,{width:w,height:h,mode:'slide'});
     fetch(url,{cache:'no-store'}).then(function(r){return r.arrayBuffer()}).then(function(buf){
       var ret=pptxArea.preview(buf);
-      if(ret&&ret.then){ret.then(function(){pptxMsg('')}).catch(function(e){pptxMsg('PPTX 渲染失败：'+esc(e.message||e))})}
-      else{setTimeout(function(){pptxMsg('')},800)}
+      var done=function(){
+        slideCount=Number(pptxArea.slideCount)||0;
+        if(!slideCount){pptxMsg('PPTX 解析失败：没有读到幻灯片，请换用 PowerPoint 标准导出的 PPTX');return}
+        slideIndex=0; renderPageTabs(); pptxMsg('');
+      };
+      if(ret&&ret.then){ret.then(done).catch(function(e){pptxMsg('PPTX 渲染失败：'+esc(e.message||e))})}
+      else{setTimeout(done,800)}
     }).catch(function(e){pptxMsg('PPTX 读取失败：'+esc(e.message||e))});
   }catch(e){ pptxMsg('PPTX 渲染失败：'+esc(e.message||e)); }
 }
@@ -128,7 +140,21 @@ function refresh(){
     if(sig!==files.map(function(f){return f.name+f.url}).join('|')){ files=fs; current=Math.min(Math.max(current,0),Math.max(files.length-1,0)); renderTabs(); if(files.length) showFile(current); else showEmpty(); }
   }).catch(function(){});
 }
-$('prevSlide').onclick=function(){ var w=$('pptxWrap'); w.scrollBy({top:-Math.round(w.clientHeight*0.9),behavior:'smooth'}); };
-$('nextSlide').onclick=function(){ var w=$('pptxWrap'); w.scrollBy({top:Math.round(w.clientHeight*0.9),behavior:'smooth'}); };
+function setSlide(i){
+  if(!pptxArea||!slideCount)return;
+  i=Math.max(0,Math.min(slideCount-1,i)); slideIndex=i;
+  try{ if(pptxArea.renderSingleSlide) pptxArea.renderSingleSlide(i); }catch(e){}
+  var bar=$('pageBar'); if(bar){bar.querySelectorAll('[data-p]').forEach(function(b){b.classList.toggle('on',Number(b.getAttribute('data-p'))===i)})}
+}
+function renderPageTabs(){
+  var bar=$('pageBar'); if(!bar)return;
+  if(!slideCount){bar.classList.remove('show');bar.innerHTML='';return}
+  var html='<span class="pinfo">PPT 第 '+(slideIndex+1)+' / '+slideCount+' 页</span>';
+  for(var i=0;i<slideCount;i++){html+='<button class="ptab '+(i===slideIndex?'on':'')+'" data-p="'+i+'">'+(i+1)+'</button>'}
+  bar.innerHTML=html; bar.classList.add('show');
+  bar.querySelectorAll('[data-p]').forEach(function(b){b.onclick=function(){setSlide(Number(b.getAttribute('data-p')))}});
+}
+$('prevSlide').onclick=function(){ setSlide(slideIndex-1); };
+$('nextSlide').onclick=function(){ setSlide(slideIndex+1); };
 refresh(); setInterval(refresh,4000);
 </script></body></html>
