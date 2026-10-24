@@ -51,7 +51,7 @@ curl -s https://yscot.clawshell.online/mcp \
 
 ### 2.2 课程素材
 
-**方式 A：base64 文件**（≤ 30MB，写入房间素材库）
+**方式 A：base64 文件**（≤ 10MB，写入房间素材库）
 
 ```json
 {
@@ -88,7 +88,7 @@ curl -s https://yscot.clawshell.online/mcp \
 - `filename` 可省略，默认使用 `name`；文件名中的特殊字符会被替换；
 - 文件写入 `data/rooms/<ROOM>/uploads/`，返回可直接下载的 `url`；
 - 外链素材保存在房间状态的 `materials` 中，学员端与文件素材合并展示；
-- 单个文件超过 30MB 返回错误，不会截断。
+- 单个文件超过 10MB 返回错误，不会截断。
 
 ### 2.3 行动卡 / 场景卡
 
@@ -173,7 +173,7 @@ curl -s https://yscot.clawshell.online/mcp \
 | --- | --- |
 | 缺少 token / token 错误 | HTTP 401 |
 | 必填字段为空 | `isError: true` + 错误文本 |
-| 素材超过 30MB | `isError: true` + 大小提示 |
+| 素材超过 10MB | `isError: true` + 大小提示 |
 | 文件与 URL 都未提供 | 报错，不落库 |
 | 题目选项不足 2 个 | 跳过该题；全部无效则报错 |
 | 更新不存在的卡片 ID | 报错，不新增 |

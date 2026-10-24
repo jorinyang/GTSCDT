@@ -247,7 +247,7 @@ async function mcpHandle(msg){
         const nm=String(a.name||'').trim(); if(!nm) return reply({isError:true,content:[{type:'text',text:'name 必填'}]});
         if(a.data_base64){
           const buf=Buffer.from(String(a.data_base64),'base64'); if(!buf.length) return reply({isError:true,content:[{type:'text',text:'data_base64 为空'}]});
-          if(buf.length>30*1024*1024) return reply({isError:true,content:[{type:'text',text:'单文件超过 30MB'}]});
+          if(buf.length>10*1024*1024) return reply({isError:true,content:[{type:'text',text:'单文件超过 10MB'}]});
           const raw=String(a.filename||nm); const safe=raw.replace(/[^\w.\-\u4e00-\u9fa5]/g,'_');
           const stored=Date.now().toString(36)+'-'+safe; fs.writeFileSync(path.join(roomUploadDir(room),stored),buf);
           let meta={}; try{ meta=JSON.parse(fs.readFileSync(roomMetaFile(room),'utf8')); }catch(e){}
@@ -532,7 +532,7 @@ function readRaw(req, limit){
     req.on('data',c=>{ n+=c.length; if(n>max){ reject(new Error('too large')); req.destroy(); return; } chunks.push(c); });
     req.on('end',()=>resolve(Buffer.concat(chunks))); req.on('error',reject); });
 }
-function readBody(req){ return new Promise((resolve,reject)=>{ let d=''; req.on('data',c=>{d+=c; if(d.length>2e6){reject(new Error('too large'));req.destroy()}}); req.on('end',()=>{ try{resolve(d?JSON.parse(d):{})}catch(e){resolve({})} }); req.on('error',reject); }); }
+function readBody(req,max){ const limit=Number(max)||2e6; return new Promise((resolve,reject)=>{ let d=''; req.on('data',c=>{d+=c; if(d.length>limit){reject(new Error('too large'));req.destroy()}}); req.on('end',()=>{ try{resolve(d?JSON.parse(d):{})}catch(e){resolve({})} }); req.on('error',reject); }); }
 const MIME={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.json':'application/json; charset=utf-8','.csv':'text/csv; charset=utf-8'};
 const MAP=_IS_KIT
   ? {'/':'promo.html','/promo':'promo.html','/live':'live.html','/live.html':'live.html','/course':'course/course.html','/course.html':'course/course.html','/grader':'course/grader.html','/grader.html':'course/grader.html','/admin':'course/admin.html','/admin.html':'course/admin.html','/ops':'course/admin.html','/join':'live.html','/screen':'screen.html','/remote':'remote.html','/login':'login.html','/shell':'course-shell.html','/rooms':'rooms.html','/teachers':'teachers.html','/packages':'packages.html','/report':'report.html','/package-edit':'package-edit.html','/room':'room.html','/home':'home.html','/room-setup':'room-setup.html'}
@@ -560,7 +560,7 @@ const server=http.createServer(async (req,res)=>{
       const auth=String(req.headers.authorization||'');
       if(auth!=='Bearer '+process.env.MCP_TOKEN) return send(res,401,{jsonrpc:'2.0',error:{code:-32001,message:'unauthorized'},id:null});
     }
-    const body=await readBody(req);
+    const body=await readBody(req,16*1024*1024);
     const reply=await mcpHandle(body);
     return send(res,200,reply);
   }
