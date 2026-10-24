@@ -112,3 +112,10 @@ button,.btn,.tab,.tabbtn{font-family:inherit}
 @media(max-width:720px){
   .top .links{flex-wrap:nowrap!important;overflow-x:auto!important}
 }
+
+/* mobile table density */
+@media(max-width:720px){
+  .card table{min-width:560px}
+  .card th,.card td{padding:6px 5px;font-size:12.5px}
+  .card{overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+}
