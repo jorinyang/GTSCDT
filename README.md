@@ -105,45 +105,58 @@ YSCOT 把这三段接成一条流水线：**一次上传，生成一套内容；
 
 ```mermaid
 flowchart TB
-  subgraph StudentCap["学员端 /join · 向上衍生"]
-    direction LR
-    S1["分组抽签"]
-    S2["抢答"]
-    S3["在线答题"]
-    S4["点名核验"]
-    S5["行动卡 / 场景卡推送"]
-    S6["课程素材下载"]
-    S7["作业提交"]
+  subgraph Manage["课堂管理"]
+    direction TB
+    subgraph MR1[" "]
+      direction LR
+      M1["投票题库添加"] ~~~ M2["抽签分组管理"] ~~~ M3["作业配置"]
+    end
+    subgraph MR2[" "]
+      direction LR
+      M4["点名结果"] ~~~ M5["工作坊配置"] ~~~ M6["课程素材配置"]
+    end
+    subgraph MR3[" "]
+      direction LR
+      M7["行动卡 / 场景卡配置"] ~~~ M8["分组积分管理"] ~~~ M9["学员管理"]
+    end
+    MR1 ~~~ MR2 ~~~ MR3
   end
 
-  subgraph AdminCap["课堂后台 /ops · 向上衍生两层"]
-    direction TB
-    subgraph Manage["课堂管理"]
-      direction LR
-      M1["投票题库添加"]
-      M2["抽签分组管理"]
-      M3["作业配置"]
-      M4["点名结果"]
-      M5["工作坊配置"]
-      M6["课程素材配置"]
-      M7["行动卡 / 场景卡配置"]
-      M8["分组积分管理"]
-      M9["学员管理"]
-    end
-    subgraph Grade["作业评分"]
-      direction LR
-      H1["作业提交开关"]
-      H2["作业提交状态"]
-      H3["提交情况"]
-    end
-    subgraph QuizCfg["在线答题"]
-      direction LR
-      Q1["下载模板"]
-      Q2["导入题库"]
-      Q3["出题方式"]
-      Q4["开启 / 关闭答题"]
-    end
+  subgraph Grade["作业评分"]
+    direction LR
+    H1["作业提交开关"] ~~~ H2["作业提交状态"] ~~~ H3["提交情况"]
   end
+
+  subgraph QuizCfg["在线答题"]
+    direction TB
+    subgraph QR1[" "]
+      direction LR
+      Q1["下载模板"] ~~~ Q2["导入题库"]
+    end
+    subgraph QR2[" "]
+      direction LR
+      Q3["出题方式"] ~~~ Q4["开启 / 关闭答题"]
+    end
+    QR1 ~~~ QR2
+  end
+
+  subgraph StudentCap["学员端 /join · 能力"]
+    direction TB
+    subgraph SR1[" "]
+      direction LR
+      S1["分组抽签"] ~~~ S2["抢答"] ~~~ S3["在线答题"] ~~~ S4["点名核验"]
+    end
+    subgraph SR2[" "]
+      direction LR
+      S5["行动卡 / 场景卡推送"] ~~~ S6["课程素材下载"] ~~~ S7["作业提交"]
+    end
+    SR1 ~~~ SR2
+  end
+
+  Manage ~~~ Grade
+  Manage ~~~ QuizCfg
+  Grade ~~~ StudentCap
+  QuizCfg ~~~ StudentCap
 
   subgraph Client["课堂四端"]
     S["学员端 /join"]
@@ -151,6 +164,11 @@ flowchart TB
     O["课堂后台 /ops"]
     P["大屏 /screen"]
   end
+
+  Manage --> O
+  Grade --> O
+  QuizCfg --> O
+  StudentCap --> S
 
   subgraph Core["Node 20 · 零依赖服务"]
     API["REST API + MCP"]
@@ -166,10 +184,6 @@ flowchart TB
     DING["钉钉开放平台"]
   end
 
-  StudentCap --> S
-  Manage --> O
-  Grade --> O
-  QuizCfg --> O
   S --> API
   R --> API
   O --> API
@@ -180,6 +194,14 @@ flowchart TB
   API --> AUTH
   GEN --> LLM
   AUTH --> DING
+
+  style MR1 fill:transparent,stroke:transparent
+  style MR2 fill:transparent,stroke:transparent
+  style MR3 fill:transparent,stroke:transparent
+  style QR1 fill:transparent,stroke:transparent
+  style QR2 fill:transparent,stroke:transparent
+  style SR1 fill:transparent,stroke:transparent
+  style SR2 fill:transparent,stroke:transparent
 ```
 
 **设计取向**
