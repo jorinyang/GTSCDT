@@ -144,17 +144,17 @@ flowchart TB
 
 ```bash
 git clone https://github.com/jorinyang/Yice-Strategy-Course-Operation-Tool.git
-cd GTSCDT/templates
+cd Yice-Strategy-Course-Operation-Tool/templates
 node server.mjs
 ```
 
-打开 <http://127.0.0.1:8899>：
+打开 <http://127.0.0.1:8899>；线上：<https://yscot.clawshell.online>：
 
 | 页面 | 地址 |
 | --- | --- |
 | 登录 / 工作台 | `/` → `/home` |
 | 课程房间 | `/room?code=ROOM0` |
-| 课程生成 | `/room-setup?code=ROOM0` |
+| 课程内容 | `/room-setup?code=ROOM0` |
 | 课堂后台 | `/ops?room=ROOM0` |
 | 遥控器 | `/remote?room=ROOM0` |
 | 大屏 | `/screen?room=ROOM0` |
@@ -163,11 +163,11 @@ node server.mjs
 Docker：
 
 ```bash
-docker build -t gtscdt .
+docker build -t yscot .
 docker run -d -p 8899:8899 \
   -e SESSION_SECRET=change-me \
   -e LOCAL_TEACHER_PASSWORD=change-me \
-  gtscdt
+  yscot
 ```
 
 ### 环境变量
