@@ -103,7 +103,7 @@ YSCOT 把这三段接成一条流水线：**一次上传，生成一套内容；
 
 ## 架构
 
-<img src="docs/images/architecture.svg" alt="YSCOT 架构图：遥控器、课堂管理、学员端、作业评分、在线答题、大屏与四端" width="100%" />
+<img src="docs/images/architecture-v2.svg" alt="YSCOT 架构图：遥控器、课堂管理、学员端、作业评分、在线答题、大屏与四端" width="100%" />
 
 **设计取向**
 
