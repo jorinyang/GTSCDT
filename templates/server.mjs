@@ -508,7 +508,10 @@ const server=http.createServer(async (req,res)=>{
   }
   if(p==='/auth/dingtalk'){
     if(!(DING_ID&&DING_SECRET)) return send(res,501,{ok:false,error:'未配置钉钉应用'});
-    const origin=(process.env.PUBLIC_URL||u.origin).replace(/\/$/,'');
+    const host=(req.headers.host||'').split(':')[0];
+    const proto=(req.headers['x-forwarded-proto']||((host==='localhost'||host==='127.0.0.1')?'http':'https')).split(',')[0];
+    const allowedHost=/(^|\.)clawshell\.online$/.test(host)||host==='localhost'||host==='127.0.0.1';
+    const origin=allowedHost?(proto+'://'+host):(process.env.PUBLIC_URL||u.origin).replace(/\/$/,'');
     const redirect=origin+'/auth/dingtalk/callback';
     const target='https://login.dingtalk.com/oauth2/auth?redirect_uri='+encodeURIComponent(redirect)+'&response_type=code&client_id='+encodeURIComponent(DING_ID)+'&scope=openid&prompt=consent&state=gtsc';
     res.writeHead(302,{Location:target}); return res.end();
