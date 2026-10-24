@@ -422,7 +422,7 @@ refresh();setInterval(refresh,2500);
     document.getElementById('pane-quiz').classList.toggle('hidden',t!=='quiz');
     var pm=document.getElementById('pane-model'); if(pm)pm.classList.toggle('hidden',t!=='model');
     tabs.forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===t)});
-    if(t==='hw'){var f=document.getElementById('hwFrame');if(f&&!f.src)f.src=local?'grader?embed=1':'grader.html?embed=1'}
+    if(t==='hw'){var f=document.getElementById('hwFrame');if(f&&!f.getAttribute('src'))f.src=local?'grader?embed=1':'grader.html?embed=1'}
     try{history.replaceState(null,'','#'+t)}catch(e){}
   }
   tabs.forEach(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-tab'))})});
