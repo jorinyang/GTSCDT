@@ -702,6 +702,25 @@ const server=http.createServer(async (req,res)=>{
       return send(res,200,{ok:true,name:raw,stored,size:buf.length,url:'/api/room/file?name='+encodeURIComponent(stored)});
     }catch(e){ return send(res,400,{ok:false,error:String(e.message||e)}); }
   }
+  if(p==='/api/room/deletefile' && req.method==='POST'){
+    const b=await readBody(req); const stored=String(b.stored||'');
+    if(!stored||stored.indexOf('/')>=0||stored.indexOf('..')>=0) return send(res,400,{ok:false,error:'文件名不对'});
+    let meta={}; try{ meta=JSON.parse(fs.readFileSync(roomMetaFile(currentRoom),'utf8')); }catch(e){}
+    const files=(meta.files||[]); const idx=files.findIndex(function(f){return f.stored===stored});
+    if(idx<0) return send(res,404,{ok:false,error:'文件不存在'});
+    try{ fs.unlinkSync(path.join(roomUploadDir(currentRoom),stored)); }catch(e){}
+    files.splice(idx,1); meta.files=files; fs.writeFileSync(roomMetaFile(currentRoom),JSON.stringify(meta,null,1));
+    return send(res,200,{ok:true});
+  }
+  if(p==='/api/room/renamefile' && req.method==='POST'){
+    const b=await readBody(req); const stored=String(b.stored||''); const name=String(b.name||'').trim();
+    if(!stored||stored.indexOf('/')>=0||stored.indexOf('..')>=0||!name) return send(res,400,{ok:false,error:'参数不对'});
+    let meta={}; try{ meta=JSON.parse(fs.readFileSync(roomMetaFile(currentRoom),'utf8')); }catch(e){}
+    const files=(meta.files||[]); const f=files.filter(function(x){return x.stored===stored})[0];
+    if(!f) return send(res,404,{ok:false,error:'文件不存在'});
+    f.name=name.slice(0,120); fs.writeFileSync(roomMetaFile(currentRoom),JSON.stringify(meta,null,1));
+    return send(res,200,{ok:true});
+  }
   if(p==='/api/room/file'){
     const name=String(u.searchParams.get('name')||'');
     if(!name||name.indexOf('/')>=0||name.indexOf('..')>=0) return send(res,404,'not found','text/plain');

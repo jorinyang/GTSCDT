@@ -189,7 +189,7 @@ function openCreateRoom(){
     onReady:bindCitySelect,
     onSubmit:function(v,close){
       fetch('/api/rooms/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({project:v.project,date:v.date,province:v.province,city:v.city})})
-        .then(function(r){return r.json()}).then(function(d){ if(d.ok)location.href='/room-setup?code='+d.code; else GTSC.alert(d.error||'创建失败'); });
+        .then(function(r){return r.json()}).then(function(d){ if(d.ok)location.href='/room?code='+d.code; else GTSC.alert(d.error||'创建失败'); });
       return false;
     }
   });
