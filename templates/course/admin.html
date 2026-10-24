@@ -144,6 +144,7 @@ body{animation:pageIn .32s ease both}
     <div class="rowflex" style="gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center">
       <span class="muted small">出题方式</span>
       <select id="quizMode" style="padding:4px 8px"><option value="random">随机（每人不同）</option><option value="seq">顺序（统一卷）</option></select>
+      <span class="muted small">随机模式下每个学员独立抽题</span>
       <span class="muted small">选择题</span><input id="qc-choice" type="number" min="0" value="5" style="width:56px;padding:4px 6px" />
       <span class="muted small">判断题</span><input id="qc-judge" type="number" min="0" value="3" style="width:56px;padding:4px 6px" />
       <span class="muted small">填空题</span><input id="qc-blank" type="number" min="0" value="2" style="width:56px;padding:4px 6px" />
@@ -461,14 +462,16 @@ refresh();setInterval(refresh,2500);
       var hwBtn=document.getElementById('hwOpenBtn'); if(hwBtn){ window.__hw=!!d.hwOpen; hwBtn.textContent=d.hwOpen?'关闭作业提交':'开启作业提交'; hwBtn.onclick=function(){ post('/api/admin/hw',{open:!window.__hw}).then(load); }; }
       var hwList=document.getElementById('hwTasks'); if(hwList){ var ts=d.tasks||[]; hwList.innerHTML=ts.length?ts.map(function(t,i){return '<div style="padding:4px 0">'+(i+1)+'. '+t.title+'</div>'}).join(''):'<span class="muted">还没有作业题</span>'; }
       var cl=document.getElementById('cardList');
-      if(cl){ window.__cards=d.cards||[]; cl.innerHTML=(window.__cards.length?window.__cards.map(function(c){return '<div style="border:1px solid #2A2A32;border-radius:10px;padding:8px 10px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+c.theme+'</b><span class="small muted">'+c.type+'</span></div><div class="small" style="margin-top:4px">'+c.content+'</div><div class="small muted" style="margin-top:4px">'+c.attrs+'</div><div style="margin-top:6px"><button class="btn sm" onclick="editCard(\''+c.id+'\')">编辑</button> <button class="btn sm danger" onclick="delCard(\''+c.id+'\')">删除</button></div></div>'}).join(''):'<span class="muted small">还没有卡片</span>'); }
+      if(cl){ window.__extMaterials=d.materials||[]; window.__cards=d.cards||[]; cl.innerHTML=(window.__cards.length?window.__cards.map(function(c){return '<div style="border:1px solid #2A2A32;border-radius:10px;padding:8px 10px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+c.theme+'</b><span class="small muted">'+c.type+'</span></div><div class="small" style="margin-top:4px">'+c.content+'</div><div class="small muted" style="margin-top:4px">'+c.attrs+'</div><div style="margin-top:6px"><button class="btn sm" onclick="editCard(\''+c.id+'\')">编辑</button> <button class="btn sm danger" onclick="delCard(\''+c.id+'\')">删除</button></div></div>'}).join(''):'<span class="muted small">还没有卡片</span>'); }
       var mt=document.getElementById('matToggle');
       if(mt){mt.textContent='素材发放：'+(d.config&&d.config.materialOpen?'已开启':'已关闭');}
     }).catch(function(){});
     fetch('/api/rooms',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
       var room=(d.rooms||[]).filter(function(x){return x.code===ROOM})[0]||{}; var fs=room.files||[];
+      var ext=window.__extMaterials||[];
+      var items=fs.map(function(f){return '<div><a href="'+f.url+'" target="_blank">'+f.name+'</a></div>'}).concat(ext.map(function(f){return '<div><a href="'+f.url+'" target="_blank">'+f.name+'</a> <span class="muted small">外链</span></div>'}));
       var ml=document.getElementById('matList');
-      if(ml)ml.innerHTML=fs.length?fs.map(function(f){return '<div><a href="'+f.url+'" target="_blank">'+f.name+'</a></div>'}).join(''):'<span class="muted">还没有素材文件</span>';
+      if(ml)ml.innerHTML=items.length?items.join(''):'<span class="muted">还没有素材文件</span>';
     }).catch(function(){});
   }
   document.getElementById('vpAdd').onclick=function(){
