@@ -194,6 +194,21 @@ flowchart TB
 
 ---
 
+## MCP 内容导入
+
+课堂内容可以通过 MCP 按场次导入，讲师用同一个 `room` 参数指定场次：
+
+| 工具 | 内容 |
+| --- | --- |
+| `votebank.put` | 投票题库（问题 + 选项，追加或覆盖） |
+| `material.put` | 课程素材（base64 文件或 http(s) 外链） |
+| `card.put` | 行动卡 / 场景卡（主题、类型、内容、属性） |
+| `rubric.put` | 作业评分标准（按 T1–T6 关卡） |
+
+- 端点：`POST https://yscot.clawshell.online/mcp`（本地 `/mcp`）；
+- 鉴权：`Authorization: Bearer <MCP_TOKEN>`；
+- 字段、示例、错误码与大小限制：见 [MCP 内容导入标准](docs/09-MCP内容导入标准.md)。
+
 ## 快速开始
 
 ```bash
