@@ -1,22 +1,22 @@
-# GTSCDT · 弈策课程开发工具
+# Yice Strategy Course Operation Tool（YSCOT）· 弈策课程运营系统
 
 <div align="center">
 
 **把一堂企业 AI 培训，从课前生成跑到课后复盘。**
 
-[![Release](https://img.shields.io/github/v/release/jorinyang/GTSCDT?style=flat-square&color=CBF74E)](https://github.com/jorinyang/GTSCDT/releases)
+[![Release](https://img.shields.io/github/v/release/jorinyang/Yice-Strategy-Course-Operation-Tool?style=flat-square&color=CBF74E)](https://github.com/jorinyang/Yice-Strategy-Course-Operation-Tool/releases)
 [![Node](https://img.shields.io/badge/Node-20+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/License-MIT-3355FF?style=flat-square)](LICENSE)
 [![DingTalk](https://img.shields.io/badge/DingTalk-OAuth-1E9FFF?style=flat-square)](https://open.dingtalk.com/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-CBF74E?style=flat-square)](#contributing)
 
-<img src="docs/images/hero.jpg" alt="GTSCDT 四端协同" width="100%" />
+<img src="docs/images/hero.jpg" alt="YSCOT 四端协同" width="100%" />
 
 </div>
 
 讲师把课程大纲和课件丢进来，系统用模型生成课程页、宣传页、题库、过程素材和作业场景题；课堂上学员端、遥控器、课堂后台、大屏四个端同时跑；下课前作业评分和课堂报告已经就绪。
 
-> **Game Theory Strategy Course Development Tools** · 企业 AI 培训的课堂运营系统
+> **Yice Strategy Course Operation Tool** · 企业 AI 培训的课堂运营系统
 > Node 20 零依赖服务 · 钉钉登录 · 房间模型 · 可私有化部署
 
 ---
@@ -29,7 +29,7 @@
 - 课中：投票、抢答、计时、分组、作业提交散落在不同工具里；
 - 课后：作业评分靠人工翻文件，课堂数据留不下来。
 
-GTSCDT 把这三段接成一条流水线：**一次上传，生成一套内容；一个房间，跑完一堂课；一份报告，留下全部过程数据。**
+YSCOT 把这三段接成一条流水线：**一次上传，生成一套内容；一个房间，跑完一堂课；一份报告，留下全部过程数据。**
 
 <img src="docs/images/ai-generation.jpg" alt="从大纲到课程内容" width="100%" />
 
@@ -143,7 +143,7 @@ flowchart TB
 ## 快速开始
 
 ```bash
-git clone https://github.com/jorinyang/GTSCDT.git
+git clone https://github.com/jorinyang/Yice-Strategy-Course-Operation-Tool.git
 cd GTSCDT/templates
 node server.mjs
 ```
@@ -253,7 +253,7 @@ GTSCDT/
 | **v0.2** | 后台四标签、在线答题、模型管理、AI 评分 |
 | **v0.1** | 六页面 + 局域网服务 |
 
-更详细的变更见 [Releases](https://github.com/jorinyang/GTSCDT/releases)。
+更详细的变更见 [Releases](https://github.com/jorinyang/Yice-Strategy-Course-Operation-Tool/releases)。
 
 ---
 
